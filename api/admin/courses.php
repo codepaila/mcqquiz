@@ -31,6 +31,7 @@ use Quiznosis\Models\CourseMaterial;
 use Quiznosis\Models\QuizSet;
 use Quiznosis\Models\Note;
 use Quiznosis\Models\Profession;
+use Quiznosis\Models\ExamType;
 
 $me = Auth::requireAdmin();
 $method = Request::method();
@@ -170,11 +171,12 @@ if ($method === 'GET') {
         Response::ok(['data' => $course]);
     }
     $rows = Database::pdo()->query(
-        "SELECT c.*, p.name AS profession_name,
+        "SELECT c.*, p.name AS profession_name, et.name AS exam_type_name,
                 (SELECT COUNT(*) FROM course_materials cm WHERE cm.course_id=c.id) AS materials_count,
                 (SELECT COUNT(*) FROM enrollments e WHERE e.course_id=c.id) AS enrollments_count
            FROM courses c
            LEFT JOIN professions p ON p.id = c.profession_id
+           LEFT JOIN exam_types et ON et.id = c.exam_type_id
           ORDER BY c.created_at DESC"
     )->fetchAll();
     Response::ok(['data' => $rows]);
@@ -228,6 +230,10 @@ if ($method === 'POST') {
     if ($profId && !Profession::findById((string)$profId)) {
         Response::error('professionId not found', 400);
     }
+    $examTypeId = $body['examTypeId'] ?? null;
+    if ($examTypeId && !ExamType::findById((string)$examTypeId)) {
+        Response::error('examTypeId not found', 400);
+    }
 
     $row = Course::create([
         'title'            => $title,
@@ -236,6 +242,7 @@ if ($method === 'POST') {
         'syllabus'         => $body['syllabus'] ?? null,
         'is_public'        => array_key_exists('isPublic', $body) ? (!empty($body['isPublic']) ? 1 : 0) : 1,
         'profession_id'    => $profId ?: null,
+        'exam_type_id'     => $examTypeId ?: null,
         'has_subscription' => !empty($body['hasSubscription']) ? 1 : 0,
         'access_type'      => $access,
         'requires_approval'=> !empty($body['requiresApproval']) ? 1 : 0,
@@ -255,7 +262,7 @@ if ($method === 'PATCH' || $method === 'PUT') {
 
     $map = [
         'title'=>'title', 'slug'=>'slug', 'description'=>'description', 'syllabus'=>'syllabus',
-        'isPublic'=>'is_public', 'professionId'=>'profession_id',
+        'isPublic'=>'is_public', 'professionId'=>'profession_id', 'examTypeId'=>'exam_type_id',
         'hasSubscription'=>'has_subscription', 'accessType'=>'access_type',
         'requiresApproval'=>'requires_approval',
     ];
@@ -273,7 +280,10 @@ if ($method === 'PATCH' || $method === 'PUT') {
         if ($k === 'professionId' && $v && !Profession::findById((string)$v)) {
             Response::error('professionId not found', 400);
         }
-        $patch[$col] = $v ?: ($k === 'professionId' ? null : $v);
+        if ($k === 'examTypeId' && $v && !ExamType::findById((string)$v)) {
+            Response::error('examTypeId not found', 400);
+        }
+        $patch[$col] = $v ?: (in_array($k, ['professionId','examTypeId'], true) ? null : $v);
     }
     if (!$patch) Response::error('No fields to update', 400);
 

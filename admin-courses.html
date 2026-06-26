@@ -197,10 +197,11 @@
   mountFooter();
 
   // Shared taxonomy for dropdowns
-  let subjects = [], topics = [], professions = [];
+  let subjects = [], topics = [], professions = [], examTypes = [];
   try { professions = (await taxonomy.professions()).data; } catch {}
   try { subjects = (await taxonomy.subjects()).data; } catch {}
   try { topics = (await taxonomy.topics()).data; } catch {}
+  try { examTypes = (await taxonomy.examTypes()).data; } catch {}
 
   document.querySelectorAll('.tab').forEach(t => {
     t.addEventListener('click', () => {
@@ -316,6 +317,12 @@
             ${professions.map(p => `<option value="${escapeHtml(p.id)}" ${e.profession_id === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
           </select>
         </div>
+        <div class="field"><label>Exam Type <span class="text-muted" style="font-weight:400;">(used for the Exam Type filter chips on the Courses page)</span></label>
+          <select name="examTypeId">
+            <option value="">— None —</option>
+            ${examTypes.map(et => `<option value="${escapeHtml(et.id)}" ${e.exam_type_id === et.id ? 'selected' : ''}>${escapeHtml(et.name)}</option>`).join('')}
+          </select>
+        </div>
         <label class="checkbox"><input type="checkbox" name="requiresApproval" ${parseInt(e.requires_approval)?'checked':''}> Enrollment needs admin approval</label>
         <div class="flex" style="gap:10px; justify-content:flex-end;">
           <button type="button" class="btn btn-ghost" data-close>Cancel</button>
@@ -344,6 +351,7 @@
         accessType: fd.get('accessType'),
         isPublic: fd.get('isPublic') === '1',
         professionId: fd.get('professionId') || null,
+        examTypeId: fd.get('examTypeId') || null,
         requiresApproval: fd.get('requiresApproval') === 'on',
       };
       const coverFile = (el.querySelector('#course-cover-file')?.files || [])[0];

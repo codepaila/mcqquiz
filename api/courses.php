@@ -241,6 +241,7 @@ if ($id) {
 $rows = $pdo->query(
     "SELECT c.id, c.title, c.slug, c.description, c.cover_url, c.access_type, c.requires_approval,
             c.profession_id, p.name AS profession_name,
+            c.exam_type_id, et0.name AS exam_type_name,
             (SELECT COUNT(*) FROM course_materials cm WHERE cm.course_id = c.id AND cm.type='QUIZ_SET') AS quiz_sets_count,
             (SELECT COUNT(*) FROM course_materials cm WHERE cm.course_id = c.id AND cm.type='NOTE')     AS notes_count,
             (SELECT COUNT(DISTINCT e.user_id) FROM enrollments e
@@ -248,13 +249,18 @@ $rows = $pdo->query(
                 AND (e.expires_at IS NULL OR e.expires_at > NOW())) AS enrolled_count
        FROM courses c
        LEFT JOIN professions p ON p.id = c.profession_id
+       LEFT JOIN exam_types et0 ON et0.id = c.exam_type_id
       WHERE c.is_public = 1
       ORDER BY c.created_at DESC"
 )->fetchAll();
 
-// Annotate each course with the distinct exam types its quiz sets cover.
-// The Courses catalog page exposes Exam Type as a filter chip strip,
-// so this list of ids per course is what the client matches against.
+// Annotate each course with the distinct exam types it covers, for the
+// Exam Type filter chip strip on the catalog page. This is the union of:
+//   1. The course's own explicit exam_type_id (set directly by the admin
+//      on the course form — the reliable, primary signal).
+//   2. The exam types of whichever quiz sets happen to be bundled inside
+//      it (kept as a fallback/extra signal for courses that haven't had
+//      an explicit exam type set, or that legitimately span more than one).
 if ($rows) {
     $courseIds = array_column($rows, 'id');
     $place = implode(',', array_fill(0, count($courseIds), '?'));
@@ -276,7 +282,11 @@ if ($rows) {
         $etByCourse[$cid][] = ['id' => $r['exam_type_id'], 'name' => $r['exam_type_name']];
     }
     foreach ($rows as &$c) {
-        $c['exam_types'] = $etByCourse[$c['id']] ?? [];
+        $merged = $etByCourse[$c['id']] ?? [];
+        if ($c['exam_type_id'] && !in_array($c['exam_type_id'], array_column($merged, 'id'), true)) {
+            $merged[] = ['id' => $c['exam_type_id'], 'name' => $c['exam_type_name']];
+        }
+        $c['exam_types'] = $merged;
     }
     unset($c);
 }

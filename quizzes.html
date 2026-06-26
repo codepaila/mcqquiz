@@ -44,10 +44,6 @@
     border-color:var(--accent); color:var(--accent); transform:translateY(-1px);
   }
   .qz-clear-btn { color:var(--muted); }
-  .qz-clear-btn:disabled {
-    opacity:0.45; cursor:not-allowed; transform:none;
-    border-color:var(--border); color:var(--muted);
-  }
   /* Count badge sits inside the Filters button on the right */
   .qz-filter-btn-count {
     display:inline-flex; align-items:center; justify-content:center;
@@ -75,12 +71,21 @@
   }
   [data-theme="dark"] .qz-filter-btn-dot { box-shadow:0 0 0 2px var(--card); }
 
-  /* Show / hide actions cleanly on small screens — labels collapse to
-     icon-only so the search keeps the lion's share of the row. */
+  /* Filter Course keeps its label at every width. Clear collapses to a
+     small icon-only circular button on phones, since "Clear" as text only
+     ever appears once a filter is active and the row is already tight. */
   .qz-filter-btn-label, .qz-clear-btn-label { font-weight:700; }
-  @media (max-width:520px) {
-    .qz-filter-btn-label, .qz-clear-btn-label { display:none; }
-    .qz-filter-btn, .qz-clear-btn { padding:0 10px; }
+  @media (max-width:600px) {
+    .qz-clear-btn {
+      width:36px; height:36px; padding:0; justify-content:center;
+      border-radius:50%;
+    }
+    .qz-clear-btn-label { display:none; }
+  }
+  @media (max-width:380px) {
+    /* Only on very narrow phones does the Filters button itself tighten up
+       a bit (smaller padding/font) — the label always stays visible. */
+    .qz-filter-btn { padding:0 10px; font-size:0.78rem; gap:5px; }
   }
 
   /* ---------- Filters popup (centered modal) ---------- */
@@ -272,9 +277,9 @@
   .qz-search {
     position:relative; display:flex; align-items:center; gap:10px;
     background:var(--paper); border:1.5px solid var(--border);
-    border-radius:12px; padding:8px 14px;
+    border-radius:999px; padding:0 18px; height:46px; box-sizing:border-box;
     transition:border-color .18s, box-shadow .22s, background .18s;
-    flex:1 1 220px; min-width:140px;
+    flex:1 1 160px; min-width:90px;
   }
   .qz-search:focus-within {
     border-color:var(--accent);
@@ -282,11 +287,27 @@
   }
   .qz-search-ico { color:var(--muted); flex-shrink:0; }
   .qz-search:focus-within .qz-search-ico { color:var(--accent); }
+  .qz-search.has-text .qz-search-ico { display:none; }
   .qz-search-input {
-    flex:1; border:none; background:transparent; outline:none;
-    font-family:inherit; font-size:0.92rem; color:var(--ink); min-width:0;
+    flex:1; height:100%; border:none; background:transparent; outline:none;
+    font-family:inherit; font-size:0.95rem; color:var(--ink); min-width:0;
+    overflow:hidden; text-overflow:ellipsis;
+    -webkit-appearance:none; appearance:none; box-shadow:none;
+  }
+  /* Safari/Chrome add their own decorative chrome to type="search" inputs
+     (extra inset shadow, rounded box, a native clear "x") — strip all of
+     it so only our custom .qz-search wrapper box is visible. */
+  .qz-search-input::-webkit-search-decoration,
+  .qz-search-input::-webkit-search-cancel-button,
+  .qz-search-input::-webkit-search-results-button,
+  .qz-search-input::-webkit-search-results-decoration {
+    -webkit-appearance:none; appearance:none;
   }
   .qz-search-input::placeholder { color:var(--muted); }
+  @media (max-width:600px) {
+    .qz-search { padding:0 14px; height:42px; }
+    .qz-search-input { font-size:0.88rem; }
+  }
   .qz-search-clear {
     border:none; background:transparent; color:var(--muted); cursor:pointer;
     font-size:0.95rem; padding:4px 6px; border-radius:6px; display:none;
@@ -296,14 +317,28 @@
   .qz-search-clear:hover { color:var(--accent); background:rgba(232,75,43,0.08); }
 
   /* ---------- Profession chip bar ---------- */
+  .qz-prof-bar-wrap { position:relative; margin-top:10px; }
   .qz-prof-bar {
     overflow-x:auto; -webkit-overflow-scrolling:touch;
     scrollbar-width:thin; scrollbar-color:var(--border) transparent;
-    margin-top:10px;            /* small gap below the search row */
   }
   .qz-prof-bar::-webkit-scrollbar { height:5px; }
   .qz-prof-bar::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
   .qz-prof-track { display:inline-flex; gap:6px; padding:1px 1px 4px; }
+  /* Fade-out edge + small chevron hinting there are more chips to scroll.
+     Only shown when the row actually overflows and hasn't been scrolled
+     to the end yet (see updateFadeVisibility in the script below). */
+  .qz-prof-fade {
+    position:absolute; top:0; right:0; bottom:4px; width:42px;
+    display:flex; align-items:center; justify-content:flex-end;
+    padding-right:2px;
+    background:linear-gradient(to right, transparent, var(--paper) 75%);
+    color:var(--muted);
+    opacity:0; pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  .qz-prof-fade.is-visible { opacity:1; }
+  [data-theme="dark"] .qz-prof-fade { background:linear-gradient(to right, transparent, var(--paper) 75%); }
   /* Exam Type chip. Smaller than before, no hover lift ("no grow"), and a
      subtle orange tint at rest so the bar reads as "this is the orange/
      exam-type filter strip" even before anything is selected. */
@@ -571,26 +606,31 @@
             <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
             <path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          <input type="search" id="qz-search-input" class="qz-search-input" placeholder="Search quizzes, topics..." autocomplete="off">
+          <input type="search" id="qz-search-input" class="qz-search-input" placeholder="Search..." autocomplete="off">
           <button class="qz-search-clear" id="qz-search-clear" aria-label="Clear search" title="Clear">&#x2715;</button>
         </div>
 
         <div class="qz-toolbar-actions">
           <button class="qz-filter-btn" id="qz-filter-btn" type="button" aria-label="Open filters">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="6" cy="18" r="2"/></svg>
-            <span class="qz-filter-btn-label">Filters</span>
+            <span class="qz-filter-btn-label">Filter Quiz</span>
             <span class="qz-filter-btn-count" id="qz-filter-btn-count" hidden>0</span>
             <span class="qz-filter-btn-dot" id="qz-filter-btn-dot" hidden></span>
           </button>
-          <button class="qz-clear-btn" id="qz-clear-btn" type="button" aria-label="Clear all filters" disabled>
+          <button class="qz-clear-btn" id="qz-clear-btn" type="button" aria-label="Clear all filters" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             <span class="qz-clear-btn-label">Clear</span>
           </button>
         </div>
       </div>
 
-      <div class="qz-prof-bar" id="qz-prof-bar" hidden>
-        <div class="qz-prof-track" id="qz-prof-track"></div>
+      <div class="qz-prof-bar-wrap" id="qz-prof-bar-wrap" hidden>
+        <div class="qz-prof-bar" id="qz-prof-bar">
+          <div class="qz-prof-track" id="qz-prof-track"></div>
+        </div>
+        <div class="qz-prof-fade" id="qz-prof-fade" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+        </div>
       </div>
     </div>
 
@@ -749,15 +789,17 @@
   try {
     const ets2 = (await taxonomy.examTypes()).data || [];
     if (ets2.length) {
+      const wrap = document.getElementById('qz-prof-bar-wrap');
       const bar = document.getElementById('qz-prof-bar');
       const track = document.getElementById('qz-prof-track');
+      const fade = document.getElementById('qz-prof-fade');
       track.innerHTML =
         `<div class="qz-chip on" data-et=""><span class="dot" style="background:#FFB347"></span>All</div>` +
         ets2.map(e =>
           `<div class="qz-chip" data-et="${escapeHtml(e.id)}" data-name="${escapeHtml(e.name)}">` +
           `<span class="dot" style="background:${etDotColor(e.id)}"></span>${escapeHtml(e.name)}</div>`
         ).join('');
-      bar.hidden = false;
+      wrap.hidden = false;
       track.addEventListener('click', e => {
         const c = e.target.closest('.qz-chip'); if (!c) return;
         track.querySelectorAll('.qz-chip').forEach(x => x.classList.toggle('on', x === c));
@@ -766,6 +808,16 @@
         // Toolbar chips apply immediately (one-tap filtering).
         applyFilters();
       });
+      // Fade/arrow hint disappears once there's nothing left to scroll to
+      // (either the chips fit entirely, or the user has scrolled to the end).
+      function updateFadeVisibility() {
+        const hasOverflow = bar.scrollWidth > bar.clientWidth + 2;
+        const atEnd = bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2;
+        fade.classList.toggle('is-visible', hasOverflow && !atEnd);
+      }
+      updateFadeVisibility();
+      bar.addEventListener('scroll', updateFadeVisibility, { passive: true });
+      window.addEventListener('resize', updateFadeVisibility);
     }
   } catch { /* taxonomy missing — silently hide the bar */ }
 
@@ -961,7 +1013,7 @@
       else            { cnt.hidden = true; }
     }
     if (dot) dot.hidden = (active === 0);
-    if (clr) clr.disabled = (active === 0);
+    if (clr) clr.hidden = (active === 0);
   }
 
   function modeCounts() {
