@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Reset password · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main class="section">
+  <div class="container-narrow">
+    <div class="text-center mb-3">
+      <h1 class="display" style="font-size:2.4rem;">Set a new password</h1>
+    </div>
+    <div class="card" style="padding:32px;">
+      <form id="reset-form" class="stack" style="--stack:18px;">
+        <div id="alert-zone"></div>
+        <div class="field">
+          <label for="password">New password</label>
+          <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password">
+          <div class="field-hint">Uppercase, lowercase, number, and special character.</div>
+        </div>
+        <div class="field">
+          <label for="confirm">Confirm password</label>
+          <input id="confirm" name="confirm" type="password" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Update password</button>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { mountHeader, mountFooter, queryParam, escapeHtml } from './assets/components.js';
+  import { auth } from './assets/api.js';
+
+  await mountHeader('');
+  mountFooter();
+
+  const token = queryParam('token');
+  const email = queryParam('email');
+  const form = document.getElementById('reset-form');
+  const alertZone = document.getElementById('alert-zone');
+  const btn = document.getElementById('submit-btn');
+
+  if (!token || !email) {
+    alertZone.innerHTML = `<div class="alert alert-error">Invalid or incomplete reset link.</div>`;
+    form.querySelectorAll('input,button').forEach(el => el.disabled = true);
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (form.password.value !== form.confirm.value) {
+      alertZone.innerHTML = `<div class="alert alert-error">Passwords don't match.</div>`;
+      return;
+    }
+    alertZone.innerHTML = '';
+    btn.disabled = true;
+    btn.textContent = 'Updating…';
+    try {
+      await auth.reset({ token, email, password: form.password.value });
+      window.location.href = 'login.html?reset=1';
+    } catch (err) {
+      alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Update password';
+    }
+  });
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

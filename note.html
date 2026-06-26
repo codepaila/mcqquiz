@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Note · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Palette matched to courses/quizzes (orange + blue) */
+  :root {
+    --nt-accent:#e84b2b;
+    --nt-accent-soft:rgba(232,75,43,0.10);
+    --nt-blue:#2b7de8;
+    --nt-blue-soft:rgba(43,125,232,0.10);
+    --nt-paper:#fbf8f2;
+    --nt-paper-soft:#f7f3ec;
+    --nt-edge:#e4dccd;
+    --nt-ink:#1A1814;
+    --nt-ink-soft:#3d3829;
+    --nt-muted:#8c8473;
+    --nt-surface:#ffffff;
+  }
+  [data-theme="dark"] {
+    --nt-paper:#161b2a;
+    --nt-paper-soft:#0e1322;
+    --nt-edge:rgba(255,255,255,0.10);
+    --nt-ink:#e9edf5;
+    --nt-ink-soft:#c7cfdd;
+    --nt-muted:#8a93a6;
+    --nt-surface:#1f2a47;
+    --nt-accent-soft:rgba(232,75,43,0.18);
+    --nt-blue-soft:rgba(43,125,232,0.20);
+  }
+
+  body { background:var(--nt-paper-soft); color:var(--nt-ink); margin:0; }
+
+  /* ── Pinned top bar: Back to Course + Notes pill ─────────── */
+  .nt-topbar {
+    position:fixed; top:0; left:0; right:0; z-index:90;
+    display:flex; align-items:center; gap:10px;
+    padding:10px 16px;
+    padding-top:calc(10px + env(safe-area-inset-top));
+    background:var(--nt-paper-soft);
+    border-bottom:1px solid var(--nt-edge);
+    backdrop-filter:saturate(180%) blur(8px);
+    -webkit-backdrop-filter:saturate(180%) blur(8px);
+  }
+  [data-theme="dark"] .nt-topbar { background:rgba(14,19,34,0.92); }
+
+  .nt-back-btn {
+    display:inline-flex; align-items:center; gap:7px;
+    padding:8px 14px;
+    background:var(--nt-accent); color:#fff;
+    border:none; border-radius:8px;
+    font-family:'Inter', sans-serif; font-size:0.82rem; font-weight:600;
+    cursor:pointer; text-decoration:none;
+    transition:opacity .12s, transform .12s;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .nt-back-btn:hover { opacity:.88; transform:translateY(-1px); }
+  .nt-back-btn svg { width:14px; height:14px; flex-shrink:0; }
+
+  .nt-toc-show {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 14px;
+    background:var(--nt-surface); color:var(--nt-ink);
+    border:1px solid var(--nt-edge); border-radius:8px;
+    font-family:'Inter', sans-serif; font-size:0.82rem; font-weight:500;
+    cursor:pointer;
+    transition:background .12s, color .12s, border-color .12s;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .nt-toc-show:hover { background:var(--nt-ink); color:#fff; border-color:var(--nt-ink); }
+  .nt-toc-show svg { width:14px; height:14px; }
+
+  /* ── Main wrap — full page, no max-width card ────────────── */
+  .nt-wrap {
+    width:100%;
+    padding:calc(60px + env(safe-area-inset-top)) 0 100px;
+    font-family:'Inter', system-ui, sans-serif;
+    box-sizing:border-box;
+  }
+
+  /* Backdrop dim */
+  .nt-backdrop {
+    position:fixed; inset:0; z-index:100;
+    background:rgba(0,0,0,0.32);
+    opacity:0; pointer-events:none;
+    transition:opacity .22s ease;
+  }
+  body.nt-toc-open .nt-backdrop { opacity:1; pointer-events:auto; }
+  [data-theme="dark"] .nt-backdrop { background:rgba(0,0,0,0.55); }
+
+  /* Sidebar drawer */
+  .nt-side {
+    position:fixed; top:0; left:0; bottom:0; z-index:110;
+    width:340px; max-width:88vw;
+    background:var(--nt-paper-soft);
+    border-right:1px solid var(--nt-edge);
+    box-shadow:6px 0 20px rgba(0,0,0,0.08);
+    padding:20px 16px;
+    overflow-y:auto;
+    transform:translateX(-100%);
+    transition:transform .26s cubic-bezier(0.4, 0, 0.2, 1);
+    display:flex; flex-direction:column; min-height:0;
+    scrollbar-width:thin;
+  }
+  body.nt-toc-open .nt-side { transform:translateX(0); }
+  [data-theme="dark"] .nt-side { background:var(--nt-paper); }
+  .nt-side::-webkit-scrollbar { width:5px; }
+  .nt-side::-webkit-scrollbar-thumb { background:var(--nt-edge); border-radius:3px; }
+  .nt-side-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .nt-side-title {
+    font-size:0.66rem; font-weight:700; letter-spacing:0.10em; text-transform:uppercase;
+    color:var(--nt-muted);
+  }
+  .nt-side-close {
+    width:28px; height:28px; padding:0; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:transparent; border:1px solid var(--nt-edge);
+    border-radius:6px; color:var(--nt-muted);
+    transition:background .12s, color .12s, border-color .12s;
+  }
+  .nt-side-close:hover { background:var(--nt-accent-soft); color:var(--nt-accent); border-color:var(--nt-accent); }
+  .nt-side-close svg { width:13px; height:13px; }
+  .nt-side-course {
+    font-size:0.95rem; font-weight:600; color:var(--nt-ink);
+    margin-bottom:12px; line-height:1.3;
+  }
+  .nt-search { position:relative; margin-bottom:10px; }
+  .nt-search svg {
+    position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    width:14px; height:14px; color:var(--nt-muted); pointer-events:none;
+  }
+  .nt-search input {
+    width:100%; padding:8px 32px 8px 30px;
+    border:1px solid var(--nt-edge); border-radius:7px;
+    background:var(--nt-surface); font:inherit; font-size:0.85rem;
+    color:var(--nt-ink); outline:none;
+    transition:border-color .12s, box-shadow .12s;
+  }
+  .nt-search input:focus {
+    border-color:var(--nt-accent);
+    box-shadow:0 0 0 3px var(--nt-accent-soft);
+  }
+  .nt-search input::-webkit-search-cancel-button { -webkit-appearance:none; }
+  .nt-search-spin {
+    position:absolute; right:10px; top:50%; transform:translateY(-50%);
+    width:12px; height:12px; border:2px solid var(--nt-edge);
+    border-top-color:var(--nt-accent); border-radius:50%;
+    animation:nt-spin 0.7s linear infinite; opacity:0;
+    transition:opacity .15s;
+  }
+  .nt-search.is-searching .nt-search-spin { opacity:1; }
+  @keyframes nt-spin { to { transform:translateY(-50%) rotate(360deg); } }
+
+  .nt-list { list-style:none; padding:0; margin:0; flex:1; }
+  .nt-subject {
+    font-size:0.66rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--nt-blue); padding:10px 8px 4px;
+    border-top:1px solid var(--nt-edge);
+  }
+  .nt-subject:first-child { border-top:none; padding-top:4px; }
+  .nt-item {
+    display:flex; align-items:flex-start; gap:10px;
+    padding:9px 10px; border-radius:8px;
+    color:var(--nt-ink); text-decoration:none;
+    font-size:0.88rem; line-height:1.4;
+    border-left:3px solid transparent;
+    transition:background .12s, color .12s, border-color .12s;
+  }
+  .nt-item:hover { background:var(--nt-accent-soft); color:var(--nt-accent); }
+  .nt-item.active { background:var(--nt-accent-soft); color:var(--nt-accent); border-left-color:var(--nt-accent); font-weight:600; }
+  .nt-item-ico {
+    flex-shrink:0; width:22px; height:22px; border-radius:5px;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:var(--nt-blue-soft); color:var(--nt-blue);
+    font-size:0.8rem;
+  }
+  .nt-item.active .nt-item-ico { background:var(--nt-accent-soft); color:var(--nt-accent); }
+  .nt-item-body { flex:1; min-width:0; overflow:hidden; }
+  .nt-item-title { font-size:0.88rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .nt-item-meta { font-family:'IBM Plex Mono', monospace; font-size:0.7rem; color:var(--nt-muted); margin-top:2px; }
+  .nt-item.active .nt-item-meta { color:var(--nt-accent); opacity:0.85; }
+
+  .nt-list-empty { padding:20px 10px; text-align:center; color:var(--nt-muted); font-style:italic; font-size:0.85rem; }
+
+  /* Main pane — full-width reading surface */
+  .nt-main {
+    width:100%; max-width:860px; margin:0 auto;
+    padding:32px 32px; min-width:0; box-sizing:border-box;
+  }
+  @media (max-width: 700px) { .nt-main { padding:20px 16px; } }
+  .nt-eyebrow {
+    font-size:0.68rem; font-weight:700; letter-spacing:0.10em; text-transform:uppercase;
+    color:var(--nt-blue); margin-bottom:8px;
+  }
+  .nt-title {
+    font-family:'Source Serif Pro', Georgia, serif;
+    font-size:2rem; font-weight:700; line-height:1.18;
+    color:var(--nt-ink); margin-bottom:8px; letter-spacing:-0.01em;
+  }
+  .nt-meta {
+    font-size:0.84rem; color:var(--nt-muted);
+    padding-bottom:16px; border-bottom:1px solid var(--nt-edge);
+    margin-bottom:24px;
+  }
+
+  .nt-content {
+    font-family:'Source Serif Pro', Georgia, serif;
+    font-size:16.5px; line-height:1.75; color:var(--nt-ink-soft);
+  }
+  .nt-content h1, .nt-content h2 {
+    font-family:'Inter', sans-serif; font-size:1.3rem; font-weight:700;
+    color:var(--nt-ink); margin:30px 0 12px;
+    padding-bottom:8px; border-bottom:2px solid var(--nt-accent);
+  }
+  .nt-content h3 {
+    font-family:'Inter', sans-serif; font-size:1.05rem; font-weight:700;
+    color:var(--nt-ink); margin:22px 0 10px;
+  }
+  .nt-content p { margin:0 0 14px; }
+  .nt-content ul, .nt-content ol { margin:8px 0 14px 24px; padding:0; }
+  .nt-content li { margin:4px 0; }
+  .nt-content a { color:var(--nt-blue); text-decoration:underline; text-underline-offset:2px; }
+  .nt-content a:hover { color:var(--nt-accent); }
+  .nt-content strong { color:var(--nt-ink); font-weight:600; }
+  .nt-content blockquote {
+    margin:16px 0; padding:10px 16px;
+    background:var(--nt-blue-soft); border-left:3px solid var(--nt-blue);
+    color:var(--nt-ink-soft); font-style:italic; border-radius:0 6px 6px 0;
+  }
+  .nt-content code {
+    background:var(--nt-paper-soft); padding:2px 6px; border-radius:3px;
+    font-family:'IBM Plex Mono', monospace; font-size:0.86em; color:var(--nt-ink);
+    border:1px solid var(--nt-edge);
+  }
+  .nt-content img { max-width:100%; height:auto; border-radius:6px; margin:14px 0; }
+  .nt-content table { width:100%; border-collapse:collapse; margin:16px 0; font-size:0.9rem; }
+  .nt-content th { background:var(--nt-paper); text-align:left; padding:9px 12px; border-bottom:2px solid var(--nt-accent); font-weight:600; color:var(--nt-ink); }
+  .nt-content td { padding:8px 12px; border-bottom:1px solid var(--nt-edge); color:var(--nt-ink-soft); }
+
+  /* Lessons grid */
+  .nt-lessons { margin-top:32px; padding-top:24px; border-top:1px solid var(--nt-edge); }
+  .nt-lessons-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .nt-lessons-title { font-size:0.72rem; font-weight:700; letter-spacing:0.10em; text-transform:uppercase; color:var(--nt-accent); }
+  .nt-lessons-count { font-family:'IBM Plex Mono', monospace; font-size:0.75rem; color:var(--nt-muted); }
+  .nt-lessons-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+    gap:10px;
+  }
+  .nt-lesson {
+    display:flex; align-items:center; gap:14px;
+    padding:14px 18px;
+    background:var(--nt-paper-soft); border:1px solid var(--nt-edge);
+    border-radius:10px; text-decoration:none; color:var(--nt-ink);
+    transition:border-color .12s, transform .12s, box-shadow .12s, background .12s;
+  }
+  .nt-lesson:hover { border-color:var(--nt-accent); background:var(--nt-surface); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.05); }
+  .nt-lesson-num {
+    flex-shrink:0; width:28px; height:28px; border-radius:6px;
+    background:var(--nt-accent-soft); color:var(--nt-accent);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace; font-size:0.82rem; font-weight:600;
+  }
+  .nt-lesson-title { flex:1; font-weight:500; font-size:0.95rem; }
+  .nt-lesson-arrow { color:var(--nt-muted); font-size:0.9rem; opacity:0; transition:opacity .12s, transform .12s, color .12s; }
+  .nt-lesson:hover .nt-lesson-arrow { opacity:1; transform:translateX(2px); color:var(--nt-accent); }
+
+  .nt-empty { padding:40px 20px; text-align:center; color:var(--nt-muted); font-style:italic; }
+  .nt-loading { padding:48px 20px; text-align:center; color:var(--nt-muted); }
+
+  /* Pinned prev/next pager — two columns only (back-to-course moved to topbar) */
+  .nt-pager {
+    position:fixed; left:0; right:0; bottom:0; z-index:80;
+    padding:10px 16px;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom));
+    background:var(--nt-paper-soft);
+    border-top:1px solid var(--nt-edge);
+    backdrop-filter:saturate(180%) blur(6px);
+    -webkit-backdrop-filter:saturate(180%) blur(6px);
+  }
+  [data-theme="dark"] .nt-pager { background:rgba(14,22,38,0.92); }
+  .nt-pager-inner {
+    max-width:860px; margin:0 auto;
+    display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  }
+  .nt-pager-card {
+    display:flex; flex-direction:column; gap:2px;
+    padding:9px 14px;
+    border:1px solid var(--nt-edge); border-radius:8px;
+    background:var(--nt-surface);
+    text-decoration:none;
+    transition:border-color .15s, transform .15s, box-shadow .15s;
+    min-height:48px;
+    overflow:hidden;
+    color:var(--nt-ink);
+    box-sizing:border-box;
+  }
+  [data-theme="dark"] .nt-pager-card { background:var(--nt-paper); }
+  .nt-pager-card:hover {
+    border-color:var(--nt-accent); transform:translateY(-1px);
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  }
+  .nt-pager-card.is-middle { display:none; } /* hidden — back-to-course is now in topbar */
+  .nt-pager-card.is-next { text-align:right; }
+  .nt-pager-label {
+    font-size:0.66rem; font-weight:700; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--nt-muted);
+    display:flex; align-items:center; gap:4px;
+  }
+  .nt-pager-card.is-next .nt-pager-label { justify-content:flex-end; }
+  .nt-pager-title {
+    font-size:0.88rem; color:var(--nt-ink); font-weight:600; line-height:1.3;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .nt-pager-disabled { opacity:0.45; pointer-events:none; }
+  .nt-pager-arrow { width:12px; height:12px; flex-shrink:0; }
+
+  @media (max-width: 600px) {
+    .nt-pager { padding:8px 10px; padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
+    .nt-pager-card { padding:8px 10px; min-height:42px; }
+    .nt-pager-title { font-size:0.8rem; }
+    .nt-pager-inner { gap:8px; }
+  }
+  @media (max-width: 380px) {
+    .nt-pager-title { display:none; }
+    .nt-pager-label { font-size:0.7rem; }
+  }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+
+<!-- Sidebar overlay -->
+<div class="nt-backdrop" id="nt-backdrop"></div>
+<aside class="nt-side" id="nt-side">
+  <div class="nt-side-head">
+    <div class="nt-side-title">Course notes</div>
+    <button class="nt-side-close" id="nt-side-close" type="button" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="nt-side-course" id="nt-side-course">Loading\u2026</div>
+  <div class="nt-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/></svg>
+    <input type="search" id="nt-search" placeholder="Search note.." autocomplete="off">
+    <span class="nt-search-spin" aria-hidden="true"></span>
+  </div>
+  <ul class="nt-list" id="nt-list"><li class="nt-list-empty">Loading\u2026</li></ul>
+</aside>
+
+<!-- Pinned top bar: Back to Course + Notes pill -->
+<div class="nt-topbar" id="nt-topbar">
+  <a class="nt-back-btn" id="nt-back-btn" href="courses.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Course
+  </a>
+  <button class="nt-toc-show" id="nt-show" type="button" aria-label="Show notes in this course">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    Notes
+  </button>
+</div>
+
+<div class="nt-wrap">
+  <main class="nt-main" id="nt-main">
+    <div class="nt-loading"><div class="spinner"></div><p>Loading…</p></div>
+  </main>
+</div>
+
+<script type="module">
+  import { escapeHtml, queryParam, requireAuth, renderRichText } from './assets/components.js';
+  import { courses } from './assets/api.js';
+
+  await requireAuth('login.html');
+  // No site header on this page — full-bleed reading view, the floating
+  // "Notes" pill + the bottom pager serve as nav.
+
+  const id   = queryParam('id');
+  const main = document.getElementById('nt-main');
+  const list = document.getElementById('nt-list');
+
+  if (!id) {
+    main.innerHTML = `<div class="nt-empty">No note specified.</div>`;
+    list.innerHTML = '';
+    throw new Error('no id');
+  }
+
+  let note;
+  try {
+    note = (await courses.note(id)).data;
+  } catch (err) {
+    if (err.data?.code === 'ENROLLMENT_REQUIRED') {
+      main.innerHTML = `
+        <div class="nt-empty" style="padding:60px 20px;">
+          <h2 style="color:var(--nt-ink); margin-bottom:8px;">Enrollment required</h2>
+          <p>You need an active course enrollment to read this note.</p>
+          <a href="courses.html" class="btn btn-primary" style="margin-top:16px; display:inline-block;">Browse courses</a>
+        </div>`;
+    } else {
+      main.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+    list.innerHTML = '';
+    throw err;
+  }
+
+  // Sidebar course title
+  document.getElementById('nt-side-course').textContent =
+    note.course?.title || '(standalone note)';
+
+  // Wire the pinned Back to Course button to the real course URL
+  const backBtn = document.getElementById('nt-back-btn');
+  if (backBtn && note.course?.id) {
+    backBtn.href = 'course-detail.html?id=' + encodeURIComponent(note.course.id) + '#quiz';
+    backBtn.title = note.course.title || 'Back to Course';
+  }
+
+  // ---- Render the sidebar list (used both for initial display and search results)
+  function renderList(items) {
+    if (!items.length) {
+      list.innerHTML = `<li class="nt-list-empty">No notes match.</li>`;
+      return;
+    }
+    const groups = new Map();
+    items.forEach(n => {
+      const subj = n.subject_name || 'Uncategorized';
+      if (!groups.has(subj)) groups.set(subj, []);
+      groups.get(subj).push(n);
+    });
+    let html = '';
+    for (const [subj, arr] of groups) {
+      html += `<li class="nt-subject">${escapeHtml(subj)}</li>`;
+      for (const n of arr) {
+        const active = (n.id === note.id) ? 'active' : '';
+        const lc = parseInt(n.lesson_count || 0);
+        html += `
+          <li>
+            <a class="nt-item ${active}" href="note.html?id=${encodeURIComponent(n.id)}">
+              <span class="nt-item-ico">\u25A4</span>
+              <span class="nt-item-body">
+                <div class="nt-item-title">${escapeHtml(n.title || '(untitled)')}</div>
+                <div class="nt-item-meta">${lc} ${lc === 1 ? 'lesson' : 'lessons'}</div>
+              </span>
+            </a>
+          </li>`;
+      }
+    }
+    list.innerHTML = html;
+  }
+  // Initial render uses the courseNotes embedded in the response
+  renderList(note.courseNotes || []);
+
+  // ---- Server-side search (title only, with debounce + race-condition guard) ----
+  const searchEl   = document.getElementById('nt-search');
+  const searchWrap = searchEl.closest('.nt-search');
+  let searchTimer = null;
+  let searchSeq   = 0;     // increment on each request so out-of-order responses are dropped
+  async function runSearch() {
+    if (!note.course?.id) return;       // can't search without a course context
+    const q   = searchEl.value.trim();
+    const seq = ++searchSeq;
+    searchWrap.classList.add('is-searching');
+    try {
+      if (!q) {
+        // Empty query — show the original courseNotes list
+        if (seq !== searchSeq) return;
+        renderList(note.courseNotes || []);
+      } else {
+        const r = await courses.searchNotes({ course_id: note.course.id, q });
+        if (seq !== searchSeq) return;   // a newer request started; drop this stale result
+        renderList(r.data || []);
+      }
+    } catch (err) {
+      if (seq !== searchSeq) return;
+      list.innerHTML = `<li class="nt-list-empty">Search failed: ${escapeHtml(err.message)}</li>`;
+    } finally {
+      if (seq === searchSeq) searchWrap.classList.remove('is-searching');
+    }
+  }
+  searchEl.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 200);
+  });
+
+  // ---- Drawer open / close ----
+  const backdrop = document.getElementById('nt-backdrop');
+  function openDrawer()  { document.body.classList.add('nt-toc-open'); searchEl.focus(); }
+  function closeDrawer() { document.body.classList.remove('nt-toc-open'); }
+  document.getElementById('nt-show').addEventListener('click', openDrawer);
+  document.getElementById('nt-side-close').addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('nt-toc-open')) closeDrawer();
+  });
+
+  // ---- Main content ----
+  const lessonCount = (note.lessons || []).length;
+  main.innerHTML = `
+    <div class="nt-eyebrow">${note.subject_name ? escapeHtml(note.subject_name) : 'Study note'}</div>
+    <h1 class="nt-title">${escapeHtml(note.title || '')}</h1>
+    <div class="nt-meta">${lessonCount} ${lessonCount === 1 ? 'lesson' : 'lessons'} in this note</div>
+    <div class="nt-content">${note.content ? renderRichText(note.content) : '<p style="color:var(--nt-muted);">This note has no content.</p>'}</div>
+    ${lessonCount ? `
+      <div class="nt-lessons">
+        <div class="nt-lessons-head">
+          <div class="nt-lessons-title">Lessons in this note</div>
+          <div class="nt-lessons-count">${lessonCount} total</div>
+        </div>
+        <div class="nt-lessons-grid">
+          ${(note.lessons || []).map((l, i) => `
+            <a href="lesson.html?id=${encodeURIComponent(l.id)}" class="nt-lesson">
+              <span class="nt-lesson-num">${i + 1}</span>
+              <span class="nt-lesson-title">${escapeHtml(l.title)}</span>
+              <span class="nt-lesson-arrow">\u2192</span>
+            </a>
+          `).join('')}
+        </div>
+      </div>` : ''}
+  `;
+
+  // ---- Bottom pager — prev/next notes in the same course + "In the course" middle card ----
+  // courseNotes is already in order (cm.`order` ASC). Locate this note's position.
+  const allNotes = note.courseNotes || [];
+  const myIdx = allNotes.findIndex(n => n.id === note.id);
+  const prevNote = (myIdx > 0) ? allNotes[myIdx - 1] : null;
+  const nextNote = (myIdx >= 0 && myIdx < allNotes.length - 1) ? allNotes[myIdx + 1] : null;
+
+  function pagerLink(target, dir, title) {
+    const arrow = dir === 'prev'
+      ? '<svg class="nt-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>'
+      : '<svg class="nt-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+    const label = dir === 'prev'
+      ? `${arrow}<span>Previous note</span>`
+      : `<span>Next note</span>${arrow}`;
+    if (!target) {
+      return `<div class="nt-pager-card nt-pager-disabled is-${dir}">
+        <span class="nt-pager-label">${label}</span>
+        <span class="nt-pager-title">\u2014</span>
+      </div>`;
+    }
+    return `<a href="note.html?id=${encodeURIComponent(target.id)}" class="nt-pager-card is-${dir}">
+      <span class="nt-pager-label">${label}</span>
+      <span class="nt-pager-title">${escapeHtml(title || target.title || '(untitled)')}</span>
+    </a>`;
+  }
+
+  // Middle "Back to Course" card — links to the course detail Quiz tab
+  let middleHtml = '';
+  if (note.course?.id) {
+    middleHtml = `<a href="course-detail.html?id=${encodeURIComponent(note.course.id)}#quiz" class="nt-pager-card is-middle">
+      <span class="nt-pager-label">
+        <svg class="nt-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
+        <span>Back to Course</span>
+      </span>
+      <span class="nt-pager-title">${escapeHtml(note.course.title || 'Open course')}</span>
+    </a>`;
+  } else {
+    middleHtml = `<div class="nt-pager-card nt-pager-disabled is-middle">
+      <span class="nt-pager-label"><span>Back to Course</span></span>
+      <span class="nt-pager-title">\u2014</span>
+    </div>`;
+  }
+
+  const pagerEl = document.createElement('div');
+  pagerEl.id = 'nt-pager-mount';
+  pagerEl.innerHTML = `<nav class="nt-pager" aria-label="Note navigation">
+    <div class="nt-pager-inner">
+      ${pagerLink(prevNote, 'prev')}
+      ${middleHtml}
+      ${pagerLink(nextNote, 'next')}
+    </div>
+  </nav>`;
+  document.body.appendChild(pagerEl);
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

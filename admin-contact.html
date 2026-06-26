@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Messages · Admin · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+/* ── Layout ───────────────────────────────────────────────── */
+.page-header { margin-bottom: 24px; }
+.page-header h1 { font-size: 2rem; }
+.page-header p  { color: var(--ink-muted); font-size: 0.9rem; margin-top: 4px; }
+
+/* ── Toolbar ──────────────────────────────────────────────── */
+.toolbar {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap; margin-bottom: 18px;
+}
+.toolbar .search-wrap {
+  position: relative; flex: 1; min-width: 180px; max-width: 320px;
+}
+.toolbar .search-wrap input {
+  padding-left: 36px; width: 100%;
+}
+.toolbar .search-wrap svg {
+  position: absolute; left: 11px; top: 50%;
+  transform: translateY(-50%); color: var(--ink-muted);
+  pointer-events: none;
+}
+.toolbar select { width: auto; }
+
+/* ── Status tabs ──────────────────────────────────────────── */
+.status-tabs {
+  display: flex; gap: 0; margin-bottom: 18px;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius); overflow: hidden; width: fit-content;
+}
+.status-tab {
+  padding: 7px 16px;
+  font-size: 0.82rem; font-weight: 600;
+  font-family: var(--font-body);
+  background: var(--paper-soft);
+  color: var(--ink-muted);
+  border: none; border-right: 1px solid var(--paper-edge);
+  cursor: pointer; transition: background .12s, color .12s;
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.status-tab:last-child { border-right: none; }
+.status-tab:hover { background: var(--paper); color: var(--ink); }
+.status-tab.active { background: var(--accent); color: #fff; }
+.tab-count {
+  background: rgba(255,255,255,.25);
+  color: inherit;
+  border-radius: 100px;
+  font-size: 0.7rem; font-weight: 700;
+  padding: 1px 6px;
+  min-width: 18px; text-align: center;
+}
+.status-tab:not(.active) .tab-count {
+  background: var(--paper-edge);
+  color: var(--ink-muted);
+}
+
+/* ── Message list ─────────────────────────────────────────── */
+#msg-list { display: flex; flex-direction: column; gap: 8px; }
+
+.msg-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px; align-items: start;
+  padding: 14px 16px;
+  background: var(--paper-soft);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color .14s, box-shadow .14s;
+  position: relative;
+}
+.msg-row:hover {
+  border-color: var(--ink-muted);
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.msg-row.unread {
+  border-left: 3px solid var(--accent);
+  background: var(--paper);
+}
+.msg-row.unread .msg-name { color: var(--ink); font-weight: 700; }
+
+/* avatar */
+.msg-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.9rem;
+  flex-shrink: 0;
+  font-family: var(--font-body);
+}
+.msg-avatar.replied { background: var(--success-soft); color: var(--success); }
+.msg-avatar.archived { background: var(--paper-edge); color: var(--ink-muted); }
+
+/* body */
+.msg-body { min-width: 0; }
+.msg-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.msg-name { font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); }
+.msg-email { font-size: 0.78rem; color: var(--ink-muted); }
+.msg-subject {
+  font-size: 0.88rem; font-weight: 600; color: var(--ink);
+  margin: 2px 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.msg-preview {
+  font-size: 0.8rem; color: var(--ink-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 520px;
+}
+
+/* meta / actions */
+.msg-meta-col {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 6px; flex-shrink: 0;
+}
+.msg-time { font-size: 0.75rem; color: var(--ink-muted); white-space: nowrap; }
+.msg-actions { display: flex; gap: 4px; }
+.icon-btn {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: transparent; border: 1px solid var(--paper-edge);
+  color: var(--ink-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.icon-btn:hover { background: var(--paper-edge); color: var(--ink); }
+.icon-btn.danger:hover { background: var(--error-soft); color: var(--error); border-color: var(--error); }
+
+/* status badges */
+.s-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.67rem; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 100px;
+}
+.s-unread   { background: var(--accent-soft); color: var(--accent); }
+.s-read     { background: var(--paper-edge); color: var(--ink-muted); }
+.s-replied  { background: var(--success-soft); color: var(--success); }
+.s-archived { background: var(--paper-edge); color: var(--ink-muted); }
+
+/* subject tag */
+.subj-tag {
+  display: inline-block;
+  font-size: 0.67rem; font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 100px;
+  background: var(--paper-edge); color: var(--ink-soft);
+}
+
+/* ── Detail drawer ────────────────────────────────────────── */
+#drawer-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.35);
+  z-index: 400; opacity: 0; pointer-events: none;
+  transition: opacity .22s;
+}
+#drawer-overlay.open { opacity: 1; pointer-events: all; }
+
+#drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(520px, 100vw);
+  background: var(--paper);
+  border-left: 1.5px solid var(--paper-edge);
+  z-index: 401;
+  transform: translateX(100%);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0,0,0,.12);
+}
+#drawer.open { transform: translateX(0); }
+
+.drawer-head {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--paper-edge);
+  flex-shrink: 0;
+}
+.drawer-head-info { flex: 1; min-width: 0; }
+.drawer-head-info h3 {
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 400;
+  margin-bottom: 3px; line-height: 1.3;
+}
+.drawer-head-info .dh-meta {
+  font-size: 0.78rem; color: var(--ink-muted); line-height: 1.6;
+}
+.drawer-close {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--ink-muted); padding: 4px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: color .12s, background .12s;
+  flex-shrink: 0;
+}
+.drawer-close:hover { background: var(--paper-edge); color: var(--ink); }
+
+.drawer-body {
+  flex: 1; overflow-y: auto; padding: 20px 22px;
+}
+
+.drawer-section { margin-bottom: 22px; }
+.drawer-label {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px;
+}
+.drawer-message-text {
+  background: var(--paper-soft);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 0.9rem; line-height: 1.75; color: var(--ink-soft);
+  white-space: pre-wrap; word-break: break-word;
+}
+.drawer-reply-box {
+  background: var(--success-soft);
+  border: 1px solid rgba(74,163,74,.25);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.drawer-reply-box .reply-by {
+  font-size: 0.75rem; color: var(--success); font-weight: 600; margin-bottom: 6px;
+}
+.drawer-reply-box .reply-body {
+  font-size: 0.9rem; line-height: 1.7; color: var(--ink-soft);
+  white-space: pre-wrap;
+}
+
+/* reply compose */
+.reply-compose { margin-top: 6px; }
+.reply-compose textarea {
+  min-height: 100px; resize: vertical; width: 100%;
+  font-size: 0.9rem; line-height: 1.65;
+}
+.reply-compose .compose-actions {
+  display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px;
+}
+
+/* info chips */
+.info-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.info-chip {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.82rem; color: var(--ink-soft);
+  background: var(--paper-soft);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+}
+.info-chip svg { color: var(--ink-muted); flex-shrink: 0; }
+.info-chip a { color: var(--accent); text-decoration: none; }
+.info-chip a:hover { text-decoration: underline; }
+
+/* drawer footer actions */
+.drawer-foot {
+  display: flex; gap: 8px; padding: 14px 22px;
+  border-top: 1px solid var(--paper-edge);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+
+/* ── Empty / loading ──────────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 52px 24px;
+  color: var(--ink-muted); font-size: 0.95rem;
+}
+.empty-state svg { color: var(--paper-edge); margin-bottom: 14px; display: block; margin-inline: auto; }
+
+/* ── Pagination ───────────────────────────────────────────── */
+.pagination { display: flex; align-items: center; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+.pagination .page-info { font-size: 0.82rem; color: var(--ink-muted); flex: 1; }
+</style>
+</head>
+<body>
+<main class="section">
+<div class="container">
+
+  <div class="flex-between page-header">
+    <div>
+      <div class="eyebrow">Admin</div>
+      <h1 class="display mt-1">Contact <span class="italic-em">Messages</span></h1>
+      <p>Manage and respond to messages from the contact form.</p>
+    </div>
+  </div>
+
+  <!-- Status tabs -->
+  <div class="status-tabs" id="status-tabs">
+    <button class="status-tab active" data-status="">All <span class="tab-count" id="tc-all">—</span></button>
+    <button class="status-tab" data-status="UNREAD">Unread <span class="tab-count" id="tc-unread">—</span></button>
+    <button class="status-tab" data-status="READ">Read <span class="tab-count" id="tc-read">—</span></button>
+    <button class="status-tab" data-status="REPLIED">Replied <span class="tab-count" id="tc-replied">—</span></button>
+    <button class="status-tab" data-status="ARCHIVED">Archived <span class="tab-count" id="tc-archived">—</span></button>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" id="search-input" placeholder="Search name, email, message…">
+    </div>
+    <select id="subject-filter">
+      <option value="">All subjects</option>
+      <option value="course-inquiry">Course Inquiry</option>
+      <option value="technical-support">Technical Support</option>
+      <option value="payment-issues">Payment Issues</option>
+      <option value="feedback">Feedback &amp; Suggestions</option>
+      <option value="collaboration">Collaboration</option>
+      <option value="other">Other</option>
+    </select>
+  </div>
+
+  <!-- List -->
+  <div id="msg-list"><div class="loading"><div class="spinner"></div><p>Loading messages…</p></div></div>
+
+  <!-- Pagination -->
+  <div class="pagination" id="pagination" style="display:none">
+    <span class="page-info" id="page-info"></span>
+    <button class="btn btn-ghost btn-sm" id="prev-btn">← Prev</button>
+    <button class="btn btn-ghost btn-sm" id="next-btn">Next →</button>
+  </div>
+
+</div>
+</main>
+
+<!-- Detail Drawer -->
+<div id="drawer-overlay"></div>
+<aside id="drawer" aria-label="Message detail" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div class="drawer-head-info">
+      <h3 id="d-subject">—</h3>
+      <div class="dh-meta" id="d-meta"></div>
+    </div>
+    <button class="drawer-close" id="drawer-close" aria-label="Close">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="drawer-body" id="drawer-body">
+    <!-- filled dynamically -->
+  </div>
+
+  <div class="drawer-foot" id="drawer-foot">
+    <!-- filled dynamically -->
+  </div>
+</aside>
+
+<script type="module">
+import {
+  mountHeader, mountAdminSidebar, mountFooter,
+  escapeHtml, formatDate, formatRelative, toast, requireRole
+} from './assets/components.js';
+import { admin } from './assets/api.js';
+
+await requireRole('ADMIN', 'dashboard.html');
+await mountHeader('admin');
+mountAdminSidebar('contact');
+mountFooter();
+
+/* ── State ───────────────────────────────────────────────── */
+let state = {
+  status:  '',
+  subject: '',
+  q:       '',
+  page:    1,
+  perPage: 25,
+};
+let allRows   = [];  // current page rows
+let tally     = {};
+let total     = 0;
+let openRow   = null;
+let searchTimer = null;
+
+/* ── Load list ───────────────────────────────────────────── */
+async function load() {
+  const list = document.getElementById('msg-list');
+  list.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+
+  const params = {
+    ...(state.status  ? { status:  state.status  } : {}),
+    ...(state.subject ? { subject: state.subject } : {}),
+    ...(state.q       ? { q:       state.q       } : {}),
+    page:    state.page,
+    perPage: state.perPage,
+  };
+
+  try {
+    const data = await admin.listContactMessages(params);
+    allRows = data.data  || [];
+    tally   = data.tally || {};
+    total   = data.pagination?.total || 0;
+    renderTally();
+    renderList();
+    renderPagination();
+  } catch (err) {
+    list.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+/* ── Render tally ─────────────────────────────────────────── */
+function renderTally() {
+  const t = tally;
+  const all = Object.values(t).reduce((a, b) => a + b, 0);
+  document.getElementById('tc-all').textContent     = all;
+  document.getElementById('tc-unread').textContent  = t.UNREAD   || 0;
+  document.getElementById('tc-read').textContent    = t.READ      || 0;
+  document.getElementById('tc-replied').textContent = t.REPLIED   || 0;
+  document.getElementById('tc-archived').textContent= t.ARCHIVED  || 0;
+}
+
+/* ── Subject label ────────────────────────────────────────── */
+const SUBJECT_LABELS = {
+  'course-inquiry':   'Course Inquiry',
+  'technical-support':'Technical Support',
+  'payment-issues':   'Payment Issues',
+  'feedback':         'Feedback',
+  'collaboration':    'Collaboration',
+  'other':            'Other',
+};
+
+/* ── Render list ──────────────────────────────────────────── */
+function renderList() {
+  const list = document.getElementById('msg-list');
+  if (!allRows.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        No messages found.
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = allRows.map(m => {
+    const initials = (m.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const avatarClass = m.status === 'REPLIED' ? 'replied' : m.status === 'ARCHIVED' ? 'archived' : '';
+    const rowClass = m.status === 'UNREAD' ? 'msg-row unread' : 'msg-row';
+    const badgeClass = { UNREAD: 's-unread', READ: 's-read', REPLIED: 's-replied', ARCHIVED: 's-archived' }[m.status] || 's-read';
+    const subjectLabel = SUBJECT_LABELS[m.subject] || m.subject;
+
+    return `
+    <div class="${rowClass}" data-id="${escapeHtml(m.id)}">
+      <div class="msg-avatar ${avatarClass}">${escapeHtml(initials)}</div>
+      <div class="msg-body">
+        <div class="msg-name-row">
+          <span class="msg-name">${escapeHtml(m.name)}</span>
+          <span class="msg-email">&lt;${escapeHtml(m.email)}&gt;</span>
+          <span class="s-badge ${badgeClass}">${m.status.toLowerCase()}</span>
+          <span class="subj-tag">${escapeHtml(subjectLabel)}</span>
+        </div>
+        <div class="msg-subject">${escapeHtml(m.message.slice(0, 80))}${m.message.length > 80 ? '…' : ''}</div>
+        <div class="msg-preview">${escapeHtml(m.message)}</div>
+      </div>
+      <div class="msg-meta-col">
+        <span class="msg-time">${formatRelative(m.created_at)}</span>
+        <div class="msg-actions" onclick="event.stopPropagation()">
+          ${m.status !== 'ARCHIVED' ? `
+          <button class="icon-btn" data-act="archive" data-id="${escapeHtml(m.id)}" title="Archive">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          </button>` : ''}
+          <button class="icon-btn danger" data-act="trash" data-id="${escapeHtml(m.id)}" title="Trash">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Row click → open drawer
+  list.querySelectorAll('.msg-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const id = row.dataset.id;
+      const m  = allRows.find(x => x.id === id);
+      if (m) openDrawer(m);
+    });
+  });
+
+  // Quick action buttons
+  list.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const { act, id } = btn.dataset;
+      await doAction(id, act);
+    });
+  });
+}
+
+/* ── Pagination ───────────────────────────────────────────── */
+function renderPagination() {
+  const pag = document.getElementById('pagination');
+  const info = document.getElementById('page-info');
+  const prev = document.getElementById('prev-btn');
+  const next = document.getElementById('next-btn');
+
+  if (total <= state.perPage) { pag.style.display = 'none'; return; }
+  pag.style.display = 'flex';
+
+  const from = (state.page - 1) * state.perPage + 1;
+  const to   = Math.min(state.page * state.perPage, total);
+  info.textContent = `${from}–${to} of ${total}`;
+  prev.disabled = state.page <= 1;
+  next.disabled = to >= total;
+}
+
+document.getElementById('prev-btn').addEventListener('click', () => { state.page--; load(); });
+document.getElementById('next-btn').addEventListener('click', () => { state.page++; load(); });
+
+/* ── Action (archive / trash / read / reply) ─────────────── */
+async function doAction(id, action, extra = {}) {
+  try {
+    await admin.contactAction({ id, action, ...extra });
+    const labels = { archive: 'Archived', trash: 'Trashed', read: 'Marked as read', unread: 'Marked as unread', reply: 'Reply saved' };
+    toast(labels[action] || 'Done', 'success');
+    load();
+    if (openRow && openRow.id === id) closeDrawer();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+/* ── Drawer ───────────────────────────────────────────────── */
+const drawer        = document.getElementById('drawer');
+const drawerOverlay = document.getElementById('drawer-overlay');
+const drawerClose   = document.getElementById('drawer-close');
+
+function openDrawer(m) {
+  openRow = m;
+  // Mark as read silently
+  if (m.status === 'UNREAD') {
+    admin.contactAction({ id: m.id, action: 'read' })
+      .then(() => {
+        m.status = 'READ';
+        const row = document.querySelector(`.msg-row[data-id="${m.id}"]`);
+        if (row) row.classList.remove('unread');
+        renderTally();
+      })
+      .catch(() => {});
+  }
+
+  const subjectLabel = SUBJECT_LABELS[m.subject] || m.subject;
+  document.getElementById('d-subject').textContent = subjectLabel;
+  document.getElementById('d-meta').innerHTML =
+    `From <strong>${escapeHtml(m.name)}</strong> · ${escapeHtml(m.email)}
+     ${m.phone ? ` · ${escapeHtml(m.phone)}` : ''}`;
+
+  const replySection = m.reply_text ? `
+    <div class="drawer-section">
+      <div class="drawer-label">Admin Reply</div>
+      <div class="drawer-reply-box">
+        <div class="reply-by">Replied by ${escapeHtml(m.replied_by_name || 'Admin')} · ${formatDate(m.replied_at)}</div>
+        <div class="reply-body">${escapeHtml(m.reply_text)}</div>
+      </div>
+    </div>` : `
+    <div class="drawer-section reply-compose" id="compose">
+      <div class="drawer-label">Reply to ${escapeHtml(m.name)}</div>
+      <textarea id="reply-text" placeholder="Write your reply…"></textarea>
+      <div class="compose-actions">
+        <button class="btn btn-ghost btn-sm" id="cancel-reply">Cancel</button>
+        <button class="btn btn-accent btn-sm" id="send-reply">Send reply</button>
+      </div>
+    </div>`;
+
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="drawer-section">
+      <div class="info-chips">
+        <div class="info-chip">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <a href="mailto:${escapeHtml(m.email)}">${escapeHtml(m.email)}</a>
+        </div>
+        ${m.phone ? `
+        <div class="info-chip">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.5 19.79 19.79 0 0 1 1.61 2.84 2 2 0 0 1 3.59 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16a2 2 0 0 1 .27.92z"/></svg>
+          <a href="tel:${escapeHtml(m.phone)}">${escapeHtml(m.phone)}</a>
+        </div>` : ''}
+        <div class="info-chip">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ${formatDate(m.created_at)}
+        </div>
+        <div class="info-chip">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          ${escapeHtml(subjectLabel)}
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-label">Message</div>
+      <div class="drawer-message-text">${escapeHtml(m.message)}</div>
+    </div>
+
+    ${replySection}
+  `;
+
+  // Reply handlers
+  if (!m.reply_text) {
+    document.getElementById('cancel-reply')?.addEventListener('click', () => {
+      document.getElementById('compose').style.display = 'none';
+    });
+    document.getElementById('send-reply')?.addEventListener('click', async () => {
+      const text = document.getElementById('reply-text')?.value.trim();
+      if (!text) { toast('Please write a reply first', 'error'); return; }
+      await doAction(m.id, 'reply', { replyText: text });
+    });
+  }
+
+  // Footer actions
+  const foot = document.getElementById('drawer-foot');
+  foot.innerHTML = `
+    ${m.status !== 'REPLIED' && !m.reply_text ? `
+    <button class="btn btn-accent btn-sm" id="foot-reply">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-right:4px"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+      Reply
+    </button>` : ''}
+    ${m.status !== 'ARCHIVED' ? `
+    <button class="btn btn-ghost btn-sm" id="foot-archive">Archive</button>` : `
+    <button class="btn btn-ghost btn-sm" id="foot-unarchive">Unarchive</button>`}
+    ${m.status === 'READ' || m.status === 'REPLIED' ? `
+    <button class="btn btn-ghost btn-sm" id="foot-unread">Mark unread</button>` : ''}
+    <button class="btn btn-ghost btn-sm" id="foot-trash" style="color:var(--error);margin-left:auto">Trash</button>
+  `;
+
+  foot.querySelector('#foot-reply')?.addEventListener('click', () => {
+    const compose = document.getElementById('compose');
+    if (compose) { compose.style.display = ''; document.getElementById('reply-text')?.focus(); }
+  });
+  foot.querySelector('#foot-archive')?.addEventListener('click', () => doAction(m.id, 'archive'));
+  foot.querySelector('#foot-unarchive')?.addEventListener('click', () => doAction(m.id, 'unread'));
+  foot.querySelector('#foot-unread')?.addEventListener('click', () => doAction(m.id, 'unread'));
+  foot.querySelector('#foot-trash')?.addEventListener('click', () => {
+    if (!confirm(`Trash this message from ${m.name}?`)) return;
+    doAction(m.id, 'trash');
+  });
+
+  drawer.classList.add('open');
+  drawerOverlay.classList.add('open');
+}
+
+function closeDrawer() {
+  openRow = null;
+  drawer.classList.remove('open');
+  drawerOverlay.classList.remove('open');
+}
+
+drawerClose.addEventListener('click', closeDrawer);
+drawerOverlay.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+document.getElementById('status-tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.status-tab');
+  if (!tab) return;
+  document.querySelectorAll('.status-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  state.status = tab.dataset.status;
+  state.page = 1;
+  load();
+});
+
+/* ── Search & subject filter ──────────────────────────────── */
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    state.q = e.target.value.trim();
+    state.page = 1;
+    load();
+  }, 350);
+});
+
+document.getElementById('subject-filter').addEventListener('change', e => {
+  state.subject = e.target.value;
+  state.page = 1;
+  load();
+});
+
+/* ── Init ────────────────────────────────────────────────── */
+load();
+</script>
+</body>
+</html>

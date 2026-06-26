@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Courses & Content · Admin · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  th, td { vertical-align: top; }
+  .panel-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px; }
+  .count-pill {
+    display:inline-block; padding:2px 8px; background:var(--paper-edge);
+    border-radius:100px; font-family:var(--font-mono); font-size:0.74rem; color:var(--ink-soft); margin-left:6px;
+  }
+  .filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  .filter-bar select, .filter-bar input { width:auto; min-width:150px; }
+  .modal { max-width: 720px; }
+  .modal-wide { max-width: 880px; }
+  .material-row {
+    display:flex; align-items:center; gap:12px; padding:10px 14px;
+    background:var(--paper-soft); border:1px solid var(--paper-edge);
+    border-radius:var(--radius); margin-bottom:8px;
+  }
+  .material-type {
+    font-family:var(--font-mono); font-size:0.7rem; padding:2px 8px; border-radius:4px;
+    background:var(--paper-edge); color:var(--ink-soft);
+  }
+  .material-type.quiz { background:var(--accent-soft); color:var(--accent); }
+  .material-type.note { background:var(--success-soft); color:var(--success); }
+  .editor-area { min-height:240px; font-family:var(--font-mono); font-size:0.86rem; }
+  .pill-status {
+    font-family:var(--font-mono); font-size:0.72rem; padding:2px 8px; border-radius:100px;
+  }
+
+  /* ── Full-page edit panels (Notes / Lessons / Note-Lessons) ──────── */
+  .modal.is-fullscreen {
+    max-width:none; padding:0; background:transparent;
+    box-shadow:none; max-height:none; overflow:visible;
+  }
+  .modal-backdrop:has(.modal.is-fullscreen) {
+    background: transparent !important;
+  }
+  /* Shared panel shell */
+  .edit-panel {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 10001 !important;
+    background: var(--paper);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* Sticky header bar */
+  .edit-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--paper-edge);
+    background: var(--paper);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    gap: 16px;
+  }
+  .edit-panel-head-left { display:flex; align-items:center; gap:16px; min-width:0; }
+  .edit-panel-eyebrow {
+    font-size: 0.66rem; font-weight: 700; letter-spacing:.1em;
+    text-transform: uppercase; color: var(--accent); white-space:nowrap;
+  }
+  .edit-panel-title {
+    font-family: var(--font-display);
+    font-size: 1.3rem; font-weight: 400;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: var(--ink); margin: 0;
+  }
+  .edit-panel-head-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  /* Scrollable body */
+  .edit-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 28px 32px 60px;
+    min-height: 0;
+  }
+  .edit-panel-inner {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  /* Sticky save bar at bottom of scroll area */
+  .edit-panel-save-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--paper);
+    border-top: 1px solid var(--paper-edge);
+    padding: 14px 0 0;
+    margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+  /* Rich editor should use full available height */
+  .edit-panel-body .editor-area,
+  .edit-panel-body .rich-editor-wrap { min-height: 320px; }
+  @media (max-width: 640px) {
+    .edit-panel-body { padding: 18px 16px 48px; }
+    .edit-panel-head { padding: 14px 16px; }
+  }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main class="section">
+  <div class="container">
+    <div id="err-banner" style="display:none; padding:14px 18px; background:#f2dede; color:#722; border-left:4px solid #9b2c2c; border-radius:6px; margin-bottom:16px; font-family:var(--font-mono); font-size:0.86rem;"></div>
+
+    <div class="mb-2">
+      <a href="admin.html" class="text-muted" style="font-size:0.9rem;">← Back to admin</a>
+      <h1 class="display mt-1" style="font-size:2.2rem;">Text Content</h1>
+      <p class="text-soft" style="font-size:0.94rem;">Notes are study material that group lessons. Lessons are individual pages attached to notes. Manage <a href="admin-courses.html">Courses</a> separately.</p>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" data-tab="notes">Notes</button>
+      <button class="tab" data-tab="lessons">Lessons</button>
+    </div>
+
+    <!-- ======== NOTES (default tab on this page) ======== -->
+    <div class="panel active" id="panel-notes">
+      <div class="panel-head">
+        <div>
+          <h2 class="display" style="font-size:1.4rem;">Notes <span class="count-pill" id="note-count">—</span></h2>
+          <p class="text-muted" style="font-size:0.88rem;">Study material — rich content, optionally grouping ordered lessons.</p>
+        </div>
+        <button class="btn btn-accent" id="note-new">+ New note</button>
+      </div>
+      <div id="note-table"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ======== LESSONS ======== -->
+    <div class="panel" id="panel-lessons">
+      <div class="panel-head">
+        <div>
+          <h2 class="display" style="font-size:1.4rem;">Lessons <span class="count-pill" id="lesson-count">—</span></h2>
+          <p class="text-muted" style="font-size:0.88rem;">Individual lesson pages. Attach them to notes from the Notes tab.</p>
+        </div>
+        <button class="btn btn-accent" id="lesson-new">+ New lesson</button>
+      </div>
+      <div class="filter-bar">
+        <select id="lesson-status">
+          <option value="">All statuses</option>
+          <option value="PUBLISHED">Published</option>
+          <option value="DRAFT">Draft</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+      </div>
+      <div id="lesson-table"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- (Courses + Enrollments panels live on admin-courses.html) -->
+  </div>
+</main>
+
+<script type="module">
+  import { mountHeader, mountAdminSidebar, mountFooter, escapeHtml, formatDate, formatRelative, toast, requireRole, modal } from './assets/components.js';
+  import { admin, taxonomy } from './assets/api.js';
+  import { mountRichEditor } from './assets/rich-editor.js';
+
+  window.addEventListener('error', (e) => {
+    const bar = document.getElementById('err-banner');
+    if (bar) { bar.style.display = 'block'; bar.textContent = '⚠️ ' + (e.error?.message || e.message); }
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    const bar = document.getElementById('err-banner');
+    if (bar) { bar.style.display = 'block'; bar.textContent = '⚠️ ' + (e.reason?.message || e.reason); }
+  });
+
+  await requireRole('ADMIN');
+  await mountHeader('admin');
+  mountAdminSidebar('text-content');
+  mountFooter();
+
+  // Shared taxonomy for dropdowns
+  let subjects = [], topics = [], professions = [];
+  try { professions = (await taxonomy.professions()).data; } catch {}
+  try { subjects = (await taxonomy.subjects()).data; } catch {}
+  try { topics = (await taxonomy.topics()).data; } catch {}
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+      if (t.dataset.tab === 'notes') loadNotes();
+      if (t.dataset.tab === 'lessons') loadLessons();
+      if (t.dataset.tab === 'enrollments') loadEnrollments();
+    });
+  });
+
+  const subjectOptions = (current) =>
+    '<option value="">— None —</option>' +
+    subjects.map(s => `<option value="${escapeHtml(s.id)}" ${current === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('');
+  const topicOptions = (current) =>
+    '<option value="">— None —</option>' +
+    topics.map(t => `<option value="${escapeHtml(t.id)}" ${current === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+
+  /* ==================== COURSES ==================== */
+  async function loadCourses() {
+    const table = document.getElementById('course-table');
+    table.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const r = await admin.listCourses();
+      document.getElementById('course-count').textContent = r.data.length;
+      if (!r.data.length) {
+        table.innerHTML = `<div class="empty"><p>No courses yet — create the first one.</p></div>`;
+        return;
+      }
+      table.innerHTML = `
+        <table>
+          <thead><tr><th>Title</th><th>Access</th><th>Public</th><th>Materials</th><th>Enrollments</th><th></th></tr></thead>
+          <tbody>${r.data.map(c => `
+            <tr data-id="${c.id}">
+              <td><strong>${escapeHtml(c.title)}</strong><div class="text-muted" style="font-size:0.78rem;">${escapeHtml(c.slug)}</div></td>
+              <td><span class="badge">${escapeHtml(c.access_type)}</span>${parseInt(c.requires_approval) ? ' <span class="badge badge-warn">approval</span>' : ''}</td>
+              <td>${parseInt(c.is_public) ? '<span class="badge badge-success">Yes</span>' : '<span class="badge">No</span>'}</td>
+              <td>${c.materials_count}</td>
+              <td>${c.enrollments_count}</td>
+              <td style="white-space:nowrap;">
+                <button class="btn btn-ghost btn-sm" data-contents>Contents</button>
+                <button class="btn btn-ghost btn-sm" data-edit>Edit</button>
+                <button class="btn btn-ghost btn-sm" data-del style="color:var(--error);">Delete</button>
+              </td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+      table.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () =>
+        courseModal(r.data.find(x => x.id === b.closest('tr').dataset.id))));
+      table.querySelectorAll('[data-contents]').forEach(b => b.addEventListener('click', () =>
+        contentsModal(r.data.find(x => x.id === b.closest('tr').dataset.id))));
+      table.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.closest('tr').dataset.id;
+        const c = r.data.find(x => x.id === id);
+        if (!confirm(`Delete course "${c.title}"?`)) return;
+        try {
+          await admin.deleteCourse(id);
+          toast('Deleted', 'success'); loadCourses();
+        } catch (err) {
+          if (err.status === 409 && err.data?.activeEnrollments) {
+            if (confirm(`${err.message}\n\nDelete anyway?`)) {
+              try { await admin.deleteCourse(id, true); toast('Deleted', 'success'); loadCourses(); }
+              catch (e2) { toast(e2.message, 'error'); }
+            }
+          } else { toast(err.message, 'error'); }
+        }
+      }));
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function courseModal(existing) {
+    const e = existing || {};
+    const { el, close } = modal(`
+      <h2>${existing ? 'Edit course' : 'New course'}</h2>
+      <form id="course-form" class="stack" style="--stack:14px;">
+        <div class="field"><label>Title</label><input name="title" required value="${escapeHtml(e.title || '')}"></div>
+        <div class="field"><label>Description</label><textarea name="description" rows="3">${escapeHtml(e.description || '')}</textarea></div>
+
+        <div class="field">
+          <label>Cover image <span class="text-muted" style="font-weight:400;">(16:9 recommended, JPG/PNG/WebP, max 5MB)</span></label>
+          <div id="cover-preview-wrap" style="display:flex; align-items:center; gap:14px; margin-bottom:8px;">
+            ${e.cover_url
+              ? `<img src="${escapeHtml(e.cover_url)}" alt="" style="width:160px; aspect-ratio:16/9; object-fit:cover; border-radius:8px; border:1px solid var(--border);">
+                 <button type="button" id="cover-remove-btn" class="btn btn-ghost btn-sm" style="color:var(--accent);">Remove cover</button>`
+              : `<div style="width:160px; aspect-ratio:16/9; border-radius:8px; border:1.5px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:0.78rem;">No cover</div>`
+            }
+          </div>
+          <input type="file" name="cover" id="course-cover-file" accept="image/jpeg,image/png,image/webp,image/gif">
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Access type</label>
+            <select name="accessType">
+              ${['OPEN','PAID','APPROVAL','SUBSCRIPTION'].map(a => `<option value="${a}" ${(e.access_type||'OPEN')===a?'selected':''}>${a}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Public</label>
+            <select name="isPublic">
+              <option value="1" ${parseInt(e.is_public ?? 1)===1?'selected':''}>Yes</option>
+              <option value="0" ${parseInt(e.is_public ?? 1)===0?'selected':''}>No</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Profession <span class="text-muted" style="font-weight:400;">(used for filtering)</span></label>
+          <select name="professionId">
+            <option value="">— None —</option>
+            ${professions.map(p => `<option value="${escapeHtml(p.id)}" ${e.profession_id === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
+          </select>
+        </div>
+        <label class="checkbox"><input type="checkbox" name="requiresApproval" ${parseInt(e.requires_approval)?'checked':''}> Enrollment needs admin approval</label>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">${existing ? 'Save' : 'Create'}</button>
+        </div>
+      </form>`);
+    // Remove cover (only present when editing a course that has one)
+    el.querySelector('#cover-remove-btn')?.addEventListener('click', async () => {
+      if (!existing || !confirm('Remove this cover image?')) return;
+      try {
+        await admin.removeCourseCover(existing.id);
+        toast('Cover removed', 'success');
+        close(); loadCourses();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+
+    el.querySelector('#course-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const body = {
+        title: fd.get('title').trim(),
+        description: fd.get('description').trim() || null,
+        accessType: fd.get('accessType'),
+        isPublic: fd.get('isPublic') === '1',
+        professionId: fd.get('professionId') || null,
+        requiresApproval: fd.get('requiresApproval') === 'on',
+      };
+      const coverFile = (el.querySelector('#course-cover-file')?.files || [])[0];
+      try {
+        let courseId;
+        if (existing) {
+          body.id = existing.id;
+          await admin.updateCourse(body);
+          courseId = existing.id;
+        } else {
+          const res = await admin.createCourse(body);
+          courseId = res?.data?.id;
+        }
+        // Upload cover image after the course exists (needs the id).
+        if (coverFile && courseId) {
+          const cfd = new FormData();
+          cfd.append('courseId', courseId);
+          cfd.append('cover', coverFile);
+          await admin.uploadCourseCover(cfd);
+        }
+        toast(existing ? 'Saved' : 'Created', 'success');
+        close(); loadCourses();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+
+  async function contentsModal(course) {
+    const { el, close } = modal(`
+      <div class="modal-wide">
+        <h2>Contents — ${escapeHtml(course.title)}</h2>
+        <p class="text-soft mb-2" style="font-size:0.9rem;">Quiz sets and notes inside this course.</p>
+        <div id="materials-list"><div class="loading"><div class="spinner"></div></div></div>
+        <div class="flex mt-2" style="gap:10px;">
+          <button class="btn btn-ghost btn-sm" id="add-quiz">+ Add quiz set</button>
+          <button class="btn btn-ghost btn-sm" id="add-note">+ Add note</button>
+        </div>
+
+        <div class="divider-ornate" style="margin:24px 0 16px;">Subscription plans</div>
+        <p class="text-soft mb-2" style="font-size:0.9rem;">Pricing plans students choose to subscribe to this course.</p>
+        <div id="plans-list"><div class="loading"><div class="spinner"></div></div></div>
+        <button class="btn btn-accent btn-sm mt-2" id="add-plan">+ New plan</button>
+
+        <div class="text-right mt-3"><button class="btn btn-primary" data-close>Done</button></div>
+      </div>
+    `, { onClose: loadCourses });
+
+    async function renderMaterials() {
+      const box = el.querySelector('#materials-list');
+      try {
+        const r = await admin.getCourse(course.id);
+        const mats = r.data.materials || [];
+        if (!mats.length) {
+          box.innerHTML = `<p class="text-muted" style="font-size:0.9rem;">Nothing added yet.</p>`;
+          return;
+        }
+        box.innerHTML = mats.map(m => {
+          const isQuiz = m.type === 'QUIZ_SET';
+          const name = m.quiz_set_name || m.note_title || '(missing)';
+          return `
+            <div class="material-row" data-mid="${m.id}">
+              <span class="material-type ${isQuiz ? 'quiz' : 'note'}">${isQuiz ? 'QUIZ SET' : 'NOTE'}</span>
+              <span style="flex:1;">${escapeHtml(name)}</span>
+              <span class="text-muted" style="font-size:0.8rem;">#${m.order}</span>
+              <button class="btn btn-ghost btn-sm" data-remove style="color:var(--error);">Remove</button>
+            </div>`;
+        }).join('');
+        box.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', async () => {
+          try {
+            await admin.removeCourseMaterial(b.closest('[data-mid]').dataset.mid);
+            toast('Removed', 'success'); renderMaterials();
+          } catch (err) { toast(err.message, 'error'); }
+        }));
+      } catch (err) {
+        box.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      }
+    }
+    await renderMaterials();
+
+    async function pickAndAdd(type) {
+      let items = [];
+      try {
+        if (type === 'QUIZ_SET') items = (await admin.listQuizSets()).data.map(x => ({ id: x.id, label: x.name }));
+        else items = (await admin.listNotes()).data.map(x => ({ id: x.id, label: x.title }));
+      } catch (err) { toast(err.message, 'error'); return; }
+      if (!items.length) { toast(`No ${type === 'QUIZ_SET' ? 'quiz sets' : 'notes'} available`, 'error'); return; }
+      const { el: pe, close: pclose } = modal(`
+        <h2>Add ${type === 'QUIZ_SET' ? 'quiz set' : 'note'}</h2>
+        <div class="field">
+          <label>Choose one</label>
+          <select id="pick-select">${items.map(i => `<option value="${escapeHtml(i.id)}">${escapeHtml(i.label)}</option>`).join('')}</select>
+        </div>
+        <div class="flex mt-2" style="gap:10px; justify-content:flex-end;">
+          <button class="btn btn-ghost" data-close>Cancel</button>
+          <button class="btn btn-primary" id="pick-confirm">Add</button>
+        </div>`);
+      pe.querySelector('#pick-confirm').addEventListener('click', async () => {
+        const chosen = pe.querySelector('#pick-select').value;
+        const body = { courseId: course.id, type };
+        if (type === 'QUIZ_SET') body.quizSetId = chosen; else body.noteId = chosen;
+        try {
+          await admin.addCourseMaterial(body);
+          toast('Added', 'success'); pclose(); renderMaterials();
+        } catch (err) { toast(err.message, 'error'); }
+      });
+    }
+    el.querySelector('#add-quiz').addEventListener('click', () => pickAndAdd('QUIZ_SET'));
+    el.querySelector('#add-note').addEventListener('click', () => pickAndAdd('NOTE'));
+
+    /* ---- per-course subscription plans ---- */
+    async function renderPlans() {
+      const box = el.querySelector('#plans-list');
+      try {
+        const r = await admin.listCoursePlans(course.id);
+        const plans = r.data || [];
+        if (!plans.length) {
+          box.innerHTML = `<p class="text-muted" style="font-size:0.9rem;">No plans yet — add one so students can subscribe.</p>`;
+          return;
+        }
+        box.innerHTML = plans.map(p => {
+          const feats = p.features
+            ? (typeof p.features === 'string' ? (JSON.parse(p.features || '[]')) : p.features)
+            : [];
+          return `
+            <div class="material-row" data-pid="${p.id}" style="align-items:flex-start;">
+              <div style="flex:1;">
+                <div style="font-weight:500;">
+                  ${escapeHtml(p.name)}
+                  ${parseInt(p.is_popular) ? '<span class="badge badge-accent" style="margin-left:6px;">Popular</span>' : ''}
+                  ${parseInt(p.is_active) ? '' : '<span class="badge" style="margin-left:6px;">Inactive</span>'}
+                </div>
+                <div class="text-muted" style="font-size:0.82rem; font-family:var(--font-mono);">
+                  ${escapeHtml(p.currency)} ${parseFloat(p.price).toFixed(0)} · ${p.duration_days} days
+                  ${p.active_purchases ? ` · ${p.active_purchases} subscriber(s)` : ''}
+                </div>
+                ${feats.length ? `<div class="text-muted" style="font-size:0.8rem; margin-top:3px;">${feats.map(f => escapeHtml(f)).join(' · ')}</div>` : ''}
+              </div>
+              <button class="btn btn-ghost btn-sm" data-edit-plan>Edit</button>
+              <button class="btn btn-ghost btn-sm" data-del-plan style="color:var(--error);">Delete</button>
+            </div>`;
+        }).join('');
+        box.querySelectorAll('[data-edit-plan]').forEach(b => b.addEventListener('click', () =>
+          planModal(plans.find(x => x.id === b.closest('[data-pid]').dataset.pid))));
+        box.querySelectorAll('[data-del-plan]').forEach(b => b.addEventListener('click', async () => {
+          const id = b.closest('[data-pid]').dataset.pid;
+          const p = plans.find(x => x.id === id);
+          if (!confirm(`Delete plan "${p.name}"?`)) return;
+          try { await admin.deleteCoursePlan(id); toast('Deleted', 'success'); renderPlans(); }
+          catch (err) { toast(err.message, 'error'); }
+        }));
+      } catch (err) {
+        box.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function planModal(existing) {
+      const p = existing || {};
+      const featStr = (() => {
+        if (!p.features) return '';
+        const f = typeof p.features === 'string' ? JSON.parse(p.features || '[]') : p.features;
+        return Array.isArray(f) ? f.join(', ') : '';
+      })();
+      const { el: pe, close: pclose } = modal(`
+        <h2>${existing ? 'Edit plan' : 'New plan'}</h2>
+        <form id="plan-form" class="stack" style="--stack:13px;">
+          <div class="field"><label>Plan name</label><input name="name" required value="${escapeHtml(p.name || '')}" placeholder="e.g. 3-Month Access"></div>
+          <div class="field"><label>Description <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+            <textarea name="description" rows="2">${escapeHtml(p.description || '')}</textarea></div>
+          <div class="field-row">
+            <div class="field"><label>Price</label><input name="price" type="number" min="0" step="1" required value="${p.price ?? 0}"></div>
+            <div class="field"><label>Duration (days)</label><input name="durationDays" type="number" min="1" max="3650" required value="${p.duration_days ?? 30}"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Currency</label><input name="currency" value="${escapeHtml(p.currency || 'NPR')}"></div>
+            <div class="field"><label>Original price <span class="text-muted" style="font-weight:400;">(strikethrough, optional)</span></label>
+              <input name="originalPrice" type="number" min="0" step="1" value="${p.original_price ?? ''}"></div>
+          </div>
+          <div class="field"><label>Features <span class="text-muted" style="font-weight:400;">(comma-separated)</span></label>
+            <input name="features" value="${escapeHtml(featStr)}" placeholder="All quiz sets, All notes, Priority support"></div>
+          <div class="field-row">
+            <label class="checkbox"><input type="checkbox" name="isPopular" ${parseInt(p.is_popular) ? 'checked' : ''}> Mark as popular</label>
+            <label class="checkbox"><input type="checkbox" name="isActive" ${existing ? (parseInt(p.is_active) ? 'checked' : '') : 'checked'}> Active</label>
+          </div>
+          <div class="flex" style="gap:10px; justify-content:flex-end;">
+            <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+            <button type="submit" class="btn btn-primary">${existing ? 'Save' : 'Create'}</button>
+          </div>
+        </form>`);
+      pe.querySelector('#plan-form').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const fd = new FormData(ev.target);
+        const body = {
+          name: fd.get('name').trim(),
+          description: fd.get('description').trim() || null,
+          price: parseFloat(fd.get('price')) || 0,
+          durationDays: parseInt(fd.get('durationDays')) || 30,
+          currency: fd.get('currency').trim() || 'NPR',
+          originalPrice: fd.get('originalPrice') ? parseFloat(fd.get('originalPrice')) : null,
+          features: fd.get('features').split(',').map(s => s.trim()).filter(Boolean),
+          isPopular: fd.get('isPopular') === 'on',
+          isActive: fd.get('isActive') === 'on',
+        };
+        try {
+          if (existing) { body.id = existing.id; await admin.updateCoursePlan(body); }
+          else { body.courseId = course.id; await admin.createCoursePlan(body); }
+          toast(existing ? 'Saved' : 'Created', 'success');
+          pclose(); renderPlans();
+        } catch (err) { toast(err.message, 'error'); }
+      });
+    }
+
+    el.querySelector('#add-plan').addEventListener('click', () => planModal(null));
+    await renderPlans();
+  }
+
+  document.getElementById('course-new')?.addEventListener('click', () => courseModal(null));
+
+  /* ==================== NOTES ==================== */
+  async function loadNotes() {
+    const table = document.getElementById('note-table');
+    table.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const r = await admin.listNotes();
+      document.getElementById('note-count').textContent = r.data.length;
+      if (!r.data.length) {
+        table.innerHTML = `<div class="empty"><p>No notes yet.</p></div>`;
+        return;
+      }
+      table.innerHTML = `
+        <table>
+          <thead><tr><th>Title</th><th>Subject</th><th>Topic</th><th>Lessons</th><th>Size</th><th></th></tr></thead>
+          <tbody>${r.data.map(n => `
+            <tr data-id="${n.id}">
+              <td><strong>${escapeHtml(n.title)}</strong></td>
+              <td class="text-muted">${n.subject_name ? escapeHtml(n.subject_name) : '—'}</td>
+              <td class="text-muted">${n.topic_name ? escapeHtml(n.topic_name) : '—'}</td>
+              <td>${n.lessons_count}</td>
+              <td class="text-muted">${n.content_length} chars</td>
+              <td style="white-space:nowrap;">
+                <button class="btn btn-ghost btn-sm" data-lessons>Lessons</button>
+                <button class="btn btn-ghost btn-sm" data-edit>Edit</button>
+                <button class="btn btn-ghost btn-sm" data-del style="color:var(--error);">Delete</button>
+              </td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+      table.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', async () => {
+        try {
+          const full = await admin.getNote(b.closest('tr').dataset.id);
+          noteModal(full.data);
+        } catch (err) { toast(err.message, 'error'); }
+      }));
+      table.querySelectorAll('[data-lessons]').forEach(b => b.addEventListener('click', async () => {
+        try {
+          const full = await admin.getNote(b.closest('tr').dataset.id);
+          noteLessonsModal(full.data);
+        } catch (err) { toast(err.message, 'error'); }
+      }));
+      table.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.closest('tr').dataset.id;
+        if (!confirm('Delete this note?')) return;
+        try { await admin.deleteNote(id); toast('Deleted', 'success'); loadNotes(); }
+        catch (err) { toast(err.message, 'error'); }
+      }));
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function noteModal(existing) {
+    const e = existing || {};
+    const { el, close } = modal(`
+      <div class="edit-panel">
+        <div class="edit-panel-head">
+          <div class="edit-panel-head-left">
+            <span class="edit-panel-eyebrow">${existing ? 'Edit Note' : 'New Note'}</span>
+            <h2 class="edit-panel-title">${existing ? escapeHtml((e.title||'Untitled').slice(0,60)) : 'New note'}</h2>
+          </div>
+          <div class="edit-panel-head-actions">
+            <button type="submit" form="note-form" class="btn btn-primary btn-sm">${existing ? 'Save changes' : 'Create'}</button>
+            <button class="btn btn-ghost btn-sm" data-close>&#x2715; Close</button>
+          </div>
+        </div>
+        <div class="edit-panel-body">
+          <div class="edit-panel-inner">
+            <form id="note-form" class="stack" style="--stack:16px;">
+              <div class="field"><label>Title</label><input name="title" required value="${escapeHtml(e.title || '')}"></div>
+              <div class="field-row">
+                <div class="field"><label>Subject</label><select name="subjectId">${subjectOptions(e.subject_id)}</select></div>
+                <div class="field"><label>Topic</label><select name="topicId">${topicOptions(e.topic_id)}</select></div>
+              </div>
+              <div class="field">
+                <label>Content <span class="text-muted" style="font-weight:400;">(HTML / rich text)</span></label>
+                <textarea name="content" class="editor-area" rows="16">${escapeHtml(e.content || '')}</textarea>
+                <p class="text-muted" style="font-size:0.78rem; margin-top:4px;">You can also type Markdown by hand (**bold**, [link](url), etc.) — it will render correctly on the published note even though it shows as plain text here while editing.</p>
+              </div>
+              <div class="field"><label>Tags <span class="text-muted" style="font-weight:400;">(comma-separated)</span></label>
+                <input name="tags" value="${escapeHtml((e.tags || []).join(', '))}"></div>
+              <div class="edit-panel-save-bar">
+                <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">${existing ? 'Save changes' : 'Create'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>`);
+    el.querySelector('.modal').classList.add('is-fullscreen');
+    mountRichEditor(el.querySelector('textarea[name="content"]'), { placeholder:'Write the note content\u2026' });
+    el.querySelector('#note-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const body = {
+        title: fd.get('title').trim(),
+        subjectId: fd.get('subjectId') || null,
+        topicId: fd.get('topicId') || null,
+        content: fd.get('content'),
+        tags: fd.get('tags').split(',').map(s => s.trim()).filter(Boolean),
+      };
+      try {
+        if (existing) { body.id = existing.id; await admin.updateNote(body); }
+        else await admin.createNote(body);
+        toast(existing ? 'Saved' : 'Created', 'success');
+        close(); loadNotes();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+
+  async function noteLessonsModal(note) {
+    const { el } = modal(`
+      <div class="edit-panel">
+        <div class="edit-panel-head">
+          <div class="edit-panel-head-left">
+            <span class="edit-panel-eyebrow">Note Lessons</span>
+            <h2 class="edit-panel-title">${escapeHtml(note.title.slice(0,60))}</h2>
+          </div>
+          <div class="edit-panel-head-actions">
+            <button class="btn btn-ghost btn-sm" data-close>&#x2715; Close</button>
+          </div>
+        </div>
+        <div class="edit-panel-body">
+          <div class="edit-panel-inner">
+            <p class="text-soft mb-2" style="font-size:0.9rem;">Ordered lessons grouped under this note.</p>
+            <div id="nl-list"></div>
+            <div class="divider-ornate" style="margin:24px 0 16px;">Attach a lesson</div>
+            <div class="flex" style="gap:10px; align-items:center;">
+              <select id="nl-pick" style="flex:1;"></select>
+              <button class="btn btn-primary btn-sm" id="nl-attach">Attach</button>
+            </div>
+            <div class="edit-panel-save-bar">
+              <button class="btn btn-primary" data-close>Done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `, { onClose: loadNotes });
+    el.querySelector('.modal').classList.add('is-fullscreen');
+
+    async function render() {
+      const list = el.querySelector('#nl-list');
+      try {
+        const full = (await admin.getNote(note.id)).data;
+        const lessons = full.lessons || [];
+        list.innerHTML = lessons.length
+          ? lessons.map(l => `
+              <div class="material-row" data-link="${l.link_id}">
+                <span class="material-type note">LESSON</span>
+                <span style="flex:1;">${escapeHtml(l.title)}</span>
+                <span class="text-muted" style="font-size:0.8rem;">#${l.order}</span>
+                <button class="btn btn-ghost btn-sm" data-detach style="color:var(--error);">Detach</button>
+              </div>`).join('')
+          : `<p class="text-muted" style="font-size:0.9rem;">No lessons attached.</p>`;
+        list.querySelectorAll('[data-detach]').forEach(b => b.addEventListener('click', async () => {
+          try {
+            await admin.detachLessonFromNote(b.closest('[data-link]').dataset.link);
+            toast('Detached', 'success'); render();
+          } catch (err) { toast(err.message, 'error'); }
+        }));
+      } catch (err) {
+        list.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      }
+      // populate picker
+      try {
+        const all = (await admin.listLessons()).data;
+        el.querySelector('#nl-pick').innerHTML = all.length
+          ? all.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('')
+          : `<option value="">No lessons exist yet</option>`;
+      } catch {}
+    }
+    await render();
+    el.querySelector('#nl-attach').addEventListener('click', async () => {
+      const lessonId = el.querySelector('#nl-pick').value;
+      if (!lessonId) { toast('No lesson selected', 'error'); return; }
+      try {
+        await admin.attachLessonToNote({ noteId: note.id, lessonId });
+        toast('Attached', 'success'); render();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+
+  document.getElementById('note-new').addEventListener('click', () => noteModal(null));
+
+  /* ==================== LESSONS ==================== */
+  async function loadLessons() {
+    const table = document.getElementById('lesson-table');
+    table.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const status = document.getElementById('lesson-status').value;
+      const r = await admin.listLessons(status ? { status } : {});
+      document.getElementById('lesson-count').textContent = r.data.length;
+      if (!r.data.length) {
+        table.innerHTML = `<div class="empty"><p>No lessons yet.</p></div>`;
+        return;
+      }
+      table.innerHTML = `
+        <table>
+          <thead><tr><th>Title</th><th>Subject</th><th>Status</th><th>Size</th><th></th></tr></thead>
+          <tbody>${r.data.map(l => {
+            const sb = l.status === 'PUBLISHED' ? 'badge-success' : l.status === 'DRAFT' ? 'badge-warn' : '';
+            return `
+              <tr data-id="${l.id}">
+                <td><strong>${escapeHtml(l.title)}</strong></td>
+                <td class="text-muted">${l.subject_name ? escapeHtml(l.subject_name) : '—'}</td>
+                <td><span class="badge ${sb}">${escapeHtml(l.status)}</span></td>
+                <td class="text-muted">${l.content_length} chars</td>
+                <td style="white-space:nowrap;">
+                  <button class="btn btn-ghost btn-sm" data-edit>Edit</button>
+                  <button class="btn btn-ghost btn-sm" data-del style="color:var(--error);">Delete</button>
+                </td>
+              </tr>`;
+          }).join('')}</tbody>
+        </table>`;
+      table.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', async () => {
+        try {
+          const full = await admin.getLesson(b.closest('tr').dataset.id);
+          lessonModal(full.data);
+        } catch (err) { toast(err.message, 'error'); }
+      }));
+      table.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.closest('tr').dataset.id;
+        if (!confirm('Delete this lesson?')) return;
+        try { await admin.deleteLesson(id); toast('Deleted', 'success'); loadLessons(); }
+        catch (err) { toast(err.message, 'error'); }
+      }));
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function lessonModal(existing) {
+    const e = existing || {};
+    const { el, close } = modal(`
+      <div class="edit-panel">
+        <div class="edit-panel-head">
+          <div class="edit-panel-head-left">
+            <span class="edit-panel-eyebrow">${existing ? 'Edit Lesson' : 'New Lesson'}</span>
+            <h2 class="edit-panel-title">${existing ? escapeHtml((e.title||'Untitled').slice(0,60)) : 'New lesson'}</h2>
+          </div>
+          <div class="edit-panel-head-actions">
+            <button type="submit" form="lesson-form" class="btn btn-primary btn-sm">${existing ? 'Save changes' : 'Create'}</button>
+            <button class="btn btn-ghost btn-sm" data-close>&#x2715; Close</button>
+          </div>
+        </div>
+        <div class="edit-panel-body">
+          <div class="edit-panel-inner">
+            <form id="lesson-form" class="stack" style="--stack:16px;">
+              <div class="field"><label>Title</label><input name="title" required value="${escapeHtml(e.title || '')}"></div>
+              <div class="field-row">
+                <div class="field"><label>Subject</label><select name="subjectId">${subjectOptions(e.subject_id)}</select></div>
+                <div class="field"><label>Status</label>
+                  <select name="status">
+                    ${['PUBLISHED','DRAFT','ARCHIVED'].map(s => `<option value="${s}" ${(e.status||'PUBLISHED')===s?'selected':''}>${s}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label>Content <span class="text-muted" style="font-weight:400;">(HTML / rich text)</span></label>
+                <textarea name="content" class="editor-area" rows="16" required>${escapeHtml(e.content || '')}</textarea>
+                <p class="text-muted" style="font-size:0.78rem; margin-top:4px;">You can also type Markdown by hand (**bold**, [link](url), etc.) — it will render correctly on the published lesson even though it shows as plain text here while editing.</p>
+              </div>
+              <div class="field"><label>Tags <span class="text-muted" style="font-weight:400;">(comma-separated)</span></label>
+                <input name="tags" value="${escapeHtml((e.tags || []).join(', '))}"></div>
+              <div class="edit-panel-save-bar">
+                <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">${existing ? 'Save changes' : 'Create'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>`);
+    el.querySelector('.modal').classList.add('is-fullscreen');
+    mountRichEditor(el.querySelector('textarea[name="content"]'), { placeholder:'Write the lesson content\u2026' });
+    el.querySelector('#lesson-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const body = {
+        title: fd.get('title').trim(),
+        subjectId: fd.get('subjectId') || null,
+        status: fd.get('status'),
+        content: fd.get('content'),
+        tags: fd.get('tags').split(',').map(s => s.trim()).filter(Boolean),
+      };
+      try {
+        if (existing) { body.id = existing.id; await admin.updateLesson(body); }
+        else await admin.createLesson(body);
+        toast(existing ? 'Saved' : 'Created', 'success');
+        close(); loadLessons();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+
+  document.getElementById('lesson-new').addEventListener('click', () => lessonModal(null));
+  document.getElementById('lesson-status').addEventListener('change', loadLessons);
+
+  /* ==================== ENROLLMENTS ==================== */
+  async function loadEnrollments() {
+    const table = document.getElementById('enr-table');
+    table.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const status = document.getElementById('enr-status').value;
+      const r = await admin.listEnrollments(status ? { status, per_page: 50 } : { per_page: 50 });
+      document.getElementById('enr-count').textContent = r.pagination.total;
+      if (!r.data.length) {
+        table.innerHTML = `<div class="empty"><p>No enrollments match.</p></div>`;
+        return;
+      }
+      table.innerHTML = `
+        <table>
+          <thead><tr><th>When</th><th>Student</th><th>Course</th><th>Status</th><th>Expires</th><th></th></tr></thead>
+          <tbody>${r.data.map(e => {
+            const name = ((e.user_first_name || '') + ' ' + (e.user_last_name || '')).trim();
+            const sb = e.status === 'ACTIVE' ? 'badge-success'
+              : e.status === 'PENDING' ? 'badge-warn'
+              : (e.status === 'REJECTED' || e.status === 'SUSPENDED') ? 'badge-error' : '';
+            let actions = '';
+            if (e.status === 'PENDING') {
+              actions = `<button class="btn btn-accent btn-sm" data-act="APPROVE">Approve</button>
+                         <button class="btn btn-ghost btn-sm" data-act="REJECT" style="color:var(--error);">Reject</button>`;
+            } else if (e.status === 'ACTIVE') {
+              actions = `<button class="btn btn-ghost btn-sm" data-act="SUSPEND">Suspend</button>`;
+            } else if (e.status === 'SUSPENDED') {
+              actions = `<button class="btn btn-ghost btn-sm" data-act="ACTIVATE">Reactivate</button>`;
+            }
+            return `
+              <tr data-id="${e.id}">
+                <td>${formatDate(e.requested_at)}<div class="text-muted" style="font-size:0.78rem;">${formatRelative(e.requested_at)}</div></td>
+                <td><strong>${escapeHtml(name || e.user_email)}</strong><div class="text-muted" style="font-size:0.8rem;">${escapeHtml(e.user_email)}</div></td>
+                <td>${escapeHtml(e.course_title)}</td>
+                <td><span class="badge ${sb}">${escapeHtml(e.status)}</span></td>
+                <td class="text-muted">${e.expires_at ? formatDate(e.expires_at) : '—'}</td>
+                <td style="white-space:nowrap;">${actions}</td>
+              </tr>`;
+          }).join('')}</tbody>
+        </table>`;
+      table.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () =>
+        enrollReviewModal(b.dataset.act, r.data.find(x => x.id === b.closest('tr').dataset.id))));
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function enrollReviewModal(action, enr) {
+    const isApprove = action === 'APPROVE';
+    const label = { APPROVE:'Approve', REJECT:'Reject', SUSPEND:'Suspend', ACTIVATE:'Reactivate' }[action];
+    const name = ((enr.user_first_name || '') + ' ' + (enr.user_last_name || '')).trim();
+    const { el, close } = modal(`
+      <h2>${label} enrollment</h2>
+      <div class="card card-tight mb-2" style="background:var(--paper-soft);">
+        <div><strong>${escapeHtml(name || enr.user_email)}</strong></div>
+        <div class="text-muted" style="font-size:0.86rem;">${escapeHtml(enr.user_email)}</div>
+        <div class="mt-1">Course: <strong>${escapeHtml(enr.course_title)}</strong></div>
+        ${enr.request_note ? `<div class="mt-1 text-soft" style="font-size:0.88rem;">"${escapeHtml(enr.request_note)}"</div>` : ''}
+      </div>
+      <form id="enr-form" class="stack" style="--stack:14px;">
+        ${isApprove ? `
+        <div class="field">
+          <label>Access duration (days) <span class="text-muted" style="font-weight:400;">— blank = no expiry</span></label>
+          <input name="validDays" type="number" min="1" max="3650" placeholder="e.g. 90">
+        </div>` : ''}
+        <div class="field">
+          <label>Note to student <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+          <textarea name="note" rows="3"></textarea>
+        </div>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn ${isApprove ? 'btn-accent' : 'btn-primary'}">${label}</button>
+        </div>
+      </form>`);
+    el.querySelector('#enr-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const body = { id: enr.id, action, note: fd.get('note') || null };
+      if (isApprove && fd.get('validDays')) body.validDays = parseInt(fd.get('validDays'));
+      try {
+        await admin.reviewEnrollment(body);
+        toast(label + 'd', 'success');
+        close(); loadEnrollments();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+
+  document.getElementById('enr-status')?.addEventListener('change', loadEnrollments);
+
+  /* boot — Text Content page opens on Notes */
+  await loadNotes();
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

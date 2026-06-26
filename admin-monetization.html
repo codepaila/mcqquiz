@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Monetization · Admin · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  th, td { vertical-align: top; }
+  .panel-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px; }
+  .count-pill {
+    display:inline-block; padding:2px 8px; background:var(--paper-edge);
+    border-radius:100px; font-family:var(--font-mono); font-size:0.74rem; color:var(--ink-soft); margin-left:6px;
+  }
+  .receipt-thumb {
+    display:inline-block; width:64px; height:64px; border-radius:4px;
+    background:var(--paper-soft); border:1px solid var(--paper-edge); overflow:hidden;
+    vertical-align:middle; cursor:pointer;
+  }
+  .receipt-thumb img { width:100%; height:100%; object-fit:cover; }
+  .receipt-thumb-empty { display:flex; align-items:center; justify-content:center; color:var(--ink-muted); font-size:1.4rem; }
+  .modal { max-width: 640px; }
+  .filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  .filter-bar select { width:auto; min-width:140px; }
+  .qr-current {
+    width:160px; height:160px; background:var(--paper-soft); border:1px solid var(--paper-edge);
+    border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:var(--ink-muted);
+    overflow:hidden;
+  }
+  .qr-current img { max-width:100%; max-height:100%; }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main class="section">
+  <div class="container">
+    <div id="err-banner" style="display:none; padding:14px 18px; background:#f2dede; color:#722; border-left:4px solid #9b2c2c; border-radius:6px; margin-bottom:16px; font-family:var(--font-mono); font-size:0.86rem;"></div>
+
+    <div class="mb-2">
+      <a href="admin.html" class="text-muted" style="font-size:0.9rem;">← Back to admin</a>
+      <h1 class="display mt-1" style="font-size:2.2rem;">Monetization</h1>
+      <p class="text-soft" style="font-size:0.94rem;">All purchase requests — quiz sets and course subscriptions — and the public payment instructions.</p>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" data-tab="quiz">Quiz Requests</button>
+      <button class="tab" data-tab="course">Course Requests</button>
+      <button class="tab" data-tab="settings">Payment Settings</button>
+    </div>
+
+    <!-- ============ QUIZ REQUESTS ============ -->
+    <div class="panel active" id="panel-quiz">
+      <div class="panel-head">
+        <div>
+          <h2 class="display" style="font-size:1.4rem;">Quiz Requests <span class="count-pill" id="quiz-count">—</span></h2>
+          <p class="text-muted" style="font-size:0.88rem;">Manual purchase requests for individual quiz sets.</p>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <select id="quiz-status">
+          <option value="PENDING">Pending</option>
+          <option value="COMPLETED">Approved</option>
+          <option value="FAILED">Rejected</option>
+          <option value="REFUNDED">Refunded</option>
+          <option value="" selected>All statuses</option>
+        </select>
+      </div>
+      <div id="quiz-table"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ============ COURSE REQUESTS ============ -->
+    <div class="panel" id="panel-course">
+      <div class="panel-head">
+        <div>
+          <h2 class="display" style="font-size:1.4rem;">Course Requests <span class="count-pill" id="course-count">—</span></h2>
+          <p class="text-muted" style="font-size:0.88rem;">Course subscription requests. Approving one activates the student's enrollment.</p>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <select id="course-status">
+          <option value="PENDING">Pending</option>
+          <option value="COMPLETED">Approved</option>
+          <option value="FAILED">Rejected</option>
+          <option value="REFUNDED">Refunded</option>
+          <option value="" selected>All statuses</option>
+        </select>
+      </div>
+      <div id="course-table"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ============ PAYMENT SETTINGS ============ -->
+    <div class="panel" id="panel-settings">
+      <div class="panel-head">
+        <div>
+          <h2 class="display" style="font-size:1.4rem;">Payment Settings</h2>
+          <p class="text-muted" style="font-size:0.88rem;">Public payment instructions shown to students on the purchase page.</p>
+        </div>
+      </div>
+      <div id="settings-area"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { mountHeader, mountAdminSidebar, mountFooter, escapeHtml, formatDate, formatRelative, toast, requireRole, modal } from './assets/components.js';
+  import { admin } from './assets/api.js';
+
+  window.addEventListener('error', (e) => {
+    const bar = document.getElementById('err-banner');
+    if (bar) { bar.style.display = 'block'; bar.textContent = '⚠️ ' + (e.error?.message || e.message); }
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    const bar = document.getElementById('err-banner');
+    if (bar) { bar.style.display = 'block'; bar.textContent = '⚠️ ' + (e.reason?.message || e.reason); }
+  });
+
+  await requireRole('ADMIN');
+  await mountHeader('admin');
+  mountAdminSidebar('monetization');
+  mountFooter();
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+      if (t.dataset.tab === 'quiz')     loadRequests('QUIZ_SET');
+      if (t.dataset.tab === 'course')   loadRequests('COURSE');
+      if (t.dataset.tab === 'settings') loadSettings();
+    });
+  });
+
+  /* ===================== REQUESTS (quiz + course) ===================== */
+  // type: 'QUIZ_SET' → quiz tab, 'COURSE' → course tab
+  async function loadRequests(type) {
+    const prefix    = type === 'COURSE' ? 'course' : 'quiz';
+    const table     = document.getElementById(prefix + '-table');
+    const statusSel = document.getElementById(prefix + '-status');
+    const countEl   = document.getElementById(prefix + '-count');
+    table.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const params = { status: statusSel.value, type, per_page: 50 };
+      const r = await admin.listPurchases(params);
+      countEl.textContent = r.pagination.total;
+      if (!r.data.length) {
+        table.innerHTML = `<div class="empty"><p>No ${type === 'COURSE' ? 'course' : 'quiz'} requests match.</p></div>`;
+        return;
+      }
+      const itemHeader = type === 'COURSE' ? 'Course / Plan' : 'Quiz set';
+      table.innerHTML = `
+        <table>
+          <thead><tr>
+            <th>When</th><th>User</th><th>${itemHeader}</th><th>Amount</th>
+            <th>Status</th><th>Receipt</th><th>Txn ID</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${r.data.map(p => {
+              const name = ((p.user_first_name || '') + ' ' + (p.user_last_name || '')).trim();
+              const itemName = type === 'COURSE'
+                ? (p.course_title || '—') + (p.plan_name ? ' · ' + p.plan_name : '')
+                : (p.quiz_set_name || '—');
+              const statusBadge =
+                p.status === 'PENDING'   ? '<span class="badge badge-warn">Pending</span>' :
+                p.status === 'COMPLETED' ? '<span class="badge badge-success">Approved</span>' :
+                p.status === 'FAILED'    ? '<span class="badge badge-error">Rejected</span>' :
+                p.status === 'REFUNDED'  ? '<span class="badge">Refunded</span>' :
+                                          `<span class="badge">${escapeHtml(p.status)}</span>`;
+              const receipt = p.receipt_url
+                ? `<a href="${escapeHtml(p.receipt_url)}" target="_blank" class="receipt-thumb">
+                     <img src="${escapeHtml(p.receipt_url)}" alt="Receipt" onerror="this.style.display='none'; this.parentElement.classList.add('receipt-thumb-empty'); this.parentElement.textContent='📄';">
+                   </a>`
+                : `<span class="text-muted" style="font-size:0.82rem;">—</span>`;
+              return `
+                <tr data-id="${p.id}">
+                  <td><div>${formatDate(p.created_at)}</div><div class="text-muted" style="font-size:0.78rem;">${formatRelative(p.created_at)}</div></td>
+                  <td><strong>${escapeHtml(name || p.user_email)}</strong><div class="text-muted" style="font-size:0.8rem;">${escapeHtml(p.user_email)}</div></td>
+                  <td>${escapeHtml(itemName)}</td>
+                  <td style="font-family:var(--font-mono);">${escapeHtml(p.currency)} ${parseFloat(p.amount).toFixed(0)}</td>
+                  <td>${statusBadge}</td>
+                  <td>${receipt}</td>
+                  <td style="font-family:var(--font-mono); font-size:0.8rem;">${escapeHtml(p.transaction_id || '—')}</td>
+                  <td>
+                    ${p.status === 'PENDING' ? `
+                      <button class="btn btn-accent btn-sm" data-act="APPROVE">Approve</button>
+                      <button class="btn btn-ghost btn-sm" data-act="REJECT" style="color:var(--error);">Reject</button>`
+                      : p.status === 'COMPLETED' ? `
+                      <button class="btn btn-ghost btn-sm" data-act="REFUND">Refund</button>`
+                      : ''}
+                  </td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+      table.querySelectorAll('[data-act]').forEach(b =>
+        b.addEventListener('click', () => reviewModal(b.dataset.act, r.data.find(x => x.id === b.closest('tr').dataset.id), type))
+      );
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function reviewModal(action, p, type) {
+    const isApprove = action === 'APPROVE';
+    const title = isApprove ? 'Approve request' : action === 'REJECT' ? 'Reject request' : 'Refund purchase';
+    const cta = isApprove ? 'Approve' : action === 'REJECT' ? 'Reject' : 'Refund';
+    const itemName = type === 'COURSE'
+      ? (p.course_title || '—') + (p.plan_name ? ' · ' + p.plan_name : '')
+      : (p.quiz_set_name || '—');
+    const durationHint = type === 'COURSE'
+      ? 'blank = use the plan\'s duration'
+      : 'blank = permanent access';
+    const { el, close } = modal(`
+      <h2>${title}</h2>
+      <div class="card card-tight mb-2" style="background:var(--paper-soft);">
+        <div><strong>${escapeHtml(((p.user_first_name||'')+' '+(p.user_last_name||'')).trim() || p.user_email)}</strong></div>
+        <div class="text-muted" style="font-size:0.86rem;">${escapeHtml(p.user_email)}</div>
+        <div class="mt-1">${type === 'COURSE' ? 'Course' : 'Quiz set'}: <strong>${escapeHtml(itemName)}</strong></div>
+        <div>Amount: <strong>${escapeHtml(p.currency)} ${parseFloat(p.amount).toFixed(0)}</strong></div>
+        ${p.transaction_id ? `<div>Txn ID: <span style="font-family:var(--font-mono); font-size:0.86rem;">${escapeHtml(p.transaction_id)}</span></div>` : ''}
+        ${p.receipt_notes ? `<div class="mt-1 text-soft" style="font-size:0.88rem;">"${escapeHtml(p.receipt_notes)}"</div>` : ''}
+      </div>
+      ${isApprove && type === 'COURSE'
+        ? '<div class="alert alert-info mb-2" style="font-size:0.85rem;">Approving activates this student\'s course enrollment. Access expires after the plan duration unless you override it below.</div>'
+        : ''}
+      <form id="review-form" class="stack" style="--stack:14px;">
+        ${isApprove ? `
+        <div class="field">
+          <label>Access duration (days) <span class="text-muted" style="font-weight:400;">— ${durationHint}</span></label>
+          <input name="validDays" type="number" min="1" max="3650" placeholder="e.g. 30">
+        </div>` : ''}
+        <div class="field">
+          <label>Note to user <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+          <textarea name="note" rows="3" placeholder="${escapeHtml(isApprove ? 'Receipt verified — enjoy!' : 'Reason for rejection')}"></textarea>
+        </div>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn ${isApprove ? 'btn-accent' : 'btn-primary'}">${cta}</button>
+        </div>
+      </form>`);
+    el.querySelector('#review-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const body = { id: p.id, action, note: fd.get('note') || null };
+      if (isApprove && fd.get('validDays')) body.validDays = parseInt(fd.get('validDays'));
+      try {
+        await admin.reviewPurchase(body);
+        toast(action === 'APPROVE' ? 'Approved' : action === 'REJECT' ? 'Rejected' : 'Refunded', 'success');
+        close();
+        loadRequests(type);
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+
+  document.getElementById('quiz-status').addEventListener('change', () => loadRequests('QUIZ_SET'));
+  document.getElementById('course-status').addEventListener('change', () => loadRequests('COURSE'));
+
+  /* ===================== PAYMENT SETTINGS ===================== */
+  async function loadSettings() {
+    const area = document.getElementById('settings-area');
+    area.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const r = await admin.getPaymentSettings();
+      const s = r.data;
+      area.innerHTML = `
+        <div style="display:grid; grid-template-columns:1fr 200px; gap:24px; align-items:start;">
+          <div>
+            <form id="settings-form" class="stack" style="--stack:14px;">
+              <div id="settings-alert"></div>
+              <div class="field">
+                <label>Public instructions</label>
+                <textarea name="instructions" rows="3" placeholder="Pay using one of the methods below, then upload your receipt screenshot.">${escapeHtml(s.instructions || '')}</textarea>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>eSewa ID</label><input name="esewa_id" value="${escapeHtml(s.esewa_id || '')}"></div>
+                <div class="field"><label>Khalti ID</label><input name="khalti_id" value="${escapeHtml(s.khalti_id || '')}"></div>
+              </div>
+              <div class="field"><label>Bank name</label><input name="bank_name" value="${escapeHtml(s.bank_name || '')}"></div>
+              <div class="field-row">
+                <div class="field"><label>Account name</label><input name="bank_account_name" value="${escapeHtml(s.bank_account_name || '')}"></div>
+                <div class="field"><label>Account number</label><input name="bank_account_number" value="${escapeHtml(s.bank_account_number || '')}"></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>WhatsApp number</label><input name="whatsapp_number" value="${escapeHtml(s.whatsapp_number || '')}" placeholder="9779820220900 (with country code, no + or spaces)"></div>
+                <div class="field"><label>Telegram username</label><input name="telegram_username" value="${escapeHtml(s.telegram_username || '')}" placeholder="quiznosis (without @)"></div>
+                <div class="field"><label>Currency</label><input name="currency" value="${escapeHtml(s.currency || 'NPR')}"></div>
+              </div>
+              <button type="submit" class="btn btn-primary">Save settings</button>
+            </form>
+          </div>
+          <aside>
+            <div class="eyebrow mb-1">QR code</div>
+            <div class="qr-current">
+              ${s.qr_image_url
+                ? `<img src="${escapeHtml(s.qr_image_url)}" alt="QR">`
+                : `<span>No QR uploaded</span>`}
+            </div>
+            <form id="qr-form" class="mt-2">
+              <label class="btn btn-ghost btn-sm" style="display:block; text-align:center;">
+                Upload new QR
+                <input type="file" name="qr" accept="image/*" style="display:none;">
+              </label>
+            </form>
+            <p class="text-muted mt-2" style="font-size:0.8rem;">JPG / PNG · max 5 MB</p>
+          </aside>
+        </div>`;
+
+      document.getElementById('settings-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const body = Object.fromEntries(fd.entries());
+        const zone = document.getElementById('settings-alert');
+        zone.innerHTML = '';
+        try {
+          await admin.updatePaymentSettings(body);
+          zone.innerHTML = `<div class="alert alert-success">Saved.</div>`;
+          toast('Payment settings saved', 'success');
+        } catch (err) {
+          zone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        }
+      });
+      document.querySelector('#qr-form input[name="qr"]').addEventListener('change', async (e) => {
+        if (!e.target.files[0]) return;
+        const fd = new FormData();
+        fd.append('qr', e.target.files[0]);
+        try {
+          await admin.uploadPaymentQr(fd);
+          toast('QR uploaded', 'success');
+          loadSettings();
+        } catch (err) { toast(err.message, 'error'); }
+      });
+    } catch (err) {
+      area.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  /* boot */
+  await loadRequests('QUIZ_SET');
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Statistics · Quiznosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  :root {
+    --ink:#0d0f14; --paper:#f5f3ee; --white:#ffffff;
+    --accent:#e84b2b; --blue:#2b7de8; --green:#1a9c5b; --gold:#c9920a; --purple:#7c4dff;
+    --muted:#7a7870; --border:#e2dfd8; --card:#ffffff;
+  }
+  [data-theme="dark"] {
+    --ink:#e8ecf4; --paper:#0e1626; --white:#16203a;
+    --accent:#e0742f; --blue:#5b9bf0; --green:#4ade80; --gold:#e0a93e; --purple:#a78bfa;
+    --muted:#7886a8; --border:#2a3a5c; --card:#16203a;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:'Inter', sans-serif;
+    background:var(--paper); color:var(--ink);
+    min-height:100vh;
+  }
+  a { color:inherit; text-decoration:none; }
+  .page { max-width:1280px; margin:0 auto; padding:clamp(16px, 3vw, 32px); }
+
+  .page-head { margin-bottom:clamp(16px, 2.5vw, 26px); }
+  .page-head .eyebrow {
+    font-size:0.72rem; font-weight:700; letter-spacing:0.10em;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .page-head h1 {
+    font-size:clamp(1.4rem, 2vw + 1rem, 1.85rem);
+    font-weight:700; letter-spacing:-0.01em;
+    margin-top:0.3rem;
+  }
+  .page-head .sub {
+    font-size:clamp(0.84rem, 0.4vw + 0.74rem, 0.94rem);
+    color:var(--muted); margin-top:0.4rem;
+  }
+
+  /* Top-line tiles */
+  .st-tiles {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+    gap:clamp(10px, 1.4vw, 16px);
+    margin-bottom:clamp(18px, 3vw, 28px);
+  }
+  .st-tile {
+    background:var(--paper);
+    border:1.5px solid var(--border);
+    border-radius:clamp(12px, 1.2vw, 16px);
+    padding:clamp(14px, 1.8vw, 20px);
+    transition:border-color .15s, transform .15s;
+  }
+  .st-tile:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .st-tile .lbl {
+    font-size:0.7rem; font-weight:700; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:8px;
+  }
+  .st-tile .num {
+    font-family:'IBM Plex Mono', monospace;
+    font-size:clamp(1.4rem, 1.2vw + 1rem, 1.85rem);
+    font-weight:700; color:var(--ink);
+    line-height:1;
+  }
+  .st-tile .num .small { font-size:0.65em; color:var(--muted); margin-left:2px; }
+  .st-tile .ico-wrap {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:32px; height:32px; border-radius:8px;
+    background:rgba(232,75,43,0.10); color:var(--accent);
+    margin-bottom:8px;
+  }
+  .st-tile.t-blue   .ico-wrap { background:rgba(43,125,232,0.10); color:var(--blue); }
+  .st-tile.t-green  .ico-wrap { background:rgba(26,156,91,0.10); color:var(--green); }
+  .st-tile.t-gold   .ico-wrap { background:rgba(201,146,10,0.10); color:var(--gold); }
+  .st-tile.t-purple .ico-wrap { background:rgba(124,77,255,0.10); color:var(--purple); }
+  .st-tile .ico-wrap svg { width:18px; height:18px; }
+
+  /* Section panels */
+  .st-section { margin-bottom:clamp(18px, 3vw, 28px); }
+  .st-section-head {
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:clamp(10px, 1.5vw, 14px);
+    flex-wrap:wrap; gap:8px;
+  }
+  .st-section-head h2 {
+    font-size:clamp(1rem, 0.5vw + 0.9rem, 1.15rem);
+    font-weight:700; letter-spacing:-0.005em;
+  }
+  .st-section-head .sub {
+    font-size:0.78rem; color:var(--muted);
+  }
+  .st-panel {
+    background:var(--paper);
+    border:1.5px solid var(--border);
+    border-radius:clamp(12px, 1.2vw, 16px);
+    padding:clamp(14px, 2vw, 22px);
+  }
+
+  /* Activity chart (bar sparkline of last 60 days) */
+  .st-chart {
+    display:flex; align-items:flex-end;
+    gap:2px;
+    height:clamp(90px, 12vw, 130px);
+    padding:6px 0;
+  }
+  .st-bar {
+    flex:1; min-width:0;
+    background:linear-gradient(to top, var(--accent), rgba(232,75,43,0.4));
+    border-radius:2px 2px 0 0;
+    transition:opacity .12s;
+    min-height:2px;
+    position:relative;
+  }
+  .st-bar:hover { opacity:0.7; }
+  .st-bar.zero { background:var(--border); }
+  .st-bar[title]:hover::after {
+    content:attr(title);
+    position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--white);
+    padding:4px 8px; border-radius:6px;
+    font-size:0.7rem; white-space:nowrap;
+    pointer-events:none; z-index:5;
+  }
+  .st-chart-foot {
+    display:flex; justify-content:space-between;
+    font-size:0.66rem; color:var(--muted);
+    margin-top:6px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  /* Subject performance bars */
+  .sj-list { display:flex; flex-direction:column; gap:clamp(8px, 1vw, 12px); }
+  .sj-row {
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto;
+    gap:8px 14px;
+    align-items:center;
+  }
+  .sj-row .name {
+    font-size:clamp(0.78rem, 0.4vw + 0.68rem, 0.88rem); font-weight:600;
+    color:var(--ink);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .sj-row .stats {
+    font-family:'IBM Plex Mono', monospace;
+    font-size:clamp(0.7rem, 0.3vw + 0.62rem, 0.78rem);
+    color:var(--muted); white-space:nowrap;
+  }
+  .sj-row .stats .acc { color:var(--ink); font-weight:700; }
+  .sj-bar {
+    grid-column:1 / -1;
+    height:6px; background:var(--border); border-radius:100px; overflow:hidden;
+  }
+  .sj-bar .fill {
+    height:100%; border-radius:100px;
+    transition:width .4s ease;
+  }
+  .sj-bar .fill.high { background:var(--green); }
+  .sj-bar .fill.mid  { background:var(--gold); }
+  .sj-bar .fill.low  { background:var(--accent); }
+
+  /* Mode breakdown */
+  .mode-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+    gap:clamp(10px, 1.4vw, 16px);
+  }
+  .mode-card {
+    background:var(--paper); border:1px solid var(--border);
+    border-radius:10px; padding:clamp(12px, 1.6vw, 18px);
+  }
+  .mode-card .ic { font-size:1.4rem; margin-bottom:8px; }
+  .mode-card .nm { font-size:0.82rem; font-weight:600; color:var(--muted); margin-bottom:4px; }
+  .mode-card .vl {
+    font-family:'IBM Plex Mono', monospace;
+    font-size:clamp(1rem, 0.6vw + 0.85rem, 1.25rem); font-weight:700; color:var(--ink);
+  }
+  .mode-card .ex {
+    font-size:0.7rem; color:var(--muted); margin-top:3px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  .empty, .loading {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:40px 20px; color:var(--muted);
+  }
+  .empty .ico { font-size:2.5rem; margin-bottom:10px; opacity:0.4; }
+  .spinner {
+    width:28px; height:28px;
+    border:3px solid var(--border); border-top-color:var(--accent);
+    border-radius:50%; animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .site-header {
+    position:sticky; top:0; z-index:60;
+    transition:transform .25s ease;
+    background:var(--paper);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    backdrop-filter:saturate(180%) blur(12px);
+  }
+  [data-theme="dark"] .site-header { background:var(--paper); border-bottom-color:var(--paper-edge); }
+  .site-header.is-hidden { transform:translateY(-100%); }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+
+<div class="page">
+  <div class="page-head">
+    <div class="eyebrow">Performance</div>
+    <h1>Statistics</h1>
+    <p class="sub">Your learning activity, scores, and subject-wise accuracy.</p>
+  </div>
+
+  <div id="st-content">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<script type="module">
+  /*
+   * Statistics page — Reads /api/me/stats and renders four sections:
+   *   1. Top-line tiles (attempts, completed, avg %, best %, study time)
+   *   2. 60-day activity chart (bar sparkline of questions per day)
+   *   3. Subject performance (top 20, sorted by attempted)
+   *   4. Mode breakdown (timed test vs practice)
+   */
+  import { escapeHtml, mountHeader, mountFooter, requireAuth, formatSeconds } from './assets/components.js';
+  import { me } from './assets/api.js';
+
+  await requireAuth('login.html');
+  await mountHeader('stats');
+
+  (function wireHeaderAutoHide() {
+    const hdr = document.querySelector('.site-header');
+    if (!hdr) return;
+    let last = window.scrollY, raf = 0;
+    window.addEventListener('scroll', () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const cur = window.scrollY, delta = cur - last;
+        if (cur < 60)        hdr.classList.remove('is-hidden');
+        else if (delta > 6)  hdr.classList.add('is-hidden');
+        else if (delta < -6) hdr.classList.remove('is-hidden');
+        last = cur;
+      });
+    }, { passive: true });
+  })();
+
+  // SVG icons for the top-line tiles
+  const ICONS = {
+    target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    check:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    chart:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+    trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+    clock:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  };
+
+  function fmtPct(v) { return v == null ? '—' : Number(v).toFixed(1) + '%'; }
+  function fmtTime(sec) {
+    if (!sec) return '0m';
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  }
+
+  function tilesHtml(t) {
+    return `
+      <div class="st-tiles">
+        <div class="st-tile">
+          <div class="ico-wrap">${ICONS.target}</div>
+          <div class="lbl">Total Attempts</div>
+          <div class="num">${t.attempts || 0}</div>
+        </div>
+        <div class="st-tile t-green">
+          <div class="ico-wrap">${ICONS.check}</div>
+          <div class="lbl">Completed</div>
+          <div class="num">${t.completed || 0}<span class="small">/${t.attempts || 0}</span></div>
+        </div>
+        <div class="st-tile t-blue">
+          <div class="ico-wrap">${ICONS.chart}</div>
+          <div class="lbl">Avg Score</div>
+          <div class="num">${fmtPct(t.avgPct)}</div>
+        </div>
+        <div class="st-tile t-gold">
+          <div class="ico-wrap">${ICONS.trophy}</div>
+          <div class="lbl">Best Score</div>
+          <div class="num">${fmtPct(t.bestPct)}</div>
+        </div>
+        <div class="st-tile t-purple">
+          <div class="ico-wrap">${ICONS.clock}</div>
+          <div class="lbl">Time on Platform</div>
+          <div class="num">${fmtTime(t.studySec || 0)}</div>
+        </div>
+      </div>`;
+  }
+
+  // Gap-fill 60 days so bars align by date, not by row index.
+  function dailyBars(rows) {
+    const today = new Date();
+    const map = {};
+    rows.forEach(r => { map[r.date] = r; });
+    const out = [];
+    for (let i = 59; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const r = map[key];
+      out.push({ date: key, qs: r ? Number(r.questions_attempted || 0) : 0 });
+    }
+    return out;
+  }
+
+  function chartHtml(rows) {
+    const bars = dailyBars(rows);
+    const max = Math.max(1, ...bars.map(b => b.qs));
+    const html = bars.map(b => {
+      const pct = max ? Math.round((b.qs / max) * 100) : 0;
+      const cls = b.qs === 0 ? ' zero' : '';
+      const title = `${b.date}: ${b.qs} question${b.qs === 1 ? '' : 's'}`;
+      return `<div class="st-bar${cls}" style="height:${Math.max(2, pct)}%" title="${title}"></div>`;
+    }).join('');
+    const totalQs = bars.reduce((a, b) => a + b.qs, 0);
+    const activeDays = bars.filter(b => b.qs > 0).length;
+    return `
+      <div class="st-section">
+        <div class="st-section-head">
+          <h2>Activity — last 60 days</h2>
+          <span class="sub">${totalQs} questions · ${activeDays} active days</span>
+        </div>
+        <div class="st-panel">
+          <div class="st-chart">${html}</div>
+          <div class="st-chart-foot">
+            <span>60 days ago</span>
+            <span>Today</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function subjectHtml(rows) {
+    if (!rows.length) {
+      return `
+        <div class="st-section">
+          <div class="st-section-head"><h2>Subject performance</h2></div>
+          <div class="st-panel"><div class="empty"><div class="ico">📚</div><p>No subject data yet. Attempt a quiz to see your accuracy per topic.</p></div></div>
+        </div>`;
+    }
+    const rowHtml = rows.map(s => {
+      const acc = Number(s.accuracy || 0);
+      const cls = acc >= 75 ? 'high' : acc >= 50 ? 'mid' : 'low';
+      return `
+        <div class="sj-row">
+          <div class="name">${escapeHtml(s.subjectName || '—')}</div>
+          <div class="stats">${s.correct}/${s.attempted} &nbsp; <span class="acc">${acc.toFixed(0)}%</span></div>
+          <div class="sj-bar"><div class="fill ${cls}" style="width:${acc}%"></div></div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="st-section">
+        <div class="st-section-head">
+          <h2>Subject performance</h2>
+          <span class="sub">Top ${rows.length} by questions attempted</span>
+        </div>
+        <div class="st-panel"><div class="sj-list">${rowHtml}</div></div>
+      </div>`;
+  }
+
+  function modeHtml(rows) {
+    if (!rows.length) return '';
+    const labels = { MODEL_TEST: ['⏱', 'Timed Test'], PRACTICE: ['📖', 'Practice Mode'] };
+    const cards = rows.map(r => {
+      const [ic, nm] = labels[r.mode] || ['🎯', r.mode];
+      const avg = r.avg_pct != null ? Number(r.avg_pct).toFixed(1) + '%' : '—';
+      return `
+        <div class="mode-card">
+          <div class="ic">${ic}</div>
+          <div class="nm">${nm}</div>
+          <div class="vl">${r.cnt} attempts</div>
+          <div class="ex">Avg ${avg}</div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="st-section">
+        <div class="st-section-head"><h2>Mode breakdown</h2></div>
+        <div class="mode-grid">${cards}</div>
+      </div>`;
+  }
+
+  try {
+    const r = await me.stats();
+    const d = r?.data || {};
+    const html =
+      tilesHtml(d.totals || {}) +
+      chartHtml(d.dailyStats || []) +
+      subjectHtml(d.subjectPerformance || []) +
+      modeHtml(d.modeBreakdown || []);
+    document.getElementById('st-content').innerHTML = html;
+  } catch (err) {
+    document.getElementById('st-content').innerHTML =
+      `<div class="empty"><div class="ico">⚠️</div><p>Couldn't load stats: ${escapeHtml(err.message)}</p></div>`;
+  }
+
+  mountFooter();
+</script>
+
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('dashboard', u);
+})();
+</script>
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Dashboard · Quiznosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  :root {
+    --ink:#0d0f14; --paper:#f5f3ee; --white:#ffffff;
+    --accent:#e84b2b; --blue:#2b7de8; --green:#1a9c5b; --gold:#c9920a; --purple:#7c4dff;
+    --muted:#7a7870; --border:#e2dfd8; --card:#ffffff;
+  }
+  [data-theme="dark"] {
+    --ink:#e8ecf4; --paper:#0e1626; --white:#16203a;
+    --accent:#e0742f; --blue:#5b9bf0; --green:#4ade80; --gold:#e0a93e; --purple:#a78bfa;
+    --muted:#7886a8; --border:#2a3a5c; --card:#16203a;
+  }
+
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); min-height:100vh; }
+  a { color:inherit; text-decoration:none; }
+
+  .page { max-width:1100px; margin:0 auto; padding:clamp(12px,1.8vw,24px) clamp(14px,2vw,28px); }
+
+  /* ===== HERO ===== */
+  .hero {
+    position:relative; border-radius:clamp(18px,1.8vw,24px);
+    background:linear-gradient(135deg,#5a35d6 0%,#7c4dff 40%,#b06ff9 100%);
+    color:#fff;
+    padding:clamp(20px,3vw,36px) clamp(18px,3vw,34px);
+    margin-bottom:clamp(18px,2.5vw,28px);
+    overflow:hidden; box-shadow:0 12px 36px rgba(124,77,255,0.28);
+  }
+  [data-theme="dark"] .hero { background:linear-gradient(135deg,#432d99 0%,#5b3edb 40%,#8754d9 100%); box-shadow:0 12px 36px rgba(91,62,219,0.40); }
+  .hero::before,.hero::after { content:''; position:absolute; border-radius:50%; background:radial-gradient(circle,rgba(255,255,255,0.20) 0%,transparent 70%); pointer-events:none; }
+  .hero::before { width:340px; height:340px; top:-120px; right:-80px; }
+  .hero::after  { width:240px; height:240px; bottom:-100px; left:-60px; background:radial-gradient(circle,rgba(255,255,255,0.14) 0%,transparent 70%); }
+
+  .hero-top { position:relative; z-index:2; display:flex; align-items:center; gap:clamp(12px,2vw,18px); margin-bottom:clamp(20px,3vw,32px); flex-wrap:wrap; }
+  .hero-avatar { width:clamp(48px,6vw,64px); height:clamp(48px,6vw,64px); border-radius:50%; background:linear-gradient(135deg,#ffb347,#e84b2b); display:inline-flex; align-items:center; justify-content:center; font-size:clamp(1.3rem,1.6vw + 0.8rem,1.7rem); font-weight:700; color:#fff; border:3px solid rgba(255,255,255,0.30); box-shadow:0 6px 18px rgba(0,0,0,0.20); flex-shrink:0; }
+  .hero-text { flex:1; min-width:200px; }
+  .hero-text .eyebrow { font-size:0.72rem; font-weight:700; letter-spacing:0.10em; text-transform:uppercase; color:rgba(255,255,255,0.80); margin-bottom:0.3rem; }
+  .hero-text h1 { font-size:clamp(1.4rem,1.8vw + 0.9rem,2rem); font-weight:700; line-height:1.2; letter-spacing:-0.01em; color:#fff; }
+  .hero-text .sub { font-size:clamp(0.82rem,0.4vw + 0.72rem,0.92rem); color:rgba(255,255,255,0.72); margin-top:0.35rem; letter-spacing:0.01em; }
+
+  /* Hero stats — 2×2 grid, value large on top, label small below */
+  .hero-stats {
+    position: relative; z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(8px,1.2vw,12px);
+  }
+  .hero-stat {
+    background: rgba(255,255,255,0.13);
+    border: 1px solid rgba(255,255,255,0.20);
+    border-radius: clamp(10px,1.2vw,14px);
+    padding: clamp(12px,1.8vw,18px) clamp(14px,2vw,20px);
+    backdrop-filter: blur(10px);
+    transition: transform .18s, background .18s;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .hero-stat:hover { transform: translateY(-2px); background: rgba(255,255,255,0.20); }
+  /* Value first — large, bold, white */
+  .hero-stat .value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: clamp(1.5rem,2.2vw + 0.9rem,2rem);
+    font-weight: 700; color: #fff; line-height: 1;
+    order: 1;
+  }
+  .hero-stat .value .unit { font-size: 0.55em; opacity: 0.75; font-weight: 500; margin-left: 2px; }
+  /* Label second — small, muted uppercase */
+  .hero-stat .label {
+    font-size: 0.65rem; font-weight: 700;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    order: 2; margin-top: 2px;
+  }
+
+  /* ===== QUICK ACCESS ===== */
+  .section-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:clamp(12px,1.6vw,16px); }
+  .section-head h2 { font-size:clamp(1rem,0.5vw + 0.9rem,1.15rem); font-weight:700; letter-spacing:-0.005em; }
+  .section-head .sub { font-size:0.78rem; color:var(--muted); font-weight:500; }
+
+  /* Quick-access grid — image-3 style: 4-col, large rounded cards */
+  .qa-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  @media(max-width: 600px) { .qa-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; } }
+  @media(max-width: 360px) { .qa-grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .qa-card {
+    position: relative;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: clamp(14px,2vw,20px) 6px clamp(12px,1.8vw,16px);
+    background: var(--paper);
+    border: 1.5px solid var(--border);
+    border-radius: clamp(14px,1.5vw,20px);
+    color: var(--ink); text-align: center; cursor: pointer;
+    font-family: inherit;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .15s;
+    -webkit-tap-highlight-color: transparent;
+    min-height: clamp(80px,12vw,104px);
+  }
+  .qa-card:hover  { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.08); border-color: var(--accent); }
+  .qa-card:active { transform: translateY(-1px); }
+
+  .qa-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(36px,5vw,46px); height: clamp(36px,5vw,46px);
+    border-radius: 50%; margin-bottom: clamp(7px,1vw,10px);
+    transition: transform .22s;
+  }
+  .qa-card:hover .qa-icon { transform: scale(1.1); }
+  .qa-icon svg { width: clamp(16px,2.2vw,22px); height: clamp(16px,2.2vw,22px); }
+  .qa-icon.c-orange { background:rgba(232,75,43,0.12); color:var(--accent); }
+  .qa-icon.c-blue   { background:rgba(43,125,232,0.12); color:var(--blue); }
+  .qa-icon.c-green  { background:rgba(26,156,91,0.12);  color:var(--green); }
+  .qa-icon.c-gold   { background:rgba(201,146,10,0.14); color:var(--gold); }
+  .qa-icon.c-purple { background:rgba(124,77,255,0.14); color:var(--purple); }
+  .qa-icon.c-pink   { background:rgba(244,114,182,0.14); color:#ec4899; }
+  .qa-icon.c-teal   { background:rgba(43,144,133,0.14); color:#2b9085; }
+  .qa-icon.c-slate  { background:rgba(100,116,139,0.14); color:#64748b; }
+
+  .qa-label {
+    font-size: clamp(0.62rem,0.4vw + 0.56rem,0.78rem);
+    font-weight: 600; line-height: 1.25; color: var(--ink);
+    padding: 0 2px; overflow-wrap: break-word;
+    -webkit-hyphens: auto; hyphens: auto;
+  }
+  .qa-badge {
+    position: absolute; top: 8px; right: 8px;
+    min-width: 18px; height: 18px; padding: 0 5px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent); color: #fff; border-radius: 100px;
+    font-family: 'IBM Plex Mono',monospace; font-size: 0.62rem;
+    font-weight: 700; line-height: 1;
+    box-shadow: 0 0 0 2px var(--white);
+  }
+  .qa-badge[hidden] { display: none !important; }
+
+  /* ===== BELOW-QA INFO SECTIONS ===== */
+  .info-sections { display:grid; grid-template-columns:1fr; gap:clamp(14px,2vw,20px); margin-top:clamp(20px,2.5vw,28px); }
+  @media(min-width:700px) { .info-sections { grid-template-columns:repeat(3,1fr); } }
+  @media(max-width:699px) { .info-sections { grid-template-columns:1fr; } }
+
+  .info-card { background:var(--paper); border:1.5px solid var(--border); border-radius:clamp(14px,1.3vw,18px); padding:clamp(14px,1.8vw,20px); }
+  @media(max-width:699px) { .info-card { padding:14px; } }
+  .info-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .info-card-head h3 { font-size:0.95rem; font-weight:700; letter-spacing:-0.005em; display:flex; align-items:center; gap:8px; }
+  .info-card-head .badge-count { background:var(--accent); color:#fff; font-size:0.65rem; font-weight:700; font-family:'IBM Plex Mono',monospace; padding:2px 7px; border-radius:100px; }
+  .info-card-head .view-all { font-size:0.74rem; font-weight:600; color:var(--accent); }
+  .info-card-head .view-all:hover { text-decoration:underline; }
+  .info-sub { font-size:0.7rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:14px 0 8px; }
+  .info-sub:first-child { margin-top:0; }
+  .info-empty { text-align:center; padding:20px 12px; color:var(--muted); font-size:0.83rem; }
+
+  /* Notifications list */
+  .notif-list { display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; }
+  .notif-item { display:flex; gap:10px; padding:10px 12px; border-radius:9px; cursor:pointer; transition:background .12s; border:1px solid transparent; position:relative; }
+  .notif-item:hover { background:var(--paper); }
+  .notif-item.unread { background:rgba(232,75,43,0.05); border-color:rgba(232,75,43,0.08); }
+  .notif-item.unread:hover { background:rgba(232,75,43,0.10); }
+  .notif-item.notif-new { animation:notif-slide-in .35s ease both; }
+  @keyframes notif-slide-in { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:none} }
+  .notif-dot { width:7px; height:7px; border-radius:50%; background:var(--accent); margin-top:6px; flex-shrink:0; }
+  .notif-item:not(.unread) .notif-dot { background:var(--border); }
+  .notif-type-ico { font-size:1.05rem; margin-top:2px; flex-shrink:0; width:20px; text-align:center; }
+  .notif-body { flex:1; min-width:0; }
+  .notif-title { font-size:0.82rem; font-weight:600; margin-bottom:2px; line-height:1.35; }
+  .notif-msg { font-size:0.76rem; color:var(--muted); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .notif-time { font-size:0.68rem; color:var(--muted); margin-top:3px; font-family:'IBM Plex Mono',monospace; }
+  .notif-new-toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; padding:9px 18px; border-radius:100px; font-size:0.82rem; font-weight:600; z-index:500; box-shadow:0 4px 16px rgba(0,0,0,.18); cursor:pointer; animation:notif-slide-in .3s ease; white-space:nowrap; }
+
+  /* Announcement card */
+  .ann-item { padding:12px; background:var(--paper); border:1px solid var(--border); border-radius:10px; }
+  .ann-pinned { display:inline-flex; align-items:center; gap:4px; font-size:0.67rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--purple); margin-bottom:6px; }
+  .ann-title { font-size:0.88rem; font-weight:700; margin-bottom:5px; line-height:1.35; }
+  .ann-body { font-size:0.78rem; color:var(--muted); line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .ann-date { font-size:0.68rem; color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-top:7px; }
+
+  /* Recent attempts */
+  .recent-list { display:flex; flex-direction:column; gap:7px; }
+  .recent-item { display:flex; align-items:center; gap:10px; padding:10px; background:var(--paper); border:1px solid transparent; border-radius:10px; transition:border-color .15s,transform .15s; text-decoration:none; color:inherit; }
+  .recent-item:hover { border-color:var(--accent); transform:translateX(2px); }
+  .recent-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; background:var(--green); }
+  .recent-dot.fail { background:var(--accent); }
+  .recent-dot.pending { background:var(--gold); }
+  .recent-body { flex:1; min-width:0; }
+  .recent-title { font-size:0.82rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.3; }
+  .recent-meta { font-size:0.7rem; color:var(--muted); margin-top:2px; font-family:'IBM Plex Mono',monospace; }
+  .recent-score { font-size:0.84rem; font-weight:700; font-family:'IBM Plex Mono',monospace; flex-shrink:0; }
+  .recent-score.fail { color:var(--accent); }
+  .recent-score.pass { color:var(--green); }
+
+  /* ===== FULL-WIDTH ANALYTICS BELOW ===== */
+  .analytics-full { margin-top:clamp(14px,2vw,20px); background:var(--paper); border:1.5px solid var(--border); border-radius:clamp(14px,1.3vw,18px); padding:clamp(16px,2vw,22px); }
+  .analytics-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .analytics-head h3 { font-size:0.95rem; font-weight:700; }
+  .analytics-head .view-all { font-size:0.74rem; font-weight:600; color:var(--accent); }
+  .analytics-head .view-all:hover { text-decoration:underline; }
+  .analytics-cols { display:grid; grid-template-columns:1fr; gap:20px; }
+  @media(min-width:600px) { .analytics-cols { grid-template-columns:1fr 1fr; } }
+  .analytics-sub { font-size:0.7rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+  .subj-list { display:flex; flex-direction:column; gap:9px; }
+  .subj-row { display:flex; flex-direction:column; gap:4px; }
+  .subj-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .subj-name { font-size:0.78rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+  .subj-pct { font-size:0.72rem; font-weight:700; font-family:'IBM Plex Mono',monospace; color:var(--muted); flex-shrink:0; }
+  .subj-bar { height:5px; border-radius:100px; background:var(--border); overflow:hidden; }
+  .subj-bar .fill { height:100%; border-radius:100px; transition:width .4s ease; }
+  .subj-bar .fill.high { background:var(--green); }
+  .subj-bar .fill.mid  { background:var(--gold); }
+  .subj-bar .fill.low  { background:var(--accent); }
+  .analytics-empty { text-align:center; padding:20px 12px; color:var(--muted); font-size:0.84rem; }
+
+  /* ===== NOTIFICATIONS POPOVER ===== */
+  .qa-notif-popover { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.96); width:min(480px,94vw); max-height:82vh; background:var(--paper,#F7F3EC); color:var(--ink); border:1.5px solid var(--paper-edge,#E4DCCD); border-radius:14px; box-shadow:0 16px 48px rgba(0,0,0,0.22); opacity:0; pointer-events:none; z-index:9999; transition:opacity .22s ease,transform .22s; display:flex; flex-direction:column; overflow:hidden; }
+  .qa-notif-popover.is-open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+  .qa-notif-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
+  .qa-notif-head-title { font-weight:700; font-size:1rem; }
+  .qa-notif-head-actions { display:flex; gap:6px; }
+  .qa-notif-head button { border:none; background:transparent; color:var(--muted); font-family:inherit; font-size:0.78rem; font-weight:600; padding:6px 10px; border-radius:6px; cursor:pointer; transition:background .12s,color .12s; }
+  .qa-notif-head button:hover { background:var(--paper); color:var(--ink); }
+  .qa-notif-list { flex:1; overflow-y:auto; padding:6px 8px; }
+  .qa-notif-item { display:flex; gap:12px; padding:11px 12px; border-radius:9px; cursor:pointer; transition:background .12s; border:1px solid transparent; }
+  .qa-notif-item:hover { background:var(--paper); }
+  .qa-notif-item.unread { background:rgba(232,75,43,0.05); }
+  .qa-notif-item.unread:hover { background:rgba(232,75,43,0.10); }
+  .qa-notif-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); margin-top:7px; flex-shrink:0; }
+  .qa-notif-item:not(.unread) .qa-notif-dot { background:transparent; }
+  .qa-notif-body { flex:1; min-width:0; }
+  .qa-notif-title { font-size:0.86rem; font-weight:600; margin-bottom:2px; line-height:1.35; }
+  .qa-notif-msg { font-size:0.78rem; color:var(--muted); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .qa-notif-time { font-size:0.7rem; color:var(--muted); margin-top:4px; font-family:'IBM Plex Mono',monospace; }
+  .qa-notif-empty { padding:30px 20px; text-align:center; color:var(--muted); font-size:0.86rem; }
+  .qa-pop-backdrop { position:fixed; inset:0; z-index:9998; background:rgba(0,0,0,0.45); opacity:0; pointer-events:none; transition:opacity .22s ease; }
+  body.qa-notif-open .qa-pop-backdrop { opacity:1; pointer-events:auto; }
+
+  .spinner { width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .site-header { position:sticky; top:0; z-index:60; transition:transform .25s ease; background:var(--paper); }
+  [data-theme="dark"] .site-header { background:var(--paper); border-bottom-color:var(--paper-edge); }
+  .site-header.is-hidden { transform:translateY(-100%); }
+
+  /* Mark all read button in inline panel */
+  .mark-all-btn { background:none; border:none; font-family:inherit; font-size:0.74rem; font-weight:600; color:var(--accent); cursor:pointer; padding:0; }
+  .mark-all-btn:hover { text-decoration:underline; }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+
+<div class="qa-pop-backdrop" id="qa-pop-backdrop"></div>
+<div class="qa-notif-popover" id="qa-notif-popover" role="dialog" aria-label="Notifications">
+  <div class="qa-notif-head">
+    <div class="qa-notif-head-title">All Notifications</div>
+    <div class="qa-notif-head-actions">
+      <button id="qa-notif-mark-all" type="button">Mark all read</button>
+      <button id="qa-notif-close" type="button" aria-label="Close">&#x2715;</button>
+    </div>
+  </div>
+  <div class="qa-notif-list" id="qa-notif-list">
+    <div class="qa-notif-empty">Loading&hellip;</div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-top">
+      <div class="hero-avatar" id="hero-avatar">·</div>
+      <div class="hero-text">
+        <div class="eyebrow" id="greet-eyebrow">Loading&hellip;</div>
+        <h1 id="greet-title">Welcome back</h1>
+        <div class="sub" id="greet-sub">Pick a section below to jump in.</div>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="label">Total Attempts</div><div class="value" id="hs-attempts">&mdash;</div></div>
+      <div class="hero-stat"><div class="label">Completed</div><div class="value" id="hs-completed">&mdash;</div></div>
+      <div class="hero-stat"><div class="label">Average Score</div><div class="value" id="hs-avg">&mdash;</div></div>
+      <div class="hero-stat"><div class="label">Study Time</div><div class="value" id="hs-time">&mdash;</div></div>
+    </div>
+  </section>
+
+  <!-- QUICK ACCESS -->
+  <div class="section-head">
+    <h2>Quick Access</h2>
+    <span class="sub">Tap a card to jump straight in.</span>
+  </div>
+  <section class="qa-grid" id="qa-grid"></section>
+
+  <!-- 3-COLUMN INFO BELOW QA CARDS: Notifications | Announcement | Recent Attempts -->
+  <div class="info-sections">
+
+    <!-- Notifications -->
+    <div class="info-card">
+      <div class="info-card-head">
+        <h3>
+          🔔 Notifications
+          <span class="badge-count" id="notif-badge-count" style="display:none;"></span>
+        </h3>
+        <button class="mark-all-btn" id="inline-mark-all" type="button">Mark all read</button>
+      </div>
+      <div class="notif-list" id="inline-notif-list">
+        <div class="info-empty">Loading&hellip;</div>
+      </div>
+      <div style="margin-top:12px; text-align:right;">
+        <a href="#" id="view-all-notif" class="info-card-head view-all" style="font-size:0.74rem; font-weight:600; color:var(--accent);">View all →</a>
+      </div>
+    </div>
+
+    <!-- Latest Announcement -->
+    <div class="info-card">
+      <div class="info-card-head">
+        <h3>📢 Announcement</h3>
+        <a href="announcements.html" class="view-all">All →</a>
+      </div>
+      <div id="ann-content">
+        <div class="info-empty">Loading&hellip;</div>
+      </div>
+    </div>
+
+    <!-- Recent Quiz Attempts -->
+    <div class="info-card">
+      <div class="info-card-head">
+        <h3>📋 Recent Attempts</h3>
+        <a href="attempts.html" class="view-all">View all →</a>
+      </div>
+      <div class="recent-list" id="recent-list">
+        <div class="info-empty">Loading&hellip;</div>
+      </div>
+    </div>
+
+  </div><!-- /info-sections -->
+
+  <!-- ANALYTICS FULL WIDTH -->
+  <div class="analytics-full">
+    <div class="analytics-head">
+      <h3>📊 Subject Performance</h3>
+      <a class="view-all" href="stats.html">View all stats →</a>
+    </div>
+    <div class="analytics-cols">
+      <div>
+        <div class="analytics-sub">By accuracy</div>
+        <div class="subj-list" id="subj-list">
+          <div class="analytics-empty">Loading&hellip;</div>
+        </div>
+      </div>
+      <div>
+        <div class="analytics-sub">Performance summary</div>
+        <div id="perf-summary" style="font-size:0.84rem; color:var(--muted); line-height:1.7;">
+          Your subject-wise breakdown will appear here once you start attempting quizzes.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script type="module">
+  import { escapeHtml, mountHeader, mountFooter, getUser, requireAuth, formatRelative } from './assets/components.js';
+  import { me, bookmarks, announcements, purchases } from './assets/api.js';
+
+  await requireAuth('login.html');
+  const user = await getUser();
+  await mountHeader('dashboard');
+
+  // Auto-hide header on scroll
+  (function() {
+    const hdr = document.querySelector('.site-header');
+    if (!hdr) return;
+    let last = window.scrollY, raf = 0;
+    window.addEventListener('scroll', () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const cur = window.scrollY, delta = cur - last;
+        if (cur < 60)        hdr.classList.remove('is-hidden');
+        else if (delta > 6)  hdr.classList.add('is-hidden');
+        else if (delta < -6) hdr.classList.remove('is-hidden');
+        last = cur;
+      });
+    }, { passive:true });
+  })();
+
+  // Greeting
+  const firstName = user.firstName || user.first_name || (user.email||'').split('@')[0];
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greet-eyebrow').textContent = greet;
+  document.getElementById('greet-title').innerHTML = `Welcome back, ${escapeHtml(firstName)}!`;
+  document.getElementById('hero-avatar').textContent = (firstName.trim().charAt(0)||'?').toUpperCase();
+
+  // ===== HERO STATS & ANALYTICS from /api/dashboard =====
+  // NOTE: /api/dashboard returns { user, totals, recentAttempts, subjectPerformance, dailyStats }
+  // directly — no `.data` wrapper. Use the root response object.
+  (async function loadDashboard() {
+    try {
+      const r = await me.dashboard();
+      // dashboard.php returns top-level keys, not wrapped in data
+      const totals = r.totals || r.data?.totals || {};
+      const recentAttempts = r.recentAttempts || r.data?.recentAttempts || [];
+      const subjectPerf = r.subjectPerformance || r.data?.subjectPerformance || [];
+
+      // Hero stats
+      document.getElementById('hs-attempts').textContent  = (totals.attempts  || 0).toLocaleString();
+      document.getElementById('hs-completed').textContent = (totals.completed || 0).toLocaleString();
+      document.getElementById('hs-avg').innerHTML =
+        totals.avgPct != null
+          ? Number(totals.avgPct).toFixed(1) + '<span class="unit">%</span>'
+          : '&mdash;';
+      const sec = Number(totals.studySec || 0);
+      const hrs = Math.floor(sec / 3600), mins = Math.floor((sec % 3600) / 60);
+      document.getElementById('hs-time').innerHTML =
+        hrs > 0
+          ? hrs + '<span class="unit">h</span> ' + mins + '<span class="unit">m</span>'
+          : mins + '<span class="unit">m</span>';
+
+      // Recent attempts (inline card, max 3)
+      const recentEl = document.getElementById('recent-list');
+      const recent = recentAttempts.slice(0, 3);
+      if (!recent.length) {
+        recentEl.innerHTML = `<div class="info-empty">No attempts yet.<br><a href="quizzes.html" style="color:var(--accent);font-weight:600;">Browse quizzes →</a></div>`;
+      } else {
+        recentEl.innerHTML = recent.map(a => {
+          const pct = a.percentage != null ? Number(a.percentage).toFixed(0) + '%' : '—';
+          const dotCls = a.status === 'COMPLETED' ? (a.passed == 1 ? '' : 'fail') : 'pending';
+          const scoreCls = a.status === 'COMPLETED' ? (a.passed == 1 ? 'pass' : 'fail') : '';
+          const when = a.start_time
+            ? new Date(a.start_time.replace(' ','T')).toLocaleDateString(undefined, {month:'short', day:'numeric'})
+            : '';
+          const href = (a.status === 'IN_PROGRESS' || a.status === 'PAUSED')
+            ? `quiz-attempt.html?attemptId=${encodeURIComponent(a.id)}`
+            : `results.html?attemptId=${encodeURIComponent(a.id)}`;
+          return `<a class="recent-item" href="${href}">
+            <span class="recent-dot ${dotCls}"></span>
+            <div class="recent-body">
+              <div class="recent-title">${escapeHtml(a.quiz_set_name || '(quiz set)')}</div>
+              <div class="recent-meta">${escapeHtml(when)} · ${escapeHtml(a.status || '')}</div>
+            </div>
+            <div class="recent-score ${scoreCls}">${pct}</div>
+          </a>`;
+        }).join('');
+      }
+
+      // Subject performance
+      const subjEl = document.getElementById('subj-list');
+      const subj = subjectPerf.slice(0, 8);
+      if (!subj.length) {
+        subjEl.innerHTML = `<div class="analytics-empty">No subject data yet. Start practising!</div>`;
+        document.getElementById('perf-summary').innerHTML = `<p>Attempt some quizzes and your subject breakdown will appear here.</p>`;
+      } else {
+        subjEl.innerHTML = subj.map(s => {
+          const acc = Number(s.accuracy ?? s.percentage ?? 0);
+          const cls = acc >= 75 ? 'high' : acc >= 50 ? 'mid' : 'low';
+          const name = s.subjectName || s.subject_name || s.name || '—';
+          return `<div class="subj-row">
+            <div class="subj-top">
+              <span class="subj-name">${escapeHtml(name)}</span>
+              <span class="subj-pct">${acc.toFixed(0)}%</span>
+            </div>
+            <div class="subj-bar"><div class="fill ${cls}" style="width:${acc}%"></div></div>
+          </div>`;
+        }).join('');
+
+        // Build summary
+        const strong = subj.filter(s => Number(s.accuracy ?? 0) >= 75);
+        const weak   = subj.filter(s => Number(s.accuracy ?? 0) < 50);
+        let summary = '';
+        if (strong.length) summary += `<strong>Strong:</strong> ${strong.slice(0,3).map(s=>escapeHtml(s.subjectName||s.subject_name||'—')).join(', ')}<br>`;
+        if (weak.length)   summary += `<strong>Needs work:</strong> ${weak.slice(0,3).map(s=>escapeHtml(s.subjectName||s.subject_name||'—')).join(', ')}<br>`;
+        summary += `<br>Total subjects practised: <strong>${subj.length}</strong>`;
+        document.getElementById('perf-summary').innerHTML = summary;
+      }
+
+    } catch(err) {
+      // Fallback: show zeros for stats, show error in panels
+      ['hs-attempts','hs-completed'].forEach(id => document.getElementById(id).textContent = '0');
+      document.getElementById('hs-avg').textContent = '—';
+      document.getElementById('hs-time').textContent = '0m';
+      document.getElementById('recent-list').innerHTML = `<div class="info-empty">Couldn't load attempts.</div>`;
+      document.getElementById('subj-list').innerHTML = `<div class="analytics-empty">Couldn't load subject data.</div>`;
+      console.warn('Dashboard load error:', err);
+    }
+  })();
+
+  // ===== QUICK ACCESS CARDS =====
+  const TABS = [
+    { id:'purchased-quiz', label:'My Purchased Quiz', color:'orange', href:'my-quiz-sets.html',
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' },
+    { id:'purchased-courses', label:'My Purchased Courses', color:'blue', href:'my-courses.html',
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>' },
+    { id:'saved-mcqs', label:'Saved MCQs', color:'gold', href:'bookmarks.html',
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' },
+    { id:'my-attempts', label:'My Attempts', color:'green', href:'attempts.html',
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12 8 12 12 14 14"/><circle cx="12" cy="12" r="10"/></svg>' },
+    { id:'announcements', label:'Announcements', color:'purple', href:'announcements.html',
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8v18l-18-8z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>' },
+    { id:'profile', label:'My Profile', color:'teal', href:'profile.html',
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' },
+    { id:'notifications', label:'Notifications', color:'pink', href:'notifications',
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>' },
+    { id:'statistics', label:'Statistics', color:'slate', href:'stats.html',
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
+  ];
+
+  function renderCard(tab) {
+    const iconHtml  = `<span class="qa-icon c-${tab.color}">${tab.icon}</span>`;
+    const labelHtml = `<span class="qa-label">${escapeHtml(tab.label)}</span>`;
+    const badgeSlot = `<span class="qa-badge" data-badge="${tab.id}" hidden></span>`;
+    if (tab.href === 'notifications') {
+      return `<button type="button" class="qa-card" data-tab="${tab.id}">${iconHtml}${labelHtml}${badgeSlot}</button>`;
+    }
+    return `<a class="qa-card" href="${escapeHtml(tab.href)}" data-tab="${tab.id}">${iconHtml}${labelHtml}${badgeSlot}</a>`;
+  }
+  document.getElementById('qa-grid').innerHTML = TABS.map(renderCard).join('');
+
+  document.querySelector('[data-tab="notifications"]')?.addEventListener('click', e => {
+    e.preventDefault();
+    window.location.href = 'notifications.html';
+  });
+
+  function setBadge(tabId, count) {
+    const el = document.querySelector(`[data-badge="${tabId}"]`);
+    if (!el) return;
+    if (!count) { el.hidden = true; return; }
+    el.textContent = count > 99 ? '99+' : String(count);
+    el.hidden = false;
+  }
+
+  // ===== NOTIFICATIONS — show ALL unread + live polling =====
+
+  // Notification type → emoji icon
+  const NOTIF_ICONS = {
+    PURCHASE_COMPLETED:       '✅',
+    PURCHASE_FAILED:          '❌',
+    COURSE_ACCESS_APPROVED:   '🎓',
+    COURSE_ACCESS_REJECTED:   '🚫',
+    SUBSCRIPTION_EXPIRED:     '⏰',
+    SUBSCRIPTION_EXPIRING_SOON:'⚠️',
+    SUBSCRIPTION_EXTENDED:    '🔄',
+    QUIZ_RESULTS:             '📊',
+    SYSTEM_ALERT:             '🔔',
+    ADMIN_NOTIFICATION:       '📣',
+  };
+
+  let _allNotifs  = [];
+  let _pollTimer  = null;
+  let _knownIds   = new Set();
+
+  function updateNotifBadge(unread) {
+    const bc = document.getElementById('notif-badge-count');
+    setBadge('notifications', unread);
+    if (unread > 0) { bc.textContent = unread; bc.style.display = ''; }
+    else bc.style.display = 'none';
+  }
+
+  function renderInlineNotifs(items, container, isNew = false) {
+    if (!items.length) {
+      container.innerHTML = `<div class="info-empty">No notifications yet.</div>`;
+      return;
+    }
+    container.innerHTML = items.map((n, i) => {
+      const ago  = formatRelative(n.sent_at || n.created_at || '');
+      const ico  = NOTIF_ICONS[n.type] || '🔔';
+      const isNewItem = isNew && !_knownIds.has(n.id);
+      return `<div class="notif-item${n.read_at ? '' : ' unread'}${isNewItem ? ' notif-new' : ''}"
+                   data-id="${escapeHtml(String(n.id))}"
+                   style="${isNewItem ? 'animation-delay:' + (i * 60) + 'ms' : ''}">
+        <span class="notif-dot"></span>
+        <span class="notif-type-ico">${ico}</span>
+        <div class="notif-body">
+          <div class="notif-title">${escapeHtml(n.title || n.type || 'Notification')}</div>
+          ${n.body || n.message ? `<div class="notif-msg">${escapeHtml(n.body || n.message)}</div>` : ''}
+          <div class="notif-time">${escapeHtml(ago)}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Mark new IDs as known
+    items.forEach(n => _knownIds.add(n.id));
+
+    // Click to mark read
+    container.querySelectorAll('.notif-item.unread').forEach(row => {
+      row.addEventListener('click', async () => {
+        row.classList.remove('unread');
+        row.querySelector('.notif-dot').style.background = 'var(--border)';
+        try { await me.notificationAction(row.dataset.id, 'mark_read'); } catch {}
+        const remaining = container.querySelectorAll('.notif-item.unread').length;
+        updateNotifBadge(remaining);
+      });
+    });
+  }
+
+  async function loadNotifications(isRefresh = false) {
+    const container = document.getElementById('inline-notif-list');
+    try {
+      // Fetch all unread + last 10 read for context
+      const r = await me.notifications({ limit: 50 });
+      const all    = r?.data || [];
+      const unread = all.filter(n => !n.read_at).slice(0, 3);
+      const read   = []; // inline panel shows 3 unread only
+
+      // Check for brand new notifications
+      const newOnes = isRefresh ? unread.filter(n => !_knownIds.has(n.id)) : [];
+
+      // Show unread first, then recent read
+      _allNotifs = unread;
+      renderInlineNotifs(_allNotifs, container, isRefresh);
+      updateNotifBadge(unread.length);
+
+      // Drive quick-access card badges from unread notification types
+      const hasPurchase   = unread.some(n => n.type === 'PURCHASE_COMPLETED' || n.type === 'PURCHASE_FAILED');
+      const hasEnrollment = unread.some(n => n.type === 'COURSE_ACCESS_APPROVED' || n.type === 'COURSE_ACCESS_REJECTED');
+      setBadge('purchased-quiz',    hasPurchase   ? unread.filter(n => n.type.startsWith('PURCHASE')).length   : 0);
+      setBadge('purchased-courses', hasEnrollment ? unread.filter(n => n.type.startsWith('COURSE_ACCESS')).length : 0);
+
+      // Show toast for new arrivals (only on refresh, not initial load)
+      if (newOnes.length > 0) {
+        showNewNotifToast(newOnes.length);
+      }
+    } catch {
+      if (!isRefresh) container.innerHTML = `<div class="info-empty">Couldn't load notifications.</div>`;
+    }
+  }
+
+  function showNewNotifToast(count) {
+    document.querySelector('.notif-new-toast')?.remove();
+    const toast = document.createElement('div');
+    toast.className = 'notif-new-toast';
+    toast.textContent = `${count} new notification${count > 1 ? 's' : ''} — tap to view`;
+    toast.addEventListener('click', () => {
+      toast.remove();
+      document.getElementById('inline-notif-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 6000);
+  }
+
+  // Initial load
+  loadNotifications(false);
+
+  // Live poll every 30s
+  _pollTimer = setInterval(() => loadNotifications(true), 30_000);
+
+  // Mark all read
+  document.getElementById('inline-mark-all')?.addEventListener('click', async () => {
+    document.querySelectorAll('#inline-notif-list .notif-item.unread').forEach(r => {
+      r.classList.remove('unread');
+      const dot = r.querySelector('.notif-dot');
+      if (dot) dot.style.background = 'var(--border)';
+    });
+    updateNotifBadge(0);
+    try { await me.notificationAction(null, 'mark_all_read'); } catch {}
+  });
+
+  // View all opens popover
+  document.getElementById('view-all-notif')?.addEventListener('click', e => {
+    e.preventDefault();
+    window.location.href = 'notifications.html';
+  });
+
+  // ===== LATEST ANNOUNCEMENT =====
+  (async function loadAnnouncement() {
+    const el = document.getElementById('ann-content');
+    try {
+      const r = await announcements.list();
+      const items = r?.data || [];
+      setBadge('announcements', items.filter(a => !a.read_at).length);
+      if (!items.length) {
+        el.innerHTML = `<div class="info-empty">No announcements yet.</div>`;
+        return;
+      }
+      const a = items[0]; // latest / pinned first
+      const date = a.published_at
+        ? new Date(a.published_at.replace(' ','T')).toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'})
+        : '';
+      el.innerHTML = `<div class="ann-item">
+        ${a.pinned ? `<div class="ann-pinned">📌 Pinned</div>` : ''}
+        <div class="ann-title">${escapeHtml(a.title || 'Announcement')}</div>
+        <div class="ann-body">${escapeHtml(a.body || '')}</div>
+        <div class="ann-date">${escapeHtml(date)}</div>
+      </div>`;
+      if (items.length > 1) {
+        el.innerHTML += `<div style="margin-top:10px; text-align:right;"><a href="announcements.html" style="font-size:0.76rem; font-weight:600; color:var(--accent);">+${items.length - 1} more →</a></div>`;
+      }
+    } catch {
+      el.innerHTML = `<div class="info-empty">Couldn't load announcements.</div>`;
+    }
+  })();
+
+  // Purchased quiz badge — show count only if user has purchases
+  purchases.mine({ status: 'ACTIVE' })
+    .then(r => { setBadge('purchased-quiz', 0); })  // no badge unless new purchase notification
+    .catch(() => {});
+
+  // Purchased courses badge — hidden unless new enrollment
+  setBadge('purchased-courses', 0);
+
+  // Saved MCQs badge — show actual count
+  bookmarks.count().then(r => {
+    const n = r?.data?.count ?? r?.count ?? 0;
+    setBadge('saved-mcqs', n);
+  }).catch(() => {});
+
+  // ===== FULL NOTIFICATIONS POPOVER =====
+  const popover  = document.getElementById('qa-notif-popover');
+  const backdrop = document.getElementById('qa-pop-backdrop');
+  const popList  = document.getElementById('qa-notif-list');
+  let _popLoaded = false;
+
+  function openNotifPopover() {
+    document.body.classList.add('qa-notif-open');
+    popover.classList.add('is-open');
+    if (!_popLoaded) loadPopoverNotifs();
+  }
+  function closeNotifPopover() {
+    document.body.classList.remove('qa-notif-open');
+    popover.classList.remove('is-open');
+  }
+  document.getElementById('qa-notif-close').addEventListener('click', closeNotifPopover);
+  backdrop.addEventListener('click', closeNotifPopover);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && popover.classList.contains('is-open')) closeNotifPopover();
+  });
+
+  async function loadPopoverNotifs() {
+    popList.innerHTML = `<div class="qa-notif-empty"><div class="spinner" style="margin:0 auto;"></div></div>`;
+    try {
+      const r = await me.notifications({ limit: 30 });
+      const items = r?.data || [];
+      _popLoaded = true;
+      if (!items.length) {
+        popList.innerHTML = `<div class="qa-notif-empty">No notifications yet.</div>`;
+        return;
+      }
+      popList.innerHTML = items.map(n => `
+        <div class="qa-notif-item${n.read_at ? '' : ' unread'}" data-id="${escapeHtml(String(n.id))}">
+          <span class="qa-notif-dot"></span>
+          <div class="qa-notif-body">
+            <div class="qa-notif-title">${escapeHtml(n.title || n.type || 'Notification')}</div>
+            ${n.body || n.message ? `<div class="qa-notif-msg">${escapeHtml(n.body || n.message)}</div>` : ''}
+            <div class="qa-notif-time">${escapeHtml(formatRelative(n.sent_at || n.created_at))}</div>
+          </div>
+        </div>`).join('');
+      popList.querySelectorAll('.qa-notif-item.unread').forEach(row => {
+        row.addEventListener('click', async () => {
+          row.classList.remove('unread');
+          try { await me.notificationAction(row.dataset.id, 'mark_read'); } catch {}
+        });
+      });
+    } catch(err) {
+      popList.innerHTML = `<div class="qa-notif-empty">Couldn't load: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  document.getElementById('qa-notif-mark-all').addEventListener('click', async () => {
+    popList.querySelectorAll('.qa-notif-item.unread').forEach(r => r.classList.remove('unread'));
+    try { await me.notificationAction(null, 'mark_all_read'); } catch {}
+    setBadge('notifications', 0);
+    document.getElementById('notif-badge-count').style.display = 'none';
+  });
+
+  mountFooter();
+</script>
+
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('dashboard', u);
+})();
+</script>
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

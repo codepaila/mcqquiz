@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Profile · Quiznosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+/* ── Layout ──────────────────────────────────────────────── */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 780px) {
+  .profile-grid { grid-template-columns: 1fr; }
+  .avatar-card { position: static; }
+}
+
+/* ── Avatar card ─────────────────────────────────────────── */
+.avatar-card {
+  background: var(--paper-soft);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  padding: 28px 20px;
+  text-align: center;
+
+}
+.avatar-wrap {
+  position: relative;
+  width: 96px; height: 96px;
+  margin: 0 auto 14px;
+}
+.avatar-img {
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--paper-edge);
+  background: var(--accent-soft);
+  display: flex; align-items: center; justify-content: center;
+}
+.avatar-initials {
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; font-weight: 700;
+  font-family: var(--font-display);
+  border: 3px solid var(--paper-edge);
+}
+.avatar-edit-btn {
+  position: absolute; bottom: 2px; right: 2px;
+  width: 28px; height: 28px;
+  background: var(--accent); color: #fff;
+  border: 2px solid var(--paper); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 0.75rem;
+  transition: background .14s;
+}
+.avatar-edit-btn:hover { background: var(--accent-hover); }
+#avatar-file { display: none; }
+
+.user-name {
+  font-family: var(--font-display);
+  font-size: 1.2rem; font-weight: 400;
+  margin-bottom: 3px;
+}
+.user-email {
+  font-size: 0.8rem; color: var(--ink-muted);
+  margin-bottom: 16px; word-break: break-all;
+}
+.user-role {
+  display: inline-flex; align-items: center;
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 100px;
+  background: var(--accent-soft); color: var(--accent);
+  margin-bottom: 18px;
+}
+
+
+
+/* ── Right column cards ───────────────────────────────────── */
+.right-col { display: flex; flex-direction: column; gap: 20px; }
+
+.section-card {
+  background: var(--paper-soft);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+.section-card h2 {
+  font-family: var(--font-display);
+  font-size: 1.2rem; font-weight: 400;
+  margin-bottom: 18px; letter-spacing: -.01em;
+}
+
+/* ── Avatar upload preview ───────────────────────────────── */
+
+
+/* btn-primary → accent consistent */
+.btn-save { background: var(--accent); color: #fff !important; }
+.btn-save:hover { background: var(--accent-hover); }
+</style>
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+</head>
+<body>
+<main class="section">
+  <div class="container">
+    <div class="mb-3">
+      <div class="eyebrow">Account</div>
+      <h1 class="display mt-1" style="font-size:2.2rem;">Your <span class="italic-em">Profile</span></h1>
+    </div>
+
+    <div class="profile-grid">
+
+      <!-- ── Left: Avatar & quick links ── -->
+      <div class="avatar-card">
+        <div class="avatar-wrap">
+          <div id="avatar-display"></div>
+          <button class="avatar-edit-btn" id="avatar-edit-btn" title="Change photo" type="button">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <input type="file" id="avatar-file" accept="image/*">
+        </div>
+        <div class="user-name" id="sidebar-name">—</div>
+        <div class="user-email" id="sidebar-email">—</div>
+        <div class="user-role" id="sidebar-role">Student</div>
+
+
+      </div>
+
+      <!-- ── Right: Forms ── -->
+      <div class="right-col">
+
+        <!-- Personal info -->
+        <div class="section-card">
+          <h2>Personal info</h2>
+          <form id="profile-form">
+            <div id="profile-alert"></div>
+
+
+
+            <input type="hidden" id="avatar-hidden" name="avatar">
+
+            <div class="field" style="margin-bottom:16px;">
+              <label>Email</label>
+              <input id="email-display" type="email" disabled>
+              <div class="field-hint">Email can't be changed here.</div>
+            </div>
+
+            <div class="field-row" style="margin-bottom:16px;">
+              <div class="field"><label for="firstName">First name</label><input id="firstName" name="firstName" required></div>
+              <div class="field"><label for="lastName">Last name</label><input id="lastName" name="lastName"></div>
+            </div>
+
+            <div class="field" style="margin-bottom:16px;">
+              <label for="phone">Phone number</label>
+              <input id="phone" name="phone" type="tel" placeholder="+977 98XXXXXXXX" autocomplete="tel">
+            </div>
+
+            <div class="field" style="margin-bottom:20px;">
+              <label for="professionId">Preparing for</label>
+              <select id="professionId" name="professionId"><option value="">— None —</option></select>
+            </div>
+
+            <button type="submit" class="btn btn-save">Save changes</button>
+          </form>
+        </div>
+
+        <!-- Change password -->
+        <div class="section-card">
+          <h2>Change password</h2>
+          <form id="pw-form">
+            <div id="pw-alert"></div>
+            <div class="field" style="margin-bottom:16px;">
+              <label for="currentPassword">Current password</label>
+              <input id="currentPassword" name="currentPassword" type="password" required autocomplete="current-password">
+            </div>
+            <div class="field" style="margin-bottom:20px;">
+              <label for="newPassword">New password</label>
+              <input id="newPassword" name="newPassword" type="password" required minlength="8" autocomplete="new-password">
+              <div class="field-hint">Uppercase, lowercase, number, special character.</div>
+            </div>
+            <button type="submit" class="btn btn-save">Update password</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountHeader, mountFooter, escapeHtml, toast, requireAuth } from './assets/components.js';
+import { auth, me, taxonomy } from './assets/api.js';
+
+await requireAuth('login.html');
+await mountHeader('profile');
+mountFooter();
+
+// ── Load profile ──────────────────────────────────────────
+const { user, profession } = await me.profile();
+
+// Sidebar
+document.getElementById('sidebar-name').textContent  = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'User';
+document.getElementById('sidebar-email').textContent = user.email || '';
+document.getElementById('sidebar-role').textContent  = user.role  || 'Student';
+
+// Render avatar
+renderAvatar(user.avatar, user.firstName, user.lastName);
+
+// Form fields
+document.getElementById('email-display').value = user.email || '';
+document.getElementById('firstName').value     = user.firstName || '';
+document.getElementById('lastName').value      = user.lastName  || '';
+document.getElementById('phone').value         = user.phone     || '';
+
+// Set hidden avatar field with current value
+document.getElementById('avatar-hidden').value = user.avatar || '';
+
+// Professions dropdown
+try {
+  const { data: profs } = await taxonomy.professions();
+  const sel = document.getElementById('professionId');
+  for (const p of profs) {
+    const o = document.createElement('option');
+    o.value = p.id; o.textContent = p.name;
+    if (profession && profession.id === p.id) o.selected = true;
+    sel.append(o);
+  }
+} catch {}
+
+// ── Avatar helpers ────────────────────────────────────────
+function renderAvatar(url, firstName, lastName) {
+  const wrap = document.getElementById('avatar-display');
+  if (url) {
+    wrap.innerHTML = `<img src="${escapeHtml(url)}" class="avatar-img" alt="Profile photo"
+      onerror="this.style.display='none';this.parentNode.innerHTML='${initialsHtml(firstName||'', lastName||'').replace(/`/g, '\`')}'">`;
+  } else {
+    wrap.innerHTML = initialsHtml(firstName, lastName);
+  }
+}
+function initialsHtml(f, l) {
+  const initials = ((f||'').charAt(0) + (l||'').charAt(0)).toUpperCase() || '?';
+  return `<div class="avatar-initials">${initials}</div>`;
+}
+
+// File picker → upload to server
+document.getElementById('avatar-edit-btn').addEventListener('click', () => {
+  document.getElementById('avatar-file').click();
+});
+
+document.getElementById('avatar-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 3 * 1024 * 1024) { toast('Image must be under 3MB', 'error'); return; }
+
+  const btn = document.getElementById('avatar-edit-btn');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" stroke-dasharray="30 56" fill="none"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></circle></svg>';
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/upload-avatar.php', {
+      method: 'POST',
+      credentials: 'include',
+      body: fd,
+    });
+
+    // Guard: ensure we got JSON back, not a PHP error page
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const raw = await res.text();
+      console.error('[avatar upload] Non-JSON response:', raw.slice(0, 300));
+      throw new Error('Server error — check PHP logs');
+    }
+
+    const data = await res.json();
+    if (!res.ok || !data.url) throw new Error(data.message || data.error || 'Upload failed');
+
+    const url = data.url;
+    document.getElementById('avatar-hidden').value = url;
+    renderAvatar(url, document.getElementById('firstName').value, document.getElementById('lastName').value);
+    document.getElementById('sidebar-name').textContent =
+      [document.getElementById('firstName').value, document.getElementById('lastName').value].filter(Boolean).join(' ') || 'User';
+    toast('Photo updated!', 'success');
+  } catch (err) {
+    toast(err.message || 'Upload failed', 'error');
+  } finally {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  }
+});
+
+// ── Save profile ──────────────────────────────────────────
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const zone = document.getElementById('profile-alert');
+  zone.innerHTML = '';
+  const btn = e.target.querySelector('[type=submit]');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    await me.updateProfile({
+      firstName:    e.target.firstName.value.trim(),
+      lastName:     e.target.lastName.value.trim(),
+      phone:        e.target.phone.value.trim(),
+      avatar:       document.getElementById('avatar-hidden').value || null,
+      professionId: e.target.professionId.value || null,
+    });
+
+    // Update sidebar name
+    document.getElementById('sidebar-name').textContent =
+      [e.target.firstName.value.trim(), e.target.lastName.value.trim()].filter(Boolean).join(' ') || 'User';
+
+    zone.innerHTML = `<div class="alert alert-success" style="margin-bottom:12px;">Saved successfully.</div>`;
+    toast('Profile updated', 'success');
+  } catch (err) {
+    zone.innerHTML = `<div class="alert alert-error" style="margin-bottom:12px;">${escapeHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save changes';
+  }
+});
+
+// ── Change password ───────────────────────────────────────
+document.getElementById('pw-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const zone = document.getElementById('pw-alert');
+  zone.innerHTML = '';
+  const btn = e.target.querySelector('[type=submit]');
+  btn.disabled = true; btn.textContent = 'Updating…';
+
+  try {
+    await auth.changePassword({
+      currentPassword: e.target.currentPassword.value,
+      newPassword:     e.target.newPassword.value,
+    });
+    zone.innerHTML = `<div class="alert alert-success" style="margin-bottom:12px;">Password updated.</div>`;
+    e.target.reset();
+    toast('Password changed', 'success');
+  } catch (err) {
+    zone.innerHTML = `<div class="alert alert-error" style="margin-bottom:12px;">${escapeHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Update password';
+  }
+});
+</script>
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('profile', u);
+})();
+</script>
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

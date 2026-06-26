@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Contact Us · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+/* ── Page reveal animations ───────────────────────────────── */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s ease, transform .5s ease; }
+.reveal.in { opacity: 1; transform: none; }
+.reveal-delay-1 { transition-delay: .08s; }
+.reveal-delay-2 { transition-delay: .16s; }
+.reveal-delay-3 { transition-delay: .24s; }
+.reveal-delay-4 { transition-delay: .32s; }
+.reveal-delay-5 { transition-delay: .40s; }
+
+/* ── Hero strip ───────────────────────────────────────────── */
+.contact-hero {
+  padding: 52px 0 0;
+  position: relative;
+  overflow: hidden;
+}
+.contact-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 50% 70% at 90% 20%, rgba(184,83,28,.07) 0%, transparent 65%),
+    radial-gradient(ellipse 35% 55% at 5% 85%, rgba(92,122,71,.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+[data-theme="dark"] .contact-hero::before {
+  background:
+    radial-gradient(ellipse 50% 70% at 90% 20%, rgba(224,116,47,.12) 0%, transparent 65%),
+    radial-gradient(ellipse 35% 55% at 5% 85%, rgba(74,222,128,.06) 0%, transparent 60%);
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+.hero-eyebrow::before {
+  content: '';
+  display: block;
+  width: 18px; height: 1.5px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+.contact-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -.02em;
+  margin-bottom: 16px;
+}
+.contact-hero .sub {
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  line-height: 1.75;
+  max-width: 460px;
+  margin-bottom: 40px;
+}
+
+/* ── Main two-column layout ───────────────────────────────── */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 40px;
+  align-items: start;
+  padding-bottom: 72px;
+}
+@media (max-width: 860px) {
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+  .sidebar   { order: -1; }
+  .form-card { order:  1; }
+}
+
+/* ── Contact form card ────────────────────────────────────── */
+.form-card {
+  background: var(--paper-soft);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  box-shadow: var(--shadow-sm);
+}
+@media (max-width: 480px) {
+  .form-card { padding: 24px 18px; }
+}
+.form-card h2 {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 400;
+  margin-bottom: 6px;
+  letter-spacing: -.01em;
+}
+.form-card .form-sub {
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 540px) {
+  .form-row { grid-template-columns: 1fr; }
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.form-group label {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: .01em;
+}
+.form-group label .req { color: var(--accent); margin-left: 2px; }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: var(--paper);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink);
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+  width: 100%;
+}
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--ink-muted);
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(184,83,28,.1);
+}
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group select:focus,
+[data-theme="dark"] .form-group textarea:focus {
+  box-shadow: 0 0 0 3px rgba(224,116,47,.15);
+}
+.form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%238C8473' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+.btn-submit {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 13px 24px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background .15s, transform .1s, box-shadow .15s;
+  letter-spacing: .01em;
+}
+.btn-submit:hover { background: var(--accent-hover); box-shadow: 0 4px 18px rgba(184,83,28,.28); }
+.btn-submit:active { transform: scale(.98); }
+.btn-submit svg { transition: transform .2s; }
+.btn-submit:hover svg { transform: translateX(3px); }
+
+/* Success state */
+.form-success {
+  display: none;
+  text-align: center;
+  padding: 28px 0 12px;
+}
+.form-success .success-icon {
+  width: 52px; height: 52px;
+  background: var(--success-soft);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  color: var(--success);
+}
+.form-success h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem; font-weight: 400;
+  margin-bottom: 8px;
+}
+.form-success p { font-size: 0.9rem; color: var(--ink-muted); line-height: 1.6; }
+
+/* ── Right sidebar ────────────────────────────────────────── */
+.sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+/* Quick contact card */
+.quick-card {
+  background: var(--paper-soft);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.quick-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem; font-weight: 400;
+  margin-bottom: 4px;
+  letter-spacing: -.01em;
+}
+.quick-card .card-sub {
+  font-size: 0.8rem; color: var(--ink-muted);
+  margin-bottom: 18px; line-height: 1.5;
+}
+
+/* Channel buttons */
+.channel-list { display: flex; flex-direction: column; gap: 10px; }
+.channel-btn {
+  display: flex; align-items: center; gap: 13px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--paper-edge);
+  background: var(--paper);
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color .15s, background .15s, box-shadow .15s, transform .1s;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.channel-btn:hover {
+  border-color: var(--channel-color, var(--accent));
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.channel-btn:active { transform: scale(.98) translateY(0); }
+.channel-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--channel-bg, var(--accent-soft));
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  transition: background .15s;
+}
+.channel-btn:hover .channel-icon {
+  background: var(--channel-color, var(--accent));
+}
+.channel-btn:hover .channel-icon svg,
+.channel-btn:hover .channel-icon img {
+  filter: brightness(10);
+}
+.channel-icon svg { display: block; }
+.channel-text { min-width: 0; flex: 1; }
+.channel-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink);
+  display: block;
+  line-height: 1.3;
+}
+.channel-desc {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  display: block;
+  line-height: 1.4;
+  margin-top: 1px;
+}
+.channel-arrow {
+  color: var(--ink-muted);
+  opacity: .5;
+  flex-shrink: 0;
+  transition: opacity .15s, transform .2s;
+}
+.channel-btn:hover .channel-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+  color: var(--channel-color, var(--accent));
+}
+
+/* WhatsApp */
+.ch-whatsapp { --channel-color: #25D366; --channel-bg: #e6f9ee; }
+[data-theme="dark"] .ch-whatsapp { --channel-bg: #0e2b1a; }
+/* Telegram */
+.ch-telegram { --channel-color: #2AABEE; --channel-bg: #e6f4fd; }
+[data-theme="dark"] .ch-telegram { --channel-bg: #0c2132; }
+/* Instagram */
+.ch-instagram { --channel-color: #E1306C; --channel-bg: #fde9ef; }
+[data-theme="dark"] .ch-instagram { --channel-bg: #2a0d18; }
+/* Email */
+.ch-email { --channel-color: var(--accent); --channel-bg: var(--accent-soft); }
+
+/* Urgent help box */
+.urgent-box {
+  background: var(--accent-soft);
+  border: 1.5px solid rgba(184,83,28,.2);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+[data-theme="dark"] .urgent-box {
+  background: rgba(224,116,47,.08);
+  border-color: rgba(224,116,47,.2);
+}
+.urgent-box .urgent-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.urgent-box .urgent-label::before {
+  content: '';
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+  animation: urgent-pulse 2s ease-in-out infinite;
+}
+@keyframes urgent-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+.urgent-box p {
+  font-size: 0.83rem;
+  color: var(--ink-soft);
+  line-height: 1.65;
+  margin-bottom: 14px;
+}
+.btn-whatsapp {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%;
+  background: #25D366;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 11px 18px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, box-shadow .15s, transform .1s;
+}
+.btn-whatsapp:hover {
+  background: #1eb358;
+  box-shadow: 0 4px 16px rgba(37,211,102,.3);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.btn-whatsapp:active { transform: scale(.98); }
+
+/* ── Divider ──────────────────────────────────────────────── */
+.section-divider {
+  height: 1px;
+  background: var(--paper-edge);
+  margin: 0;
+}
+
+/* ── Response time badge ──────────────────────────────────── */
+.response-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--success-soft);
+  color: var(--success);
+  border-radius: 100px;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: .04em;
+  margin-bottom: 24px;
+}
+.response-badge svg { flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<main>
+  <!-- Hero -->
+  <div class="contact-hero">
+    <div class="container">
+      <p class="hero-eyebrow reveal">Contact</p>
+      <h1 class="reveal reveal-delay-1">Get in Touch</h1>
+      <p class="sub reveal reveal-delay-2">Have questions about courses, need support, or want to collaborate? We're here to help you on your exam prep journey.</p>
+
+      <div class="response-badge reveal reveal-delay-3" id="response-badge">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="response-time-text">Typically responds within a few hours</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="contact-grid">
+
+      <!-- ── Left: Contact Form ── -->
+      <div class="form-card reveal reveal-delay-2">
+        <h2>Send us a Message</h2>
+        <p class="form-sub">Fill out the form below and we'll get back to you as soon as possible.</p>
+
+        <form id="contact-form" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">Full Name <span class="req">*</span></label>
+              <input type="text" id="name" name="name" placeholder="Your name" required autocomplete="name">
+            </div>
+            <div class="form-group">
+              <label for="email">Email Address <span class="req">*</span></label>
+              <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Phone Number <span style="font-weight:400;color:var(--ink-muted)">(Optional)</span></label>
+            <input type="tel" id="phone" name="phone" placeholder="+977 98XXXXXXXX" autocomplete="tel">
+          </div>
+
+          <div class="form-group">
+            <label for="subject">Subject <span class="req">*</span></label>
+            <select id="subject" name="subject" required>
+              <option value="" disabled selected>Select a topic</option>
+              <option value="course-inquiry">Course Inquiry</option>
+              <option value="technical-support">Technical Support</option>
+              <option value="payment-issues">Payment Issues</option>
+              <option value="feedback">Feedback &amp; Suggestions</option>
+              <option value="collaboration">Collaboration</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="message">Your Message <span class="req">*</span></label>
+            <textarea id="message" name="message" placeholder="Describe your question or issue in detail…" required></textarea>
+          </div>
+
+          <button type="submit" class="btn-submit" id="submit-btn">
+            <span id="btn-label">Send Message</span>
+            <svg id="btn-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </form>
+
+        <!-- Success state -->
+        <div class="form-success" id="form-success">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h3>Message sent!</h3>
+          <p>Thanks for reaching out. We'll get back to you at your email address as soon as possible.</p>
+        </div>
+      </div>
+
+      <!-- ── Right: Sidebar ── -->
+      <div class="sidebar">
+
+        <!-- Quick Contact -->
+        <div class="quick-card reveal reveal-delay-3">
+          <h3>Quick Contact</h3>
+          <p class="card-sub">Reach us instantly on your preferred platform.</p>
+
+          <div class="channel-list" id="channel-list">
+            <div style="padding:12px;color:var(--ink-muted);font-size:0.85rem;">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Urgent Help -->
+        <div class="urgent-box reveal reveal-delay-4" id="urgent-box">
+          <div class="urgent-label" id="urgent-title">Immediate Help</div>
+          <p id="urgent-text">For urgent course access issues or technical problems, WhatsApp gives you the fastest response — usually within minutes.</p>
+          <a href="#" class="btn-whatsapp" id="urgent-btn" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20.472 3.528A11.955 11.955 0 0 0 12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.184 1.605 6L0 24l6.18-1.621A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12 0-3.205-1.248-6.219-3.528-8.472zm-8.472 18.43a9.92 9.92 0 0 1-5.057-1.38l-.363-.215-3.765.988.805-3.683-.236-.378A9.916 9.916 0 0 1 2.062 12c0-5.481 4.457-9.938 9.938-9.938a9.9 9.9 0 0 1 7.026 2.912 9.9 9.9 0 0 1 2.912 7.026c0 5.48-4.457 9.958-9.938 9.958zm5.447-7.453c-.298-.149-1.765-.87-2.038-.97-.273-.097-.472-.148-.67.149-.2.298-.77.97-.944 1.168-.174.2-.347.224-.645.075-.298-.149-1.258-.463-2.396-1.478-.886-.79-1.483-1.764-1.657-2.062-.174-.298-.019-.459.13-.607.134-.133.298-.347.447-.52.149-.174.199-.298.298-.496.1-.199.05-.373-.024-.522-.075-.149-.67-1.612-.918-2.208-.242-.58-.487-.501-.67-.51l-.571-.01c-.2 0-.522.075-.795.373s-1.044 1.02-1.044 2.483 1.069 2.88 1.218 3.079c.149.199 2.105 3.21 5.098 4.501.713.307 1.27.49 1.702.627.716.227 1.368.195 1.883.118.574-.085 1.765-.72 2.014-1.415.248-.696.248-1.293.174-1.416-.075-.124-.273-.2-.571-.348z"/>
+            </svg>
+            Chat on WhatsApp
+          </a>
+        </div>
+
+      </div><!-- /sidebar -->
+    </div><!-- /contact-grid -->
+  </div>
+</main>
+
+<script type="module">
+import { mountHeader, mountFooter, toast } from './assets/components.js';
+
+await mountHeader('');
+mountFooter();
+
+// ── Load contact settings dynamically ─────────────────────
+const CHANNEL_SVGS = {
+  whatsapp: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.472 3.528A11.955 11.955 0 0 0 12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.184 1.605 6L0 24l6.18-1.621A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12 0-3.205-1.248-6.219-3.528-8.472zm-8.472 18.43a9.92 9.92 0 0 1-5.057-1.38l-.363-.215-3.765.988.805-3.683-.236-.378A9.916 9.916 0 0 1 2.062 12c0-5.481 4.457-9.938 9.938-9.938a9.9 9.9 0 0 1 7.026 2.912 9.9 9.9 0 0 1 2.912 7.026c0 5.48-4.457 9.958-9.938 9.958zm5.447-7.453c-.298-.149-1.765-.87-2.038-.97-.273-.097-.472-.148-.67.149-.2.298-.77.97-.944 1.168-.174.2-.347.224-.645.075-.298-.149-1.258-.463-2.396-1.478-.886-.79-1.483-1.764-1.657-2.062-.174-.298-.019-.459.13-.607.134-.133.298-.347.447-.52.149-.174.199-.298.298-.496.1-.199.05-.373-.024-.522-.075-.149-.67-1.612-.918-2.208-.242-.58-.487-.501-.67-.51l-.571-.01c-.2 0-.522.075-.795.373s-1.044 1.02-1.044 2.483 1.069 2.88 1.218 3.079c.149.199 2.105 3.21 5.098 4.501.713.307 1.27.49 1.702.627.716.227 1.368.195 1.883.118.574-.085 1.765-.72 2.014-1.415.248-.696.248-1.293.174-1.416-.075-.124-.273-.2-.571-.348z" fill="#25D366"/></svg>`,
+  telegram: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.88 13.67l-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.46c.537-.194 1.006.131.832.888h-.562z" fill="#2AABEE"/></svg>`,
+  instagram:`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" fill="#E1306C"/></svg>`,
+  email:    `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
+};
+const ARROW = `<svg class="channel-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+const WA_BTN_SVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M20.472 3.528A11.955 11.955 0 0 0 12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.184 1.605 6L0 24l6.18-1.621A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12 0-3.205-1.248-6.219-3.528-8.472zm-8.472 18.43a9.92 9.92 0 0 1-5.057-1.38l-.363-.215-3.765.988.805-3.683-.236-.378A9.916 9.916 0 0 1 2.062 12c0-5.481 4.457-9.938 9.938-9.938a9.9 9.9 0 0 1 7.026 2.912 9.9 9.9 0 0 1 2.912 7.026c0 5.48-4.457 9.958-9.938 9.958zm5.447-7.453c-.298-.149-1.765-.87-2.038-.97-.273-.097-.472-.148-.67.149-.2.298-.77.97-.944 1.168-.174.2-.347.224-.645.075-.298-.149-1.258-.463-2.396-1.478-.886-.79-1.483-1.764-1.657-2.062-.174-.298-.019-.459.13-.607.134-.133.298-.347.447-.52.149-.174.199-.298.298-.496.1-.199.05-.373-.024-.522-.075-.149-.67-1.612-.918-2.208-.242-.58-.487-.501-.67-.51l-.571-.01c-.2 0-.522.075-.795.373s-1.044 1.02-1.044 2.483 1.069 2.88 1.218 3.079c.149.199 2.105 3.21 5.098 4.501.713.307 1.27.49 1.702.627.716.227 1.368.195 1.883.118.574-.085 1.765-.72 2.014-1.415.248-.696.248-1.293.174-1.416-.075-.124-.273-.2-.571-.348z"/></svg>`;
+
+// Fallback defaults if API not configured yet
+const DEFAULTS = {
+  whatsapp_url:     'https://wa.me/message/6KL7YKWGT227O1',
+  whatsapp_label:   'Chat with us instantly',
+  telegram_url:     'https://t.me/quiznosis',
+  telegram_label:   'Join our community',
+  instagram_url:    'https://www.instagram.com/quiz_nosis',
+  instagram_label:  'Follow updates & tips',
+  email_address:    'support@quiznosis.com',
+  email_label:      'support@quiznosis.com',
+  urgent_title:     'Immediate Help',
+  urgent_text:      'For urgent course access issues or technical problems, WhatsApp gives you the fastest response — usually within minutes.',
+  urgent_btn_label: 'Chat on WhatsApp',
+  response_time:    'Typically responds within a few hours',
+  show_whatsapp:    1, show_telegram: 1, show_instagram: 1, show_email: 1,
+};
+
+try {
+  const res  = await fetch('/quiznosis/api/admin/contact-settings.php');
+  const data = await res.json();
+  const s    = { ...DEFAULTS, ...(data.data || {}) };
+
+  // Response time badge
+  const rtEl = document.getElementById('response-time-text');
+  if (rtEl && s.response_time) rtEl.textContent = s.response_time;
+
+  // Channels
+  const channels = [
+    { key: 'whatsapp', name: 'WhatsApp', cls: 'ch-whatsapp', href: s.whatsapp_url,               desc: s.whatsapp_label,  show: s.show_whatsapp },
+    { key: 'telegram', name: 'Telegram', cls: 'ch-telegram', href: s.telegram_url,               desc: s.telegram_label,  show: s.show_telegram },
+    { key: 'instagram',name: 'Instagram',cls: 'ch-instagram',href: s.instagram_url,              desc: s.instagram_label, show: s.show_instagram },
+    { key: 'email',    name: 'Email',    cls: 'ch-email',    href: s.email_address ? 'mailto:' + s.email_address : '#', desc: s.email_label,     show: s.show_email },
+  ];
+
+  const list = document.getElementById('channel-list');
+  if (list) {
+    list.innerHTML = channels
+      .filter(c => parseInt(c.show) !== 0 && c.href && c.href !== 'mailto:')
+      .map(c => `
+        <a href="${c.href}" class="channel-btn ${c.cls}" target="${c.key === 'email' ? '_self' : '_blank'}" rel="noopener">
+          <span class="channel-icon">${CHANNEL_SVGS[c.key]}</span>
+          <span class="channel-text">
+            <span class="channel-name">${c.name}</span>
+            <span class="channel-desc">${c.desc || ''}</span>
+          </span>
+          ${ARROW}
+        </a>`).join('');
+  }
+
+  // Urgent box
+  const urgTitle = document.getElementById('urgent-title');
+  const urgText  = document.getElementById('urgent-text');
+  const urgBtn   = document.getElementById('urgent-btn');
+  if (urgTitle) urgTitle.textContent = s.urgent_title || 'Immediate Help';
+  if (urgText)  urgText.textContent  = s.urgent_text  || '';
+  if (urgBtn) {
+    urgBtn.href        = s.whatsapp_url || '#';
+    urgBtn.innerHTML   = WA_BTN_SVG + ' ' + (s.urgent_btn_label || 'Chat on WhatsApp');
+  }
+} catch {
+  // API not available — keep defaults already in HTML
+}
+
+// ── Scroll reveal ──────────────────────────────────────────
+const io = new IntersectionObserver(
+  entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); }),
+  { threshold: 0.1 }
+);
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+// ── Form submission ────────────────────────────────────────
+const form       = document.getElementById('contact-form');
+const submitBtn  = document.getElementById('submit-btn');
+const btnLabel   = document.getElementById('btn-label');
+const btnIcon    = document.getElementById('btn-icon');
+const successEl  = document.getElementById('form-success');
+
+// Simple inline validation styles
+function markInvalid(field) {
+  field.style.borderColor = 'var(--error)';
+  field.style.boxShadow = '0 0 0 3px rgba(155,44,44,.12)';
+}
+function markValid(field) {
+  field.style.borderColor = '';
+  field.style.boxShadow = '';
+}
+
+form.querySelectorAll('input, select, textarea').forEach(el => {
+  el.addEventListener('input', () => markValid(el));
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  // Validate
+  const name    = document.getElementById('name');
+  const email   = document.getElementById('email');
+  const subject = document.getElementById('subject');
+  const message = document.getElementById('message');
+  let valid = true;
+
+  if (!name.value.trim())    { markInvalid(name);    valid = false; }
+  if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+    markInvalid(email); valid = false;
+  }
+  if (!subject.value)        { markInvalid(subject); valid = false; }
+  if (!message.value.trim()) { markInvalid(message); valid = false; }
+
+  if (!valid) {
+    toast('Please fill in all required fields.', 'error');
+    return;
+  }
+
+  // Loading state
+  submitBtn.disabled = true;
+  btnLabel.textContent = 'Sending…';
+  btnIcon.innerHTML = `<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" stroke-dasharray="30 56" stroke-linecap="round" fill="none" style="animation:spin .8s linear infinite;transform-origin:center"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></circle>`;
+
+  try {
+    const res  = await fetch('/quiznosis/api/contact.php', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:    name.value.trim(),
+        email:   email.value.trim(),
+        phone:   document.getElementById('phone').value.trim(),
+        subject: subject.value,
+        message: message.value.trim(),
+      }),
+    });
+    const raw  = await res.text();
+    let data;
+    try { data = JSON.parse(raw); } catch { throw new Error('Server error (' + res.status + '): ' + raw.slice(0, 200)); }
+    if (!data.ok && !data.success) throw new Error(data.error || 'Status ' + res.status + ': ' + JSON.stringify(data));
+
+    // Show success
+    form.style.display = 'none';
+    successEl.style.display = 'block';
+  } catch (err) {
+    const msg = err.message || 'Something went wrong. Please try again.';
+    // Show error in the form area too (not just toast)
+    const errDiv = document.createElement('div');
+    errDiv.className = 'alert alert-error';
+    errDiv.style.cssText = 'margin-top:12px;padding:10px 14px;border-radius:8px;background:var(--error-soft,#fdecea);color:var(--error,#9b2c2c);font-size:0.88rem;';
+    errDiv.textContent = msg;
+    const existing = document.querySelector('.form-error-msg');
+    if (existing) existing.remove();
+    errDiv.classList.add('form-error-msg');
+    submitBtn.parentNode.insertBefore(errDiv, submitBtn);
+    submitBtn.disabled = false;
+    btnLabel.textContent = 'Send Message';
+    btnIcon.innerHTML = `<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>`;
+  }
+});
+</script>
+
+</body>
+</html>

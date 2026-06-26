@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Announcements · Admin · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  .ann-row {
+    display:flex; align-items:flex-start; gap:14px; padding:14px 16px;
+    background:var(--paper-soft); border:1px solid var(--paper-edge);
+    border-radius:var(--radius); margin-bottom:10px;
+  }
+  .ann-row-body { flex:1; min-width:0; }
+  .ann-row-title { font-weight:600; }
+  .ann-row-meta { font-size:0.8rem; color:var(--ink-muted); margin-top:3px; }
+  .ann-row-actions { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; }
+  .pill { font-size:0.68rem; font-weight:600; padding:2px 8px; border-radius:100px; }
+  .pill-draft { background:var(--paper-edge); color:var(--ink-soft); }
+  .pill-pub { background:var(--success-soft); color:var(--success); }
+  .pill-global { background:var(--accent-soft); color:var(--accent); }
+  .ann-row-preview p, .ann-row-preview ul, .ann-row-preview ol, .ann-row-preview blockquote { margin:0; display:inline; }
+  .ann-row-preview li { display:inline; }
+  .ann-row-preview li::after { content:' · '; }
+  .ann-row-preview li:last-child::after { content:''; }
+  .ann-row-preview br { content:''; }
+  .ann-row-preview br::after { content:' '; }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main class="section">
+  <div class="container">
+    <a href="admin.html" class="text-muted" style="font-size:0.9rem;">← Back to admin</a>
+    <div class="flex-between mt-1" style="align-items:flex-end;">
+      <div>
+        <h1 class="display" style="font-size:2.2rem;">Announcements</h1>
+        <p class="text-soft" style="font-size:0.94rem;">Post news to all users or to a specific course's students.</p>
+      </div>
+      <button class="btn btn-accent" id="new-btn">+ New announcement</button>
+    </div>
+    <div id="err"></div>
+    <div id="list" class="mt-3"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</main>
+
+<script type="module">
+  import { mountHeader, mountAdminSidebar, escapeHtml, formatDate, toast, modal, requireAuth, getUser } from './assets/components.js';
+  import { admin, courses } from './assets/api.js';
+  import { mountMarkdownToolbar, renderMarkdown } from './assets/markdown.js';
+
+  await mountHeader('admin');
+  mountAdminSidebar('announcements');
+  const user = await getUser();
+  if (!user || user.role !== 'ADMIN') {
+    document.getElementById('list').innerHTML = `<div class="alert alert-error">Admin access required.</div>`;
+    throw new Error('not admin');
+  }
+
+  let courseList = [];
+  try { courseList = (await courses.list()).data || []; } catch {}
+
+  const errBox = document.getElementById('err');
+  function showErr(m) { errBox.innerHTML = `<div class="alert alert-error mt-2">${escapeHtml(m)}</div>`; }
+
+  async function load() {
+    const list = document.getElementById('list');
+    list.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const rows = (await admin.listAnnouncements()).data || [];
+      if (!rows.length) {
+        list.innerHTML = `<div class="empty"><p>No announcements yet.</p></div>`;
+        return;
+      }
+      list.innerHTML = rows.map(a => {
+        const isCourse = a.audience === 'COURSE';
+        const pub = a.status === 'PUBLISHED';
+        return `
+          <div class="ann-row" data-id="${a.id}">
+            <div class="ann-row-body">
+              <div class="ann-row-title">
+                ${parseInt(a.pinned)?'📌 ':''}${escapeHtml(a.title)}
+                <span class="pill ${pub?'pill-pub':'pill-draft'}" style="margin-left:6px;">${pub?'Published':'Draft'}</span>
+                <span class="pill pill-global" style="margin-left:4px;">${isCourse?escapeHtml(a.course_title||'Course'):'Everyone'}</span>
+              </div>
+              <div class="ann-row-meta ann-row-preview">${renderMarkdown((a.body||'').slice(0,160))}${(a.body||'').length>160?'…':''}</div>
+              <div class="ann-row-meta">${pub && a.published_at ? 'Published '+escapeHtml(formatDate(a.published_at)) : 'Created '+escapeHtml(formatDate(a.created_at))}</div>
+            </div>
+            <div class="ann-row-actions">
+              ${!pub ? `<button class="btn btn-accent btn-sm" data-act="publish">Publish</button>` : ''}
+              <button class="btn btn-ghost btn-sm" data-act="edit">Edit</button>
+              <button class="btn btn-ghost btn-sm" data-act="delete" style="color:var(--error);">Delete</button>
+            </div>
+          </div>`;
+      }).join('');
+      list.querySelectorAll('[data-act]').forEach(b => {
+        b.addEventListener('click', () => {
+          const id = b.closest('[data-id]').dataset.id;
+          const row = rows.find(x => x.id === id);
+          if (b.dataset.act === 'publish') doPublish(row);
+          if (b.dataset.act === 'edit') openForm(row);
+          if (b.dataset.act === 'delete') doDelete(row);
+        });
+      });
+    } catch (err) {
+      list.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  async function doPublish(a) {
+    if (!confirm(`Publish "${a.title}"? This notifies all targeted users.`)) return;
+    try {
+      const r = await admin.publishAnnouncement(a.id);
+      toast(`Published — notified ${r.notified ?? 0} user(s)`, 'success');
+      load();
+    } catch (err) { toast(err.message, 'error'); }
+  }
+
+  async function doDelete(a) {
+    if (!confirm(`Delete "${a.title}"? This cannot be undone.`)) return;
+    try { await admin.deleteAnnouncement(a.id); toast('Deleted', 'success'); load(); }
+    catch (err) { toast(err.message, 'error'); }
+  }
+
+  function openForm(existing) {
+    const e = existing || {};
+    const isEdit = !!existing;
+    const { el, close } = modal(`
+      <h2>${isEdit ? 'Edit announcement' : 'New announcement'}</h2>
+      <form id="ann-form" class="stack" style="--stack:14px;">
+        <div class="field">
+          <label>Title</label>
+          <input name="title" required value="${escapeHtml(e.title || '')}" placeholder="e.g. New model tests added">
+        </div>
+        <div class="field">
+          <label>Message</label>
+          <textarea name="body" rows="5" required placeholder="Write the announcement…">${escapeHtml(e.body || '')}</textarea>
+        </div>
+        <div class="field">
+          <label>Audience</label>
+          <select name="audience" id="aud-sel">
+            <option value="GLOBAL" ${e.audience!=='COURSE'?'selected':''}>Everyone (all users)</option>
+            <option value="COURSE" ${e.audience==='COURSE'?'selected':''}>A specific course</option>
+          </select>
+        </div>
+        <div class="field" id="course-field" style="display:${e.audience==='COURSE'?'block':'none'};">
+          <label>Course</label>
+          <select name="courseId">
+            <option value="">— Select a course —</option>
+            ${courseList.map(c => `<option value="${escapeHtml(c.id)}" ${e.course_id===c.id?'selected':''}>${escapeHtml(c.title)}</option>`).join('')}
+          </select>
+          <p class="text-muted" style="font-size:0.78rem; margin-top:3px;">Only students enrolled in this course will see it.</p>
+        </div>
+        <label class="checkbox"><input type="checkbox" name="pinned" ${parseInt(e.pinned)?'checked':''}> Pin to top</label>
+        ${!isEdit ? `<label class="checkbox"><input type="checkbox" name="publish" checked> Publish now (notify users immediately)</label>` : ''}
+        <div id="form-alert"></div>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-accent">${isEdit ? 'Save changes' : 'Create'}</button>
+        </div>
+      </form>`);
+
+    el.querySelector('#aud-sel').addEventListener('change', (ev) => {
+      el.querySelector('#course-field').style.display = ev.target.value === 'COURSE' ? 'block' : 'none';
+    });
+
+    mountMarkdownToolbar(el.querySelector('textarea[name="body"]'));
+
+    el.querySelector('#ann-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const audience = fd.get('audience');
+      const body = {
+        title: fd.get('title').trim(),
+        body: fd.get('body').trim(),
+        audience,
+        pinned: fd.get('pinned') === 'on',
+      };
+      if (audience === 'COURSE') {
+        body.courseId = fd.get('courseId');
+        if (!body.courseId) {
+          el.querySelector('#form-alert').innerHTML = `<div class="alert alert-error">Please select a course.</div>`;
+          return;
+        }
+      }
+      try {
+        if (isEdit) {
+          body.id = existing.id;
+          await admin.updateAnnouncement(body);
+          toast('Saved', 'success');
+        } else {
+          body.publish = fd.get('publish') === 'on';
+          const r = await admin.createAnnouncement(body);
+          toast(body.publish ? `Created & notified ${r.data?.notified ?? 0} user(s)` : 'Draft saved', 'success');
+        }
+        close();
+        load();
+      } catch (err) {
+        el.querySelector('#form-alert').innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      }
+    });
+  }
+
+  document.getElementById('new-btn').addEventListener('click', () => openForm(null));
+  load();
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

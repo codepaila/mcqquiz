@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sign in · Quiznosis</title>
+<meta name="telegram-bot-username" content="QuiznosisBot"> <!-- Replace QuiznosisBot with your actual bot username -->
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 20px;
+  background: var(--paper);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.96rem;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.google-btn:hover {
+  border-color: var(--ink-muted);
+  background: var(--paper-soft);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: var(--ink);
+}
+.google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.google-btn svg { flex-shrink: 0; }
+
+.divider-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 4px 0;
+}
+.divider-or::before,
+.divider-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--paper-edge);
+}
+
+/* Telegram button */
+.telegram-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 20px;
+  background: #2AABEE;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.telegram-btn:hover {
+  background: #1e96d3;
+  box-shadow: 0 4px 16px rgba(42,171,238,.35);
+  text-decoration: none;
+  color: #fff;
+}
+.telegram-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.telegram-btn svg { flex-shrink: 0; }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main class="section">
+  <div class="container-narrow">
+    <div class="text-center mb-3">
+      <div class="eyebrow">Welcome back</div>
+      <h1 class="display mt-1" style="font-size:2.6rem;">Sign in</h1>
+    </div>
+    <div class="card" style="padding:32px;">
+      <div class="stack" style="--stack:16px;">
+        <div id="alert-zone"></div>
+
+        <!-- Google Sign-In -->
+        <button class="google-btn" id="google-btn" type="button">
+          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <!-- Telegram Login Widget (official) -->
+        <div id="telegram-widget-wrap" style="display:flex;justify-content:center;margin-bottom:4px;">
+          <!-- Widget injected by JS below after bot username is known -->
+        </div>
+
+        <div class="divider-or">or</div>
+
+        <!-- Email / password form -->
+        <form id="login-form" class="stack" style="--stack:16px;">
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required autocomplete="current-password">
+            <div class="text-right" style="margin-top:4px;">
+              <a href="forgot.html" style="font-size:0.82rem;">Forgot password?</a>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Sign in</button>
+        </form>
+
+        <p class="text-center text-muted" style="font-size:0.9rem;">
+          New here? <a href="register.html">Create an account</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script type="module">
+  import { mountHeader, mountFooter, queryParam, escapeHtml, clearUserCache } from './assets/components.js';
+  import { auth } from './assets/api.js';
+
+  await mountHeader('');
+  mountFooter();
+
+  const alertZone  = document.getElementById('alert-zone');
+  const submitBtn  = document.getElementById('submit-btn');
+  const googleBtn  = document.getElementById('google-btn');
+
+  // --- URL param alerts -----------------------------------------------
+  if (queryParam('registered') === '1')
+    alertZone.innerHTML = `<div class="alert alert-success">Account created! Verify your email, then sign in.</div>`;
+  if (queryParam('verified') === '1')
+    alertZone.innerHTML = `<div class="alert alert-success">Email verified. You can sign in now.</div>`;
+  if (queryParam('reset') === '1')
+    alertZone.innerHTML = `<div class="alert alert-success">Password reset. Sign in with your new password.</div>`;
+
+  // --- Google sign-in --------------------------------------------------
+  function handleGoogleCredential(response) {
+    alertZone.innerHTML = '';
+    googleBtn.disabled = true;
+    googleBtn.innerHTML = `<span style="display:inline-block;width:18px;height:18px;border:2px solid var(--paper-edge);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;"></span> Verifying…`;
+
+    auth.googleOAuth(response.credential)
+      .then(() => {
+        clearUserCache();
+        window.location.href = queryParam('next') || 'dashboard.html';
+      })
+      .catch(err => {
+        alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        googleBtn.disabled = false;
+        googleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg> Continue with Google`;
+      });
+  }
+
+  // Wait for GSI to load, then initialise
+  window.addEventListener('load', () => {
+    if (!window.google?.accounts?.id) {
+      // GSI blocked / offline — hide button gracefully
+      googleBtn.style.display = 'none';
+      document.querySelector('.divider-or').style.display = 'none';
+      return;
+    }
+    const clientId = document.querySelector('meta[name="google-client-id"]')?.content
+                   || 'YOUR_GOOGLE_CLIENT_ID'; // replace or set via meta tag
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCredential,
+      cancel_on_tap_outside: false,
+    });
+    // Wire manual button click to One Tap prompt
+    googleBtn.addEventListener('click', () => {
+      alertZone.innerHTML = '';
+      google.accounts.id.prompt();
+    });
+  });
+
+  // --- Telegram Login Widget (official script approach) ---------------
+  (function () {
+    const botUsername = document.querySelector('meta[name="telegram-bot-username"]')?.content;
+    const isLocalhost  = ['localhost', '127.0.0.1'].includes(location.hostname);
+    if (!botUsername || botUsername === 'QuiznosisBot' || isLocalhost) {
+      // Telegram blocks localhost — hide widget; works on real domain only
+      document.getElementById('telegram-widget-wrap').style.display = 'none';
+      return;
+    }
+
+    // Global callback Telegram widget calls after auth
+    window.onTelegramAuth = async function (user) {
+      alertZone.innerHTML = '';
+      try {
+        const res = await fetch('/api/auth/telegram.php', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(user),
+        });
+        const raw  = await res.text();
+        let data;
+        try { data = JSON.parse(raw); } catch { throw new Error('Server error: ' + raw.slice(0, 150)); }
+        if (!data.ok && !data.success) throw new Error(data.error || 'Telegram login failed.');
+        window.location.href = queryParam('next') || 'dashboard.html';
+      } catch (err) {
+        alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      }
+    };
+
+    // Inject the official Telegram Login Widget script
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.setAttribute('data-telegram-login',   botUsername);
+    script.setAttribute('data-size',             'large');
+    script.setAttribute('data-radius',           '8');
+    script.setAttribute('data-onauth',           'onTelegramAuth(user)');
+    script.setAttribute('data-request-access',   'write');
+    document.getElementById('telegram-widget-wrap').appendChild(script);
+  })();
+
+  // --- Email/password form --------------------------------------------
+  let lastEmail = '';
+  const form = document.getElementById('login-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    alertZone.innerHTML = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing in…';
+    lastEmail = form.email.value.trim();
+    try {
+      await auth.login({ email: lastEmail, password: form.password.value });
+      clearUserCache();
+      window.location.href = queryParam('next') || 'dashboard.html';
+    } catch (err) {
+      let msg = escapeHtml(err.message);
+      if (err.data?.code === 'EMAIL_NOT_VERIFIED') {
+        msg += ` — <a href="#" id="resend-link">Resend verification email</a>`;
+      }
+      alertZone.innerHTML = `<div class="alert alert-error">${msg}</div>`;
+      document.getElementById('resend-link')?.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        try {
+          await auth.resendVerification(lastEmail);
+          alertZone.innerHTML = `<div class="alert alert-success">Verification email sent — check your inbox.</div>`;
+        } catch (e2) {
+          alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(e2.message)}</div>`;
+        }
+      });
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign in';
+    }
+  });
+</script>
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('login', u);
+})();
+</script>
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

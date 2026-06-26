@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Courses · Quiznosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  :root {
+    --ink:#0d0f14; --paper:#f5f3ee; --white:#ffffff;
+    --accent:#e84b2b; --blue:#2b7de8; --green:#1a9c5b; --gold:#c9920a;
+    --muted:#7a7870; --border:#e2dfd8; --card:#ffffff; --sidebar-w:258px;
+  }
+  [data-theme="dark"] {
+    --ink:#e8ecf4; --paper:#0e1626; --white:#16203a;
+    --accent:#e0742f; --blue:#5b9bf0; --green:#4ade80; --gold:#e0a93e;
+    --muted:#6b7794; --border:#2a3a5c; --card:#16203a;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink); min-height:100vh; }
+  a { color:inherit; text-decoration:none; }
+  /* Page no longer uses a flex split — sidebar is a drawer now */
+  .page-wrap { min-height:100vh; }
+
+  /* ---------- Inline toolbar action buttons (Filters + Clear) ---------- */
+  .qz-toolbar-actions {
+    display:flex; align-items:center; gap:8px; flex-shrink:0;
+  }
+  .qz-filter-btn, .qz-clear-btn {
+    position:relative;
+    display:inline-flex; align-items:center; gap:7px;
+    height:38px; padding:0 14px;
+    border:1.5px solid var(--border); border-radius:10px;
+    background:var(--paper); color:var(--ink);
+    font-family:inherit; font-size:0.84rem; font-weight:700;
+    cursor:pointer; white-space:nowrap;
+    transition:background .12s, border-color .12s, color .12s, transform .12s, opacity .12s;
+  }
+  .qz-filter-btn svg, .qz-clear-btn svg { width:14px; height:14px; flex-shrink:0; }
+  .qz-filter-btn:hover, .qz-clear-btn:hover {
+    border-color:var(--accent); color:var(--accent); transform:translateY(-1px);
+  }
+  .qz-clear-btn { color:var(--muted); }
+  /* Count badge sits inside the Filters button on the right */
+  .qz-filter-btn-count {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:20px; height:20px; padding:0 6px;
+    background:var(--accent); color:#fff;
+    border-radius:100px; font-size:0.7rem; font-weight:700;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  /* Notification dot — small pulsing indicator in the top-right corner
+     of the Filters button when there are unsaved/active filters. */
+  .qz-filter-btn-dot {
+    position:absolute; top:7px; right:7px;
+    width:8px; height:8px; border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 2px var(--white);
+  }
+  .qz-filter-btn-dot::after {
+    content:''; position:absolute; inset:-3px; border-radius:50%;
+    background:var(--accent); opacity:0.35;
+    animation:qz-pulse 1.6s ease-out infinite;
+  }
+  @keyframes qz-pulse {
+    0%   { transform:scale(0.6); opacity:0.50; }
+    100% { transform:scale(1.9); opacity:0;    }
+  }
+  [data-theme="dark"] .qz-filter-btn-dot { box-shadow:0 0 0 2px var(--card); }
+
+  /* Filter Course keeps its label at every width. Clear collapses to a
+     small icon-only circular button on phones, since "Clear" as text only
+     ever appears once a filter is active and the row is already tight. */
+  .qz-filter-btn-label, .qz-clear-btn-label { font-weight:700; }
+  @media (max-width:600px) {
+    .qz-clear-btn {
+      width:36px; height:36px; padding:0; justify-content:center;
+      border-radius:50%;
+    }
+    .qz-clear-btn-label { display:none; }
+  }
+  @media (max-width:380px) {
+    /* Only on very narrow phones does the Filters button itself tighten up
+       a bit (smaller padding/font) — the label always stays visible. */
+    .qz-filter-btn { padding:0 10px; font-size:0.78rem; gap:5px; }
+  }
+
+  /* ---------- Filters popup (centered modal) ---------- */
+  .qx-backdrop {
+    position:fixed; inset:0; z-index:100;
+    background:rgba(0,0,0,0.32);
+    opacity:0; pointer-events:none;
+    transition:opacity .22s ease, backdrop-filter .22s ease;
+  }
+  body.qx-drawer-open .qx-backdrop {
+    opacity:1; pointer-events:auto;
+    /* Frosted-glass blur over whatever's behind. Both vendor + standard
+       properties for cross-browser support (Safari still wants -webkit-). */
+    -webkit-backdrop-filter:blur(8px) saturate(140%);
+            backdrop-filter:blur(8px) saturate(140%);
+  }
+  [data-theme="dark"] .qx-backdrop { background:rgba(8,12,22,0.66); }
+  [data-theme="dark"] body.qx-drawer-open .qx-backdrop {
+    -webkit-backdrop-filter:blur(10px) saturate(120%) brightness(0.8);
+            backdrop-filter:blur(10px) saturate(120%) brightness(0.8);
+  }
+
+  .sidebar {
+    position:fixed; top:50%; left:50%; z-index:110;
+    width:min(420px, 92vw); max-height:84vh;
+    transform:translate(-50%, -50%) scale(0.96);
+    opacity:0; pointer-events:none;
+    background:var(--paper); color:var(--ink);
+    border:1px solid var(--border); border-radius:14px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.18);
+    padding:clamp(14px, 3vw, 22px);
+    overflow-y:auto;
+    display:flex; flex-direction:column;
+    transition:opacity .22s ease, transform .22s cubic-bezier(0.4, 0, 0.2, 1);
+    scrollbar-width:thin;
+  }
+  body.qx-drawer-open .sidebar {
+    opacity:1; pointer-events:auto;
+    transform:translate(-50%, -50%) scale(1);
+  }
+  [data-theme="dark"] .sidebar { background:var(--card, #16203a); }
+  .sidebar::-webkit-scrollbar { width:5px; }
+  .sidebar::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  .sb-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .sb-head-title {
+    font-size:0.66rem; font-weight:700; letter-spacing:0.10em;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .sb-close {
+    width:28px; height:28px; padding:0; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:transparent; border:1px solid var(--border);
+    border-radius:6px; color:var(--muted);
+    transition:background .12s, color .12s, border-color .12s;
+  }
+  .sb-close:hover { background:rgba(232,75,43,0.08); color:var(--accent); border-color:var(--accent); }
+  .sb-close svg { width:13px; height:13px; }
+
+  /* Floating pill that opens the drawer (top-left, sits above sticky toolbar) */
+  .sb-brand { font-weight:800; font-size:1.2rem; letter-spacing:-0.03em; margin-bottom:1.6rem; }
+  .sb-brand span { color:var(--accent); }
+  .sb-section { margin-bottom:1.7rem; }
+  /* Pills + tags use clamp() so padding and font-size scale smoothly across
+     viewports. The popup width is min(420px, 92vw), so on very narrow phones
+     these shrink slightly; on tablets/laptops they sit at comfortable sizes. */
+  .mode-pills { display:flex; flex-direction:column; gap:clamp(4px, 1vw, 8px); }
+  .mode-pill {
+    display:flex; align-items:center; gap:clamp(6px, 1.4vw, 12px);
+    padding:clamp(8px, 1.6vw, 12px) clamp(10px, 2vw, 14px);
+    border-radius:8px; cursor:pointer;
+    font-size:clamp(0.78rem, 1.4vw + 0.5rem, 0.92rem); font-weight:600;
+    line-height:1.2;
+    transition:background .15s,color .15s; user-select:none; border:1.5px solid transparent;
+  }
+  .mode-pill:hover { background:var(--paper); }
+  .mode-pill.active { background:var(--ink); color:var(--white); }
+  .pill-icon {
+    font-size:clamp(0.9rem, 1.4vw + 0.5rem, 1.05rem);
+    width:clamp(18px, 3vw, 22px); text-align:center; flex-shrink:0;
+  }
+  .pill-count {
+    margin-left:auto; font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(0.62rem, 1vw + 0.3rem, 0.74rem); opacity:0.5; flex-shrink:0;
+  }
+  .price-toggle { display:flex; border:1.5px solid var(--border); border-radius:8px; overflow:hidden; }
+  .price-btn {
+    flex:1; padding:clamp(7px, 1.4vw, 11px) clamp(4px, 1vw, 8px); text-align:center; font-family:inherit;
+    font-size:clamp(0.7rem, 1.2vw + 0.4rem, 0.82rem); font-weight:700; cursor:pointer; border:none;
+    background:transparent; color:var(--ink); transition:all .15s;
+  }
+  .price-btn:not(:last-child) { border-right:1.5px solid var(--border); }
+  .price-btn.active { background:var(--ink); color:var(--white); }
+  .tag-cloud { display:flex; flex-wrap:wrap; gap:clamp(4px, 0.8vw, 7px); }
+  .tag {
+    padding:clamp(4px, 0.9vw, 7px) clamp(8px, 1.6vw, 12px);
+    border-radius:100px; border:1.5px solid var(--border);
+    background:var(--paper);
+    font-size:clamp(0.66rem, 1.2vw + 0.3rem, 0.78rem); font-weight:700;
+    cursor:pointer; transition:all .15s; white-space:nowrap; user-select:none;
+    line-height:1.2;
+  }
+  .tag:hover { border-color:var(--ink); }
+  .tag.active { border-color:var(--accent); background:var(--accent); color:var(--white); }
+  /* Section labels also scale (slightly) */
+  .sb-label {
+    font-size:clamp(0.62rem, 0.9vw + 0.35rem, 0.7rem);
+    font-weight:700; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:0.7rem;
+  }
+  .apply-btn {
+    flex:1; padding:clamp(9px, 1.6vw, 13px); border-radius:8px; border:none;
+    background:var(--accent); color:#fff;
+    font-family:inherit; font-size:0.86rem; font-weight:700;
+    cursor:pointer; transition:transform .12s, opacity .12s;
+  }
+  .apply-btn:hover { transform:translateY(-1px); opacity:0.94; }
+  .sb-footer {
+    display:flex; gap:8px; margin-top:auto; padding-top:12px;
+    border-top:1px solid var(--border);
+  }
+
+  /* Main column — popup floats above, so no flex sidebar needs accommodating */
+  .main { padding:1.6rem 2rem; min-width:0; max-width:1400px; margin:0 auto; }
+  @media (max-width:600px) { .main { padding:1.2rem 0.9rem; } }
+  .topbar { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.3rem; flex-wrap:wrap; gap:1rem; }
+  .topbar h1 { font-size:1.5rem; font-weight:800; letter-spacing:-0.02em; }
+  .topbar p { font-size:0.82rem; color:var(--muted); margin-top:0.15rem; }
+  .topbar-right { display:flex; align-items:center; gap:0.7rem; }
+  .topbar-right a { font-size:0.82rem; font-weight:700; color:var(--muted); }
+  .topbar-right a:hover { color:var(--ink); }
+  .view-toggle { display:flex; border:1.5px solid var(--border); border-radius:8px; overflow:hidden; }
+  .view-btn { padding:0.42rem 0.65rem; border:none; background:transparent; cursor:pointer; font-size:0.9rem; }
+  .view-btn.active { background:var(--ink); color:var(--white); }
+  .active-filters { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.1rem; min-height:30px; }
+  .chip {
+    display:flex; align-items:center; gap:0.35rem; padding:0.26rem 0.55rem 0.26rem 0.7rem;
+    background:var(--ink); color:var(--white); border-radius:100px; font-size:0.72rem; font-weight:700;
+  }
+  .chip span { cursor:pointer; opacity:0.6; }
+  .chip span:hover { opacity:1; }
+  .results-count { font-size:0.8rem; color:var(--muted); font-weight:600; margin-left:auto; }
+  .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:1rem; }
+
+  /* === Sticky site header that auto-hides on scroll down (this page only) ===
+   * The shared mountHeader() injects a non-sticky <header>. On this page we
+   * override its positioning so it pins to the top, then slides off-screen
+   * upward when the user scrolls down. Scrolling up reveals it again.
+   * Visibility is driven by the `is-hidden` class toggled in JS below.
+   */
+  .site-header {
+    position:sticky; top:0; z-index:60;
+    transition:transform .25s ease;
+    background:var(--paper);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    backdrop-filter:saturate(180%) blur(12px);
+  }
+  [data-theme="dark"] .site-header { background:var(--paper); border-bottom-color:var(--paper-edge); }
+  .site-header.is-hidden { transform:translateY(-100%); }
+
+  /* ---------- Sticky toolbar (search + profession chips) ----------
+   * One bar combining the search input on the left and the horizontally-
+   * scrolling profession chips on the right. Pins to the top of the
+   * viewport when the user scrolls past it.
+   */
+  .qz-toolbar {
+    position:sticky; top:0; z-index:50;
+    margin:0 0 14px;
+    background:var(--paper);
+    padding:10px 0;
+    border-bottom:1px solid transparent;
+    transition:border-color .18s, background .18s, box-shadow .18s, padding .18s;
+  }
+  .qz-toolbar.is-stuck {
+    border-bottom-color:var(--border);
+    box-shadow:0 4px 12px rgba(0,0,0,0.06);
+    padding:8px 0;
+  }
+  [data-theme="dark"] .qz-toolbar { background:var(--paper); }
+  [data-theme="dark"] .qz-toolbar.is-stuck { box-shadow:0 4px 12px rgba(0,0,0,0.30); }
+
+  .qz-toolbar-row {
+    display:flex; align-items:center; gap:10px;
+    flex-wrap:nowrap;            /* stay single row at all screen sizes */
+  }
+  .qz-search {
+    position:relative; display:flex; align-items:center; gap:8px;
+    background:var(--paper); border:1.5px solid var(--border);
+    border-radius:12px; padding:0 12px; height:38px; box-sizing:border-box;
+    transition:border-color .18s, box-shadow .22s, background .18s;
+    flex:1 1 160px; min-width:90px;
+  }
+  .qz-search:focus-within {
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(232,75,43,0.14);
+  }
+  .qz-search-ico { color:var(--muted); flex-shrink:0; }
+  .qz-search:focus-within .qz-search-ico { color:var(--accent); }
+  .qz-search-input {
+    flex:1; height:100%; border:none; background:transparent; outline:none;
+    font-family:inherit; font-size:0.92rem; color:var(--ink); min-width:0;
+    overflow:hidden; text-overflow:ellipsis;
+    -webkit-appearance:none; appearance:none; box-shadow:none;
+  }
+  /* Safari/Chrome add their own decorative chrome to type="search" inputs
+     (extra inset shadow, rounded box, a native clear "x") — strip all of
+     it so only our custom .qz-search wrapper box is visible. */
+  .qz-search-input::-webkit-search-decoration,
+  .qz-search-input::-webkit-search-cancel-button,
+  .qz-search-input::-webkit-search-results-button,
+  .qz-search-input::-webkit-search-results-decoration {
+    -webkit-appearance:none; appearance:none;
+  }
+  .qz-search-input::placeholder { color:var(--muted); }
+  @media (max-width:600px) {
+    .qz-search { padding:0 10px; }
+    .qz-search-input { font-size:0.86rem; }
+  }
+  .qz-search-clear {
+    border:none; background:transparent; color:var(--muted); cursor:pointer;
+    font-size:0.95rem; padding:4px 6px; border-radius:6px; display:none;
+    font-family:inherit;
+  }
+  .qz-search.has-text .qz-search-clear { display:inline-flex; }
+  .qz-search-clear:hover { color:var(--accent); background:rgba(232,75,43,0.08); }
+
+  /* ---------- Profession chip bar ---------- */
+  .qz-prof-bar-wrap { position:relative; margin-top:10px; }
+  .qz-prof-bar {
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+  }
+  .qz-prof-bar::-webkit-scrollbar { height:5px; }
+  .qz-prof-bar::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+  .qz-prof-track { display:inline-flex; gap:6px; padding:1px 1px 4px; }
+  /* Fade-out edge + small chevron hinting there are more chips to scroll.
+     Only shown when the row actually overflows and hasn't been scrolled
+     to the end yet (see updateFadeVisibility in the script below). */
+  .qz-prof-fade {
+    position:absolute; top:0; right:0; bottom:4px; width:42px;
+    display:flex; align-items:center; justify-content:flex-end;
+    padding-right:2px;
+    background:linear-gradient(to right, transparent, var(--paper) 75%);
+    color:var(--muted);
+    opacity:0; pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  .qz-prof-fade.is-visible { opacity:1; }
+  [data-theme="dark"] .qz-prof-fade { background:linear-gradient(to right, transparent, var(--paper) 75%); }
+  /* Exam Type chip. Smaller than before, no hover lift ("no grow"), and a
+     subtle orange tint at rest so the bar reads as "this is the orange/
+     exam-type filter strip" even before anything is selected. */
+  .qz-chip {
+    display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+    padding:5px 11px; border-radius:100px;
+    background:rgba(232,75,43,0.08);
+    border:1.5px solid rgba(232,75,43,0.35);
+    font-size:0.74rem; font-weight:600; color:var(--accent);
+    cursor:pointer; white-space:nowrap;
+    transition:border-color .18s, background .18s, color .18s, box-shadow .25s;
+  }
+  .qz-chip:hover {
+    border-color:var(--accent);
+    background:rgba(232,75,43,0.14);
+    /* no transform — chip does NOT grow / lift on hover */
+  }
+  .qz-chip .dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+  .qz-chip.on {
+    background:var(--accent); border-color:var(--accent); color:#fff;
+    box-shadow:0 2px 8px rgba(232,75,43,0.25);
+  }
+  .qz-chip.on .dot { background:#fff; }
+  [data-theme="dark"] .qz-chip {
+    background:rgba(255,138,0,0.12);
+    border-color:rgba(255,138,0,0.42);
+    color:#FFB347;
+  }
+  [data-theme="dark"] .qz-chip:hover {
+    background:rgba(255,138,0,0.20);
+    border-color:#FFB347; color:#FFB347;
+  }
+
+  /* ---------- DARK MODE: premium orange/amber theme (this page only) ---------- */
+  [data-theme="dark"] body {
+    background:#0F1117;
+  }
+  [data-theme="dark"] .main, [data-theme="dark"] .sidebar { background:transparent; }
+  [data-theme="dark"] .card, [data-theme="dark"] .quiz-card {
+    background:#1A1D29;
+    border-color:rgba(255,165,0,0.18);
+  }
+  [data-theme="dark"] .quiz-card:hover {
+    border-color:rgba(255,138,0,0.55);
+    box-shadow:0 8px 28px rgba(255,138,0,0.18);
+  }
+  /* Search — glassmorphism + orange glow */
+  [data-theme="dark"] .qz-search {
+    background:rgba(26,29,41,0.65);
+    border:1.5px solid rgba(255,165,0,0.22);
+    -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  [data-theme="dark"] .qz-search:focus-within {
+    border-color:#FF8A00;
+    box-shadow:0 0 0 4px rgba(255,138,0,0.18), 0 6px 20px rgba(255,138,0,0.25);
+    animation:qzBorderPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes qzBorderPulse {
+    0%,100% { box-shadow:0 0 0 4px rgba(255,138,0,0.18), 0 6px 20px rgba(255,138,0,0.25); }
+    50%     { box-shadow:0 0 0 4px rgba(255,179,71,0.28), 0 6px 26px rgba(255,138,0,0.35); }
+  }
+  [data-theme="dark"] .qz-search-ico { color:rgba(255,179,71,0.7); }
+  [data-theme="dark"] .qz-search:focus-within .qz-search-ico { color:#FFB347; }
+  [data-theme="dark"] .qz-search-input { color:#f0e9dc; }
+  [data-theme="dark"] .qz-search-input::placeholder { color:rgba(240,233,220,0.42); }
+  [data-theme="dark"] .qz-search-clear { color:rgba(240,233,220,0.55); }
+  [data-theme="dark"] .qz-search-clear:hover { color:#FFB347; background:rgba(255,138,0,0.12); }
+
+  /* Exam Type chips in dark mode — orange tint at rest, gradient when active */
+  [data-theme="dark"] .qz-chip {
+    background:rgba(255,138,0,0.10);
+    border:1.5px solid rgba(255,138,0,0.38);
+    color:#FFB347;
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  }
+  [data-theme="dark"] .qz-chip:hover {
+    border-color:rgba(255,138,0,0.65);
+    background:rgba(255,138,0,0.18);
+    color:#FFB347;
+    /* No glow box-shadow + no transform — chip should not grow */
+  }
+  [data-theme="dark"] .qz-chip.on {
+    background:linear-gradient(135deg, #FF8A00, #FFB347);
+    border-color:transparent;
+    color:#1a0f00;
+    box-shadow:0 4px 12px rgba(255,138,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  [data-theme="dark"] .qz-chip.on .dot { background:#1a0f00; }
+  /* No hover lift on active chips either */
+  [data-theme="dark"] .qz-prof-bar::-webkit-scrollbar-thumb { background:rgba(255,165,0,0.28); }
+  .qz-section { margin-bottom:2rem; }
+  .qz-section-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:0.9rem; padding-bottom:0.5rem; border-bottom:1.5px solid var(--border);
+  }
+  .qz-section-head h2 { font-size:1.1rem; font-weight:800; }
+  .qz-count {
+    font-family:'IBM Plex Mono',monospace; font-size:0.78rem; font-weight:600;
+    color:var(--muted); background:var(--card); border:1px solid var(--border);
+    border-radius:100px; padding:0.1rem 0.55rem; margin-left:0.35rem;
+  }
+  .qz-seeall {
+    font-size:0.82rem; font-weight:700; color:#fff; background:var(--accent);
+    padding:0.4rem 0.9rem; border-radius:8px; text-decoration:none;
+  }
+  .qz-seeall:hover { background:#d23f20; }
+  [data-theme="dark"] .qz-seeall:hover { background:#f0853e; }
+  .cards-list { display:flex; flex-direction:column; gap:0.6rem; }
+  .quiz-card {
+    background:var(--card); border:1.5px solid var(--border); border-radius:14px;
+    overflow:hidden; transition:transform .18s,box-shadow .18s,border-color .18s;
+    cursor:pointer; position:relative; display:block;
+  }
+  .quiz-card:hover { transform:translateY(-3px); box-shadow:0 12px 36px rgba(0,0,0,0.09); border-color:#ccc; }
+  .ribbon {
+    position:absolute; top:0; right:0; background:var(--gold); color:#fff;
+    font-size:0.62rem; font-weight:700; letter-spacing:0.06em;
+    padding:0.2rem 0.7rem; border-bottom-left-radius:8px;
+  }
+  .ribbon.free { background:var(--green); }
+  .card-body { padding:1.05rem 1.05rem 0.8rem; }
+  .card-meta { display:flex; align-items:center; gap:0.4rem; margin-bottom:0.55rem; flex-wrap:wrap; }
+  .meta-exam {
+    font-size:0.63rem; font-weight:700; letter-spacing:0.05em; padding:0.18rem 0.5rem;
+    border-radius:4px; text-transform:uppercase; background:#edf4ff; color:var(--blue);
+  }
+  .meta-mode {
+    font-size:0.63rem; font-weight:700; padding:0.18rem 0.5rem; border-radius:4px;
+    display:flex; align-items:center; gap:0.25rem;
+  }
+  .mode-test { background:#fff0ed; color:var(--accent); }
+  .mode-practice { background:#edf4ff; color:var(--blue); }
+  .avg-pill {
+    font-size:0.62rem; font-weight:700; padding:0.16rem 0.45rem; border-radius:100px;
+    background:rgba(26,156,91,0.12); color:var(--green);
+  }
+  .avg-pill.low { background:rgba(232,75,43,0.12); color:var(--accent); }
+  .card-title { font-size:0.95rem; font-weight:800; letter-spacing:-0.01em; margin-bottom:0.4rem; line-height:1.3; }
+  .card-sub { font-size:0.74rem; color:var(--muted); margin-bottom:0.8rem; line-height:1.5; min-height:1rem; }
+  .card-stats { display:flex; border-top:1px solid var(--border); margin:0 -1.05rem; }
+  .cstat { flex:1; text-align:center; padding:0.55rem 0.2rem; }
+  .cstat:not(:last-child) { border-right:1px solid var(--border); }
+  .cstat .n { font-family:'IBM Plex Mono',monospace; font-size:0.86rem; font-weight:600; }
+  .cstat .l { font-size:0.58rem; color:var(--muted); font-weight:600; margin-top:0.1rem; text-transform:uppercase; letter-spacing:0.04em; }
+  .card-footer { padding:0.7rem 1.05rem; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--border); }
+  .price-tag { font-weight:800; font-size:0.9rem; }
+  .price-tag.free { color:var(--green); }
+  .start-btn { padding:0.36rem 0.85rem; border-radius:6px; border:none; font-family:inherit; font-size:0.76rem; font-weight:700; cursor:pointer; }
+  .start-free { background:var(--green); color:#fff; }
+  .start-paid { background:var(--accent); color:#fff; }
+  .start-paid:hover { background:#d23f20; }
+  [data-theme="dark"] .start-paid:hover { background:#f0853e; }
+  .list-card {
+    background:var(--card); border:1.5px solid var(--border); border-radius:12px;
+    padding:0.85rem 1.2rem; display:flex; align-items:center; gap:1rem;
+    transition:border-color .15s,box-shadow .15s; cursor:pointer;
+  }
+  .list-card:hover { border-color:#bbb; box-shadow:0 4px 16px rgba(0,0,0,0.06); }
+  .list-main { flex:1; min-width:0; }
+  .list-title { font-size:0.9rem; font-weight:800; }
+  .list-tags { display:flex; gap:0.4rem; margin-top:0.3rem; flex-wrap:wrap; }
+  .list-stats { display:flex; gap:1.4rem; flex-shrink:0; }
+  .ls { text-align:right; }
+  .ls .n { font-family:'IBM Plex Mono',monospace; font-size:0.84rem; font-weight:600; }
+  .ls .l { font-size:0.6rem; color:var(--muted); text-transform:uppercase; }
+  .list-price { font-weight:800; font-size:0.88rem; min-width:78px; text-align:right; }
+  .empty-state { text-align:center; padding:4rem 2rem; }
+  .empty-state .icon { font-size:2.6rem; margin-bottom:0.8rem; }
+  .empty-state h3 { font-size:1.05rem; font-weight:800; margin-bottom:0.4rem; }
+  .empty-state p { font-size:0.86rem; color:var(--muted); }
+  .loading { display:flex; justify-content:center; padding:4rem; }
+  .spinner { width:30px; height:30px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* ---------- Course-card specific styles (overrides .cards-grid above) ---------- */
+  .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }
+  .course-card {
+    background:var(--card); border:1.5px solid var(--border); border-radius:14px;
+    overflow:hidden; transition:transform .18s,box-shadow .18s,border-color .18s;
+    cursor:pointer; position:relative; display:flex; flex-direction:column;
+  }
+  .course-card:hover { transform:translateY(-3px); box-shadow:0 12px 36px rgba(0,0,0,0.09); border-color:#ccc; }
+  /* 16:9 visual header — gradient + monogram letter */
+  .cc-cover {
+    position:relative; width:100%; aspect-ratio:16/9; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cc-cover-img {
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .cc-monogram {
+    font-family:'Instrument Serif',serif; font-size:3.8rem; font-weight:400;
+    color:rgba(255,255,255,0.92); line-height:1;
+    text-shadow:0 2px 10px rgba(0,0,0,0.22);
+    z-index:1;
+  }
+  .cc-cover-overlay {
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.18) 100%);
+  }
+  .card-body { padding:1.05rem 1.05rem 0.8rem; flex:1; }
+  .card-meta { display:flex; align-items:center; gap:0.4rem; margin-bottom:0.55rem; flex-wrap:wrap; }
+  .meta-access {
+    font-size:0.63rem; font-weight:700; letter-spacing:0.04em; padding:0.18rem 0.5rem;
+    border-radius:4px; text-transform:uppercase;
+  }
+  .acc-open { background:#edfff6; color:var(--green); }
+  .acc-paid { background:#fffbeb; color:var(--gold); }
+  .acc-approval { background:#fff0ed; color:var(--accent); }
+  .acc-subscription { background:#edf4ff; color:var(--blue); }
+  .meta-prof { font-size:0.63rem; font-weight:700; padding:0.18rem 0.5rem; border-radius:4px; background:#f0eee8; color:var(--muted); }
+  .status-badge { font-size:0.62rem; font-weight:700; padding:0.16rem 0.5rem; border-radius:100px; }
+  .st-enrolled { background:rgba(26,156,91,0.12); color:var(--green); }
+  .st-pending { background:rgba(201,146,10,0.14); color:var(--gold); }
+  .st-rejected { background:rgba(232,75,43,0.12); color:var(--accent); }
+  .card-title { font-size:1rem; font-weight:800; letter-spacing:-0.01em; margin-bottom:0.4rem; line-height:1.3; }
+  .card-enrolled {
+    display:flex; align-items:center; gap:5px;
+    font-size:0.7rem; font-weight:600; color:var(--muted);
+    margin:-0.15rem 0 0.45rem;
+  }
+  .card-enrolled svg { flex-shrink:0; opacity:0.8; }
+  .card-sub {
+    font-size:0.76rem; color:var(--muted); margin-bottom:0.85rem; line-height:1.5; min-height:1.3em;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  /* renderRichText may wrap content in <p>/<h*>/<ul> etc. — flatten all of
+     it to inline so the single-line ellipsis clamp above actually works
+     regardless of which block tag came out on top. */
+  .card-sub * { display:inline; margin:0; padding:0; font-size:inherit; font-weight:inherit; color:inherit; }
+  .card-sub br { display:none; }
+  .card-sub ul, .card-sub ol { list-style:none; }
+  .card-sub li::before { content:'\2022\00a0'; }
+  .card-stats { display:flex; border-top:1px solid var(--border); margin:0 -1.05rem; }
+  .cstat { flex:1; text-align:center; padding:0.6rem 0.2rem; }
+  .cstat:not(:last-child) { border-right:1px solid var(--border); }
+  .cstat .n { font-family:'IBM Plex Mono',monospace; font-size:1rem; font-weight:600; }
+  .cstat .l { font-size:0.58rem; color:var(--muted); font-weight:600; margin-top:0.1rem; text-transform:uppercase; letter-spacing:0.04em; }
+  .card-cta-wrap { padding:0.9rem 1.05rem 1.05rem; }
+  .card-cta {
+    display:block; text-align:center;
+    padding:0.7rem 1rem; border-radius:100px;
+    font-size:0.84rem; font-weight:700; letter-spacing:0.01em;
+    transition:transform .15s, box-shadow .2s, filter .15s;
+  }
+  .card-cta.cta-open {
+    background:var(--green); color:#fff;
+    box-shadow:0 4px 14px rgba(26,156,91,0.22);
+  }
+  .card-cta.cta-paid {
+    background:var(--accent); color:#fff;
+    box-shadow:0 4px 14px rgba(232,75,43,0.22);
+  }
+  .course-card:hover .card-cta { transform:translateY(-1px); filter:brightness(1.05); }
+  .course-card:hover .card-cta.cta-open { box-shadow:0 6px 18px rgba(26,156,91,0.32); }
+  .course-card:hover .card-cta.cta-paid { box-shadow:0 6px 18px rgba(232,75,43,0.32); }
+  .empty-state { text-align:center; padding:4rem 2rem; }
+  .empty-state .icon { font-size:2.6rem; margin-bottom:0.8rem; }
+  .empty-state h3 { font-size:1.05rem; font-weight:800; margin-bottom:0.4rem; }
+  .empty-state p { font-size:0.86rem; color:var(--muted); }
+  .loading { display:flex; justify-content:center; padding:4rem; }
+  .spinner { width:30px; height:30px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<div class="qx-backdrop" id="qx-backdrop"></div>
+
+<div class="page-wrap">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <div class="sb-head-title">Refine courses</div>
+      <button class="sb-close" id="sb-close" type="button" aria-label="Close filters">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Access Type</div>
+      <div class="price-toggle" id="access-toggle">
+        <button type="button" class="price-btn active" data-access="">All</button>
+        <button type="button" class="price-btn" data-access="FREE">Free</button>
+        <button type="button" class="price-btn" data-access="PAID">Paid</button>
+        <button type="button" class="price-btn" data-access="SUBSCRIPTION">Sub</button>
+      </div>
+    </div>
+    <div class="sb-section" id="profession-section">
+      <div class="sb-label">Profession</div>
+      <div class="tag-cloud" id="profession-tags"><span style="font-size:0.72rem;color:var(--muted)">…</span></div>
+    </div>
+    <div class="sb-footer">
+      <button class="apply-btn" id="apply-btn">Apply filters</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="page-title">Courses</h1>
+        <p id="page-sub">Structured bundles of quiz sets and study notes — enroll to unlock.</p>
+      </div>
+      <div class="topbar-right">
+        <a href="quizzes.html">Quizzes</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+    </div>
+
+    <!-- Sticky toolbar. Row 1: Search (flex:1) + Filters + Clear, single
+         horizontal row at every width. Row 2: Exam Type chip bar (horizontal
+         scroll). The toolbar pins to the top of the viewport on scroll. -->
+    <div class="qz-toolbar" id="qz-toolbar">
+      <div class="qz-toolbar-row">
+        <div class="qz-search">
+          <svg class="qz-search-ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="qz-search-input" class="qz-search-input" placeholder="Search..." autocomplete="off">
+          <button class="qz-search-clear" id="qz-search-clear" aria-label="Clear search" title="Clear">&#x2715;</button>
+        </div>
+
+        <div class="qz-toolbar-actions">
+          <button class="qz-filter-btn" id="qz-filter-btn" type="button" aria-label="Open filters">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="6" cy="18" r="2"/></svg>
+            <span class="qz-filter-btn-label">Filter Course</span>
+            <span class="qz-filter-btn-count" id="qz-filter-btn-count" hidden>0</span>
+            <span class="qz-filter-btn-dot" id="qz-filter-btn-dot" hidden></span>
+          </button>
+          <button class="qz-clear-btn" id="qz-clear-btn" type="button" aria-label="Clear all filters" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <span class="qz-clear-btn-label">Clear</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="qz-prof-bar-wrap" id="qz-prof-bar-wrap" hidden>
+        <div class="qz-prof-bar" id="qz-prof-bar">
+          <div class="qz-prof-track" id="qz-prof-track"></div>
+        </div>
+        <div class="qz-prof-fade" id="qz-prof-fade" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="active-filters" id="active-filters">
+      <span class="results-count" id="results-count"></span>
+    </div>
+    <div id="results"><div class="loading"><div class="spinner"></div></div></div>
+  </main>
+</div>
+
+<script type="module">
+  const { escapeHtml, mountHeader, mountFooter, renderRichText } = await import('./assets/components.js');
+  const { courses, taxonomy } = await import('./assets/api.js');
+
+  // Site nav bar — mounted, but hidden while scrolling down + revealed on
+  // scroll up (so it doesn't compete with the sticky toolbar for vertical
+  // space when the user is browsing the list).
+  await mountHeader('courses');
+
+  // Filters popup (slides in as a centered modal)
+  const drawerBackdrop = document.getElementById('qx-backdrop');
+  function openDrawer()  {
+    if (typeof syncPendingFromLive === 'function') syncPendingFromLive();
+    document.body.classList.add('qx-drawer-open');
+  }
+  function closeDrawer() { document.body.classList.remove('qx-drawer-open'); }
+  document.getElementById('qz-filter-btn').addEventListener('click', openDrawer);
+  document.getElementById('qz-clear-btn').addEventListener('click', () => {
+    // Toolbar Clear — instantly resets every filter without opening the popup.
+    state.access = state.profession = state.examType = '';
+    state.professionName = state.examTypeName = '';
+    if (typeof pending !== 'undefined') {
+      pending.access = pending.profession = pending.professionName = '';
+    }
+    document.querySelectorAll('#access-toggle .price-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+    document.querySelectorAll('#profession-tags .tag').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#qz-prof-track .qz-chip').forEach((c,i) => c.classList.toggle('on', i===0));
+    render();
+  });
+  document.getElementById('sb-close').addEventListener('click', closeDrawer);
+  drawerBackdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('qx-drawer-open')) closeDrawer();
+  });
+
+  // Sticky toolbar — paint border + shadow only while stuck.
+  (function wireStickyToolbar() {
+    const toolbar = document.getElementById('qz-toolbar');
+    if (!toolbar) return;
+    const sentinel = document.createElement('div');
+    sentinel.style.cssText = 'position:relative; height:1px;';
+    toolbar.parentNode.insertBefore(sentinel, toolbar);
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(([entry]) => {
+        toolbar.classList.toggle('is-stuck', !entry.isIntersecting);
+      }, { threshold: 0 });
+      io.observe(sentinel);
+    }
+  })();
+
+  // Auto-hide the site header while scrolling DOWN, reveal on scroll UP.
+  (function wireHeaderAutoHide() {
+    const hdr = document.querySelector('.site-header');
+    if (!hdr) return;
+    let last = window.scrollY;
+    let raf = 0;
+    function onScroll() {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const cur = window.scrollY;
+        const delta = cur - last;
+        if (cur < 60) {
+          hdr.classList.remove('is-hidden');
+        } else if (delta > 6) {
+          hdr.classList.add('is-hidden');
+        } else if (delta < -6) {
+          hdr.classList.remove('is-hidden');
+        }
+        last = cur;
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+  })();
+
+  // ----- State -----
+  const state = {
+    access:'', profession:'', professionName:'',
+    examType:'', examTypeName:'',
+    search:'',
+  };
+  let allCourses = [];
+  let _profMap = {};
+
+  // ----- Load Profession + Exam Type taxonomies -----
+  try {
+    const profs = (await taxonomy.professions()).data || [];
+    if (profs.length) {
+      _profMap = Object.fromEntries(profs.map(p => [p.id, p.name]));
+      document.getElementById('profession-tags').innerHTML = profs
+        .map(p => `<div class="tag" data-prof="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>`)
+        .join('');
+    } else {
+      document.getElementById('profession-section').style.display = 'none';
+    }
+  } catch { document.getElementById('profession-section').style.display = 'none'; }
+
+  // Sticky-toolbar Exam Type chip bar — populated from the examTypes taxonomy.
+  // Selecting a chip applies the filter immediately (one-tap).
+  function etDotColor(id) {
+    const palette = ['#FF8A00','#FFB347','#FF6B6B','#4ECDC4','#A78BFA','#36D399','#F472B6','#60A5FA','#FBBF24','#34D399'];
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return palette[h % palette.length];
+  }
+  try {
+    const ets = (await taxonomy.examTypes()).data || [];
+    if (ets.length) {
+      const wrap = document.getElementById('qz-prof-bar-wrap');
+      const bar = document.getElementById('qz-prof-bar');
+      const track = document.getElementById('qz-prof-track');
+      const fade = document.getElementById('qz-prof-fade');
+      track.innerHTML =
+        `<div class="qz-chip on" data-et=""><span class="dot" style="background:#FFB347"></span>All</div>` +
+        ets.map(e =>
+          `<div class="qz-chip" data-et="${escapeHtml(e.id)}" data-name="${escapeHtml(e.name)}">` +
+          `<span class="dot" style="background:${etDotColor(e.id)}"></span>${escapeHtml(e.name)}</div>`
+        ).join('');
+      wrap.hidden = false;
+      track.addEventListener('click', e => {
+        const c = e.target.closest('.qz-chip'); if (!c) return;
+        track.querySelectorAll('.qz-chip').forEach(x => x.classList.toggle('on', x === c));
+        state.examType     = c.dataset.et || '';
+        state.examTypeName = c.dataset.name || '';
+        render();
+      });
+      // Fade/arrow hint disappears once there's nothing left to scroll to
+      // (either the chips fit entirely, or the user has scrolled to the end).
+      function updateFadeVisibility() {
+        const hasOverflow = bar.scrollWidth > bar.clientWidth + 2;
+        const atEnd = bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2;
+        fade.classList.toggle('is-visible', hasOverflow && !atEnd);
+      }
+      updateFadeVisibility();
+      bar.addEventListener('scroll', updateFadeVisibility, { passive: true });
+      window.addEventListener('resize', updateFadeVisibility);
+    }
+  } catch { /* taxonomy missing — silently hide the bar */ }
+
+  // ----- Popup staging (Apply commits) -----
+  const pending = {
+    access:        state.access,
+    profession:    state.profession,
+    professionName: state.professionName,
+  };
+
+  function syncPendingToUI() {
+    document.querySelectorAll('#access-toggle .price-btn').forEach(b =>
+      b.classList.toggle('active', (b.dataset.access || '') === (pending.access || ''))
+    );
+    document.querySelectorAll('#profession-tags .tag').forEach(t =>
+      t.classList.toggle('active', t.dataset.prof === pending.profession)
+    );
+  }
+  function syncPendingFromLive() {
+    pending.access         = state.access;
+    pending.profession     = state.profession;
+    pending.professionName = state.professionName;
+    syncPendingToUI();
+  }
+
+  document.getElementById('access-toggle').addEventListener('click', e => {
+    const b = e.target.closest('.price-btn'); if (!b) return;
+    pending.access = b.dataset.access || '';
+    syncPendingToUI();
+  });
+  document.getElementById('profession-tags').addEventListener('click', e => {
+    const t = e.target.closest('.tag'); if (!t) return;
+    if (t.classList.contains('active')) { pending.profession = ''; pending.professionName = ''; }
+    else { pending.profession = t.dataset.prof; pending.professionName = t.dataset.name; }
+    syncPendingToUI();
+  });
+  document.getElementById('apply-btn').addEventListener('click', () => {
+    state.access         = pending.access;
+    state.profession     = pending.profession;
+    state.professionName = pending.professionName;
+    render();
+    closeDrawer();
+  });
+
+  // ----- Search input (debounced; client-side filter by title/description) -----
+  const searchEl   = document.getElementById('qz-search-input');
+  const searchWrap = searchEl.parentElement;
+  const searchClr  = document.getElementById('qz-search-clear');
+  let searchT = null;
+  searchEl.addEventListener('input', () => {
+    searchWrap.classList.toggle('has-text', !!searchEl.value);
+    clearTimeout(searchT);
+    searchT = setTimeout(() => {
+      state.search = searchEl.value.trim().toLowerCase();
+      render();
+    }, 120);
+  });
+  searchClr.addEventListener('click', () => {
+    searchEl.value = '';
+    searchWrap.classList.remove('has-text');
+    state.search = '';
+    render();
+  });
+
+  // ----- Render helpers -----
+  function accessGroupKey(c) {
+    const a = (c.access_type || 'OPEN').toUpperCase();
+    if (a === 'OPEN') return 'FREE';
+    if (a === 'SUBSCRIPTION') return 'SUBSCRIPTION';
+    return 'PAID'; // PAID + APPROVAL both treated as paid
+  }
+  function accessTag(c) {
+    const a = (c.access_type||'OPEN').toUpperCase();
+    if (a === 'OPEN') return '<span class="meta-access acc-open">Free</span>';
+    if (a === 'APPROVAL') return '<span class="meta-access acc-approval">Approval</span>';
+    if (a === 'SUBSCRIPTION') return '<span class="meta-access acc-subscription">Subscription</span>';
+    return '<span class="meta-access acc-paid">Premium</span>';
+  }
+  function statusBadge(s) {
+    const map = {
+      ACTIVE:'<span class="status-badge st-enrolled">Enrolled</span>',
+      APPROVED:'<span class="status-badge st-enrolled">Enrolled</span>',
+      PENDING:'<span class="status-badge st-pending">Pending</span>',
+      REJECTED:'<span class="status-badge st-rejected">Rejected</span>',
+      SUSPENDED:'<span class="status-badge st-rejected">Suspended</span>',
+    };
+    return map[s] || '';
+  }
+  function coverStyle(id) {
+    const palette = [
+      ['#e84b2b','#c9920a'], ['#1a9c5b','#2b7de8'], ['#7c4dff','#e84b2b'],
+      ['#c9920a','#1a9c5b'], ['#2b7de8','#7c4dff'], ['#e84b2b','#7c4dff'],
+      ['#1a9c5b','#c9920a'], ['#2b7de8','#1a9c5b'],
+    ];
+    let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    const [a,b] = palette[h % palette.length];
+    return `background:linear-gradient(135deg, ${a}, ${b});`;
+  }
+  function cardHtml(c) {
+    const isOpen = accessGroupKey(c) === 'FREE';
+    const ctaLabel = isOpen ? 'View Course' : 'Enroll Now';
+    const monogram = (c.title || '?').trim().charAt(0).toUpperCase();
+    const hasCover = !!c.cover_url;
+    return `
+      <a class="course-card" href="course-detail.html?id=${encodeURIComponent(c.id)}">
+        <div class="cc-cover" style="${hasCover ? '' : coverStyle(c.id)}">
+          ${hasCover
+            ? `<img src="${escapeHtml(c.cover_url)}" alt="${escapeHtml(c.title)}" class="cc-cover-img" loading="lazy">`
+            : `<div class="cc-monogram">${escapeHtml(monogram)}</div>`}
+          <div class="cc-cover-overlay"></div>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">
+            ${accessTag(c)}
+            ${c.profession_name ? `<span class="meta-prof">${escapeHtml(c.profession_name)}</span>` : ''}
+            ${statusBadge(c.my_enrollment_status)}
+          </div>
+          <div class="card-title">${escapeHtml(c.title)}</div>
+          ${(c.enrolled_count || 0) > 0 ? `
+            <div class="card-enrolled">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              ${(c.enrolled_count).toLocaleString()} enrolled
+            </div>` : ''}
+          <div class="card-sub">${renderRichText((c.description||'').slice(0,140))}</div>
+          <div class="card-stats">
+            <div class="cstat"><div class="n">${c.quiz_sets_count||0}</div><div class="l">Quiz Sets</div></div>
+            <div class="cstat"><div class="n">${c.notes_count||0}</div><div class="l">Notes</div></div>
+            <div class="cstat"><div class="n">${(c.quiz_sets_count||0)+(c.notes_count||0)}</div><div class="l">Items</div></div>
+          </div>
+        </div>
+        <div class="card-cta-wrap">
+          <span class="card-cta ${isOpen?'cta-open':'cta-paid'}">${ctaLabel}</span>
+        </div>
+      </a>`;
+  }
+
+  function filtered() {
+    return allCourses.filter(c => {
+      if (state.access && accessGroupKey(c) !== state.access) return false;
+      if (state.profession && c.profession_id !== state.profession) return false;
+      if (state.examType) {
+        const ets = Array.isArray(c.exam_types) ? c.exam_types : [];
+        if (!ets.some(e => e.id === state.examType)) return false;
+      }
+      if (state.search) {
+        const q = state.search;
+        const hit = (c.title || '').toLowerCase().includes(q) ||
+                    (c.description || '').toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderChips() {
+    const bar = document.getElementById('active-filters');
+    const chips = [];
+    if (state.access)     chips.push(['access', state.access === 'FREE' ? 'Free' : (state.access === 'PAID' ? 'Paid' : 'Subscription')]);
+    if (state.examType)   chips.push(['examType', state.examTypeName]);
+    if (state.profession) chips.push(['profession', state.professionName || _profMap[state.profession] || 'Profession']);
+    bar.innerHTML = chips.map(c =>
+      `<div class="chip">${escapeHtml(c[1])} <span data-clear="${c[0]}">✕</span></div>`
+    ).join('') + `<span class="results-count" id="results-count"></span>`;
+    bar.querySelectorAll('[data-clear]').forEach(x => x.addEventListener('click', () => {
+      const k = x.dataset.clear;
+      if (k === 'access') {
+        state.access = '';
+        if (typeof pending !== 'undefined') pending.access = '';
+        document.querySelectorAll('#access-toggle .price-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+      }
+      if (k === 'examType') {
+        state.examType = '';
+        state.examTypeName = '';
+        document.querySelectorAll('#qz-prof-track .qz-chip').forEach((c,i) => c.classList.toggle('on', i===0));
+      }
+      if (k === 'profession') {
+        state.profession = '';
+        state.professionName = '';
+        if (typeof pending !== 'undefined') { pending.profession = ''; pending.professionName = ''; }
+        document.querySelectorAll('#profession-tags .tag').forEach(t => t.classList.remove('active'));
+      }
+      render();
+    }));
+    // Mirror the active-filter count onto the toolbar Filters button + Clear enabled
+    const cnt = document.getElementById('qz-filter-btn-count');
+    const dot = document.getElementById('qz-filter-btn-dot');
+    const clr = document.getElementById('qz-clear-btn');
+    const active = chips.length;
+    if (cnt) {
+      if (active > 0) { cnt.textContent = active; cnt.hidden = false; }
+      else            { cnt.hidden = true; }
+    }
+    if (dot) dot.hidden = (active === 0);
+    if (clr) clr.hidden = (active === 0);
+  }
+
+  function render() {
+    renderChips();
+    const results = document.getElementById('results');
+    const list = filtered();
+    const cnt = document.getElementById('results-count');
+    if (cnt) cnt.textContent = `${list.length} course${list.length===1?'':'s'}`;
+    if (!list.length) {
+      results.innerHTML = `<div class="empty-state"><div class="icon">📚</div><h3>No courses found</h3><p>Try clearing some filters.</p></div>`;
+      return;
+    }
+    results.innerHTML = `<div class="cards-grid">${list.map(cardHtml).join('')}</div>`;
+  }
+
+  try {
+    allCourses = (await courses.list()).data || [];
+    render();
+  } catch (err) {
+    document.getElementById('results').innerHTML =
+      `<div class="empty-state"><div class="icon">⚠️</div><h3>Couldn't load courses</h3><p>${escapeHtml(err.message)}</p></div>`;
+  }
+
+  mountFooter();
+</script>
+
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('courses', u);
+})();
+</script>
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Course · Quiznosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  :root {
+    --qz-ink:#0d0f14; --qz-paper:#f5f3ee; --qz-white:#ffffff;
+    --qz-accent:#e84b2b; --qz-blue:#2b7de8; --qz-green:#1a9c5b; --qz-gold:#c9920a;
+    --qz-muted:#7a7870; --qz-border:#e2dfd8;
+  }
+  [data-theme="dark"] {
+    --qz-ink:#e8ecf4; --qz-paper:#0e1626; --qz-white:#16203a;
+    --qz-accent:#e0742f; --qz-blue:#5b9bf0; --qz-green:#4ade80; --qz-gold:#e0a93e;
+    --qz-muted:#6b7794; --qz-border:#2a3a5c;
+  }
+  body { background:var(--qz-paper); }
+  .cd-wrap { max-width:1080px; margin:0 auto; padding:1.6rem 1.5rem 3rem; font-family:'Inter',sans-serif; }
+  .cd-back { font-size:0.84rem; font-weight:700; color:var(--qz-muted); text-decoration:none; }
+  .cd-back:hover { color:var(--qz-ink); }
+  .cd-head { margin:1rem 0 1.3rem; }
+  .cd-tags { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.7rem; }
+  .cd-tag {
+    font-size:0.66rem; font-weight:700; letter-spacing:0.04em; padding:0.2rem 0.6rem;
+    border-radius:5px; text-transform:uppercase;
+  }
+  .t-open { background:#edfff6; color:var(--qz-green); }
+  .t-paid { background:#fffbeb; color:var(--qz-gold); }
+  .t-approval { background:#fff0ed; color:var(--qz-accent); }
+  .t-sub { background:#edf4ff; color:var(--qz-blue); }
+  .t-prof { background:#f0eee8; color:var(--qz-muted); }
+  .cd-title { font-family:'Inter',sans-serif; font-size:1.95rem; font-weight:800; letter-spacing:-0.02em; color:var(--qz-ink); }
+  .cd-desc { font-size:0.92rem; color:var(--qz-muted); margin-top:0.45rem; line-height:1.55; }
+  .cd-desc p { margin:0 0 0.6em; }
+  .cd-desc p:last-child { margin-bottom:0; }
+  .cd-desc h1, .cd-desc h2, .cd-desc h3 { color:var(--qz-ink); margin:0.7em 0 0.35em; font-weight:700; }
+  .cd-desc h1:first-child, .cd-desc h2:first-child, .cd-desc h3:first-child { margin-top:0; }
+  .cd-desc ul, .cd-desc ol { margin:0.3em 0 0.6em 1.3em; padding:0; }
+  .cd-desc li { margin:0.2em 0; }
+  .cd-desc a { color:var(--qz-accent); }
+  .cd-desc strong { color:var(--qz-ink); font-weight:600; }
+  .cd-desc blockquote {
+    margin:0.5em 0; padding:6px 12px; border-left:3px solid var(--qz-accent);
+    background:rgba(184,83,28,0.05); font-style:italic;
+  }
+  .cd-desc code { background:var(--qz-paper); padding:1px 5px; border-radius:3px; font-size:0.92em; }
+
+  /* Collapsible description */
+  .cd-desc-wrap { position:relative; }
+  .cd-desc-wrap.is-collapsed .cd-desc {
+    max-height:5.6em; overflow:hidden; -webkit-mask-image:linear-gradient(to bottom, black 70%, transparent 100%);
+    mask-image:linear-gradient(to bottom, black 70%, transparent 100%);
+  }
+  .cd-readmore-btn {
+    display:none; margin-top:0.4rem; background:none; border:none; padding:0;
+    font-size:0.84rem; font-weight:700; color:var(--qz-accent); cursor:pointer;
+    font-family:inherit;
+  }
+  .cd-readmore-btn:hover { text-decoration:underline; }
+  .cd-desc-wrap.has-overflow .cd-readmore-btn { display:inline-block; }
+
+  /* Syllabus panel */
+  .cd-syllabus-panel { margin-bottom:1.5rem; }
+  .cd-syllabus-toggle {
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:0.6rem;
+    background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
+    color:var(--qz-ink); text-align:left;
+  }
+  .cd-syllabus-toggle .cd-panel-title { margin-bottom:0; }
+  .cd-syllabus-chevron { transition:transform 0.2s ease; flex-shrink:0; color:var(--qz-muted); }
+  .cd-syllabus-panel.is-open .cd-syllabus-chevron { transform:rotate(180deg); }
+  .cd-syllabus-body {
+    max-height:0; overflow:hidden; transition:max-height 0.3s ease;
+  }
+  .cd-syllabus-inner { padding-top:1.1rem; font-size:0.92rem; color:var(--qz-muted); line-height:1.6; }
+  .cd-syllabus-inner p { margin:0 0 0.6em; }
+  .cd-syllabus-inner h1, .cd-syllabus-inner h2, .cd-syllabus-inner h3 {
+    color:var(--qz-ink); margin:0.9em 0 0.4em; font-weight:700;
+  }
+  .cd-syllabus-inner h1:first-child, .cd-syllabus-inner h2:first-child, .cd-syllabus-inner h3:first-child { margin-top:0; }
+  .cd-syllabus-inner ul, .cd-syllabus-inner ol { margin:0.3em 0 0.7em 1.3em; padding:0; }
+  .cd-syllabus-inner li { margin:0.25em 0; }
+  .cd-syllabus-inner a { color:var(--qz-accent); }
+  .cd-syllabus-inner strong { color:var(--qz-ink); font-weight:600; }
+  .cd-syllabus-inner blockquote {
+    margin:0.5em 0; padding:6px 12px; border-left:3px solid var(--qz-accent);
+    background:rgba(184,83,28,0.05); font-style:italic;
+  }
+  .cd-syllabus-inner code { background:var(--qz-paper); padding:1px 5px; border-radius:3px; font-size:0.92em; }
+
+  .cd-strip {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    background:var(--qz-white); border:1.5px solid var(--qz-border); border-radius:14px;
+    overflow:hidden; margin-bottom:1.5rem;
+  }
+  [data-theme="dark"] .cd-strip { background:var(--qz-paper); }
+  .strip-cell { text-align:center; padding:1.1rem 0.5rem; position:relative; min-width:0; }
+  .strip-cell:not(:last-child) { border-right:1px solid var(--qz-border); }
+  .strip-n { font-family:'IBM Plex Mono',monospace; font-size:1.5rem; font-weight:600; color:var(--qz-ink); line-height:1.1; }
+  .strip-l {
+    font-size:0.64rem; color:var(--qz-muted); font-weight:700;
+    text-transform:uppercase; letter-spacing:0.06em; margin-top:0.2rem;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .strip-ico { display:inline-block; margin-bottom:4px; color:var(--qz-accent); }
+  /* Progressive scale-down — stay single row at all viewport widths */
+  @media (max-width: 720px) {
+    .strip-cell { padding:0.85rem 0.35rem; }
+    .strip-n   { font-size:1.2rem; }
+    .strip-l   { font-size:0.58rem; letter-spacing:0.04em; }
+    .strip-ico svg { width:16px; height:16px; }
+  }
+  @media (max-width: 480px) {
+    .strip-cell { padding:0.7rem 0.25rem; }
+    .strip-n   { font-size:1.05rem; }
+    .strip-l   { font-size:0.52rem; letter-spacing:0.02em; }
+    .strip-ico { margin-bottom:2px; }
+    .strip-ico svg { width:13px; height:13px; }
+  }
+
+  .course-layout { display:grid; grid-template-columns:1fr 320px; gap:1.5rem; align-items:start; }
+  @media (max-width:880px) { .course-layout { grid-template-columns:1fr; } }
+
+  .cd-panel {
+    background:var(--qz-white); border:1.5px solid var(--qz-border);
+    border-radius:14px; padding:1.4rem;
+  }
+  [data-theme="dark"] .cd-panel,
+  [data-theme="dark"] .cd-panel .text-soft,
+  [data-theme="dark"] .cd-panel .text-muted,
+  [data-theme="dark"] .cd-panel p { color:var(--qz-ink); }
+  .cd-panel-title {
+    display:flex; align-items:center; gap:0.5rem; font-size:1rem; font-weight:800;
+    margin-bottom:1rem; color:var(--qz-ink);
+  }
+
+  .material-item {
+    display:flex; align-items:center; gap:14px; padding:13px 15px;
+    background:var(--qz-white); border:1.5px solid var(--qz-border);
+    border-radius:11px; margin-bottom:9px; text-decoration:none; color:inherit;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .material-item:hover { border-color:var(--qz-accent); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+  .material-item.locked { opacity:0.7; }
+  .material-item.locked:hover { border-color:var(--qz-border); box-shadow:none; }
+  .material-icon {
+    width:38px; height:38px; border-radius:9px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:1.05rem;
+  }
+  .material-icon.quiz { background:#fff0ed; color:var(--qz-accent); }
+  .material-icon.note { background:#edf4ff; color:var(--qz-blue); }
+  .material-body { flex:1; min-width:0; }
+  .material-body > div:first-child { font-weight:700; font-size:0.9rem; color:var(--qz-ink); }
+  .material-meta { font-size:0.76rem; color:var(--qz-muted); font-family:'IBM Plex Mono',monospace; margin-top:2px; }
+  .material-subject {
+    display:inline-block; font-size:0.68rem; font-weight:700; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--qz-accent);
+    margin-bottom:3px;
+  }
+
+  /* Active plan card (replaces the bare expiry text) */
+  .plan-card {
+    background:linear-gradient(180deg, var(--qz-paper), var(--qz-white));
+    border:1px solid var(--qz-border); border-radius:10px;
+    padding:14px 16px; margin-top:10px;
+  }
+  [data-theme="dark"] .plan-card { background:rgba(255,255,255,0.04); }
+  .plan-name {
+    font-weight:700; font-size:1.05rem; color:var(--qz-ink); margin-bottom:8px;
+  }
+  .plan-meta { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+  .plan-meta-row {
+    display:flex; justify-content:space-between; font-size:0.85rem;
+    color:var(--qz-muted);
+  }
+  .plan-meta-row strong { color:var(--qz-ink); font-weight:600; }
+  .plan-days {
+    font-family:'IBM Plex Mono', monospace; font-size:1rem; font-weight:600;
+    color:var(--qz-ink); margin-bottom:6px;
+  }
+  .plan-days.is-urgent { color:var(--error, #b8531c); }
+  .plan-progress {
+    width:100%; height:6px; background:var(--qz-border);
+    border-radius:100px; overflow:hidden;
+  }
+  .plan-progress-fill {
+    height:100%; background:linear-gradient(90deg, #6cbf6c, var(--qz-accent));
+    border-radius:100px; transition:width .3s ease;
+  }
+  .plan-progress-fill.is-urgent {
+    background:linear-gradient(90deg, #d97d3f, #b8531c);
+  }
+
+  /* ===== Premium tabs (Quiz Sets / Notes) — sticky while scrolling =====
+   * Each tab carries its own accent color (Quiz = warm orange, Notes = teal)
+   * so they read as visually distinct sections, not generic UI chrome.
+   */
+  .cc-tabs {
+    display:flex; gap:8px; padding:6px;
+    background:var(--qz-paper, #f5f3ee); border-radius:14px;
+    margin-bottom:18px;
+    border:1px solid var(--qz-border);
+    position:sticky; top:64px;        /* sits below the site header */
+    z-index:15;
+    backdrop-filter:saturate(180%) blur(8px);
+    -webkit-backdrop-filter:saturate(180%) blur(8px);
+    box-shadow:0 1px 0 var(--qz-border);
+  }
+  [data-theme="dark"] .cc-tabs { background:rgba(22,32,58,0.92); }
+
+  .cc-tab {
+    flex:1; display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:13px 16px; border:2px solid transparent; background:transparent;
+    border-radius:10px; font-family:inherit; font-size:0.95rem; font-weight:700;
+    color:var(--qz-muted); cursor:pointer;
+    transition:background .18s, color .18s, border-color .18s, transform .12s;
+    letter-spacing:0.01em;
+  }
+
+  /* Per-tab accent colors — visible even when inactive */
+  .cc-tab[data-cc-tab="quiz"]  .cc-tab-ico { color:#d8763a; }   /* warm orange */
+  .cc-tab[data-cc-tab="notes"] .cc-tab-ico { color:#2b9085; }   /* deep teal */
+
+  /* Inactive hover: tint the border with the tab's color so user senses what they'll get */
+  .cc-tab[data-cc-tab="quiz"]:hover:not(.active) {
+    color:#b8531c; border-color:rgba(216,118,58,0.40);
+    background:rgba(216,118,58,0.08);
+  }
+  .cc-tab[data-cc-tab="notes"]:hover:not(.active) {
+    color:#1d6e66; border-color:rgba(43,144,133,0.40);
+    background:rgba(43,144,133,0.08);
+  }
+  [data-theme="dark"] .cc-tab[data-cc-tab="quiz"]:hover:not(.active)  { color:#e89a64; }
+  [data-theme="dark"] .cc-tab[data-cc-tab="notes"]:hover:not(.active) { color:#5fc4b8; }
+
+  /* Active state: bold filled background using the tab's accent color */
+  .cc-tab[data-cc-tab="quiz"].active {
+    background:linear-gradient(135deg, #d8763a 0%, #b8531c 100%);
+    color:#fff;
+    box-shadow:0 4px 14px rgba(184,83,28,0.30);
+  }
+  .cc-tab[data-cc-tab="notes"].active {
+    background:linear-gradient(135deg, #2b9085 0%, #1d6e66 100%);
+    color:#fff;
+    box-shadow:0 4px 14px rgba(43,144,133,0.30);
+  }
+  .cc-tab.active .cc-tab-ico { color:#fff; }
+  .cc-tab.active { transform:translateY(-1px); }
+
+  [data-theme="dark"] .cc-tab { color:#a6b2c8; }
+  .cc-tab-ico { font-size:1.05rem; line-height:1; display:inline-flex; align-items:center; justify-content:center; transition:color .18s; }
+
+  /* Pill count beside the label */
+  .cc-tab-count {
+    background:rgba(0,0,0,0.06); color:var(--qz-muted);
+    padding:2px 10px; border-radius:100px; font-size:0.78rem; font-weight:700;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  [data-theme="dark"] .cc-tab-count { background:rgba(255,255,255,0.08); color:#a6b2c8; }
+  .cc-tab.active .cc-tab-count {
+    background:rgba(255,255,255,0.25); color:#fff;
+  }
+
+  /* Tab panels: only the active one is visible */
+  .cc-panel { display:none; }
+  .cc-panel.cc-panel-active { display:block; }
+  .cc-list { display:flex; flex-direction:column; gap:8px; }
+  .cc-empty { color:var(--qz-muted); font-size:0.88rem; padding:24px 4px; text-align:center; font-style:italic; }
+
+  /* ===== Collapsible tree: Subject > Note > Lesson ===== */
+  .cc-tree { display:flex; flex-direction:column; gap:14px; }
+  .cc-subject { border:1px solid var(--qz-border); border-radius:12px; background:#fff; overflow:hidden; }
+  .cc-children { list-style:none; padding:0; margin:0; }
+  .cc-children-collapsed { display:none; }
+
+  .cc-row {
+    display:flex; align-items:center; gap:11px;
+    padding:11px 14px; cursor:pointer; user-select:none;
+    transition:background .12s; text-decoration:none; color:var(--qz-ink);
+  }
+  .cc-row:hover { background:rgba(184,83,28,0.05); }
+  .cc-row-subject {
+    background:linear-gradient(180deg, #fbf8f2, #f7f3ec);
+    border-bottom:1px solid var(--qz-border);
+    font-weight:700;
+  }
+  .cc-row-subject:hover { background:linear-gradient(180deg, #f7f3ec, #f0e9dc); }
+  .cc-row-note {
+    border-bottom:1px solid rgba(0,0,0,0.04);
+    font-size:0.92rem; color:var(--qz-ink);
+    align-items:flex-start;
+  }
+  .cc-row-note:last-child { border-bottom:none; }
+  .cc-row-note:hover { background:rgba(184,83,28,0.05); }
+  .cc-row-note .cc-caret,
+  .cc-row-note .cc-ico { margin-top:2px; }
+  .cc-row-note .cc-meta { background:rgba(0,0,0,0.045); }
+  .cc-row-note .cc-open,
+  .cc-row-note .cc-locked {
+    align-self:center; flex-shrink:0; margin-left:4px;
+  }
+  .cc-row-quiz {
+    border-bottom:1px solid rgba(0,0,0,0.04);
+    font-size:0.92rem; color:var(--qz-ink);
+    align-items:flex-start;
+  }
+  .cc-row-quiz:last-child { border-bottom:none; }
+  .cc-row-quiz:hover { background:rgba(184,83,28,0.05); }
+  .cc-row-quiz.locked { cursor:default; opacity:0.65; }
+  .cc-row-quiz.locked:hover { background:transparent; }
+  .cc-row-quiz .cc-caret,
+  .cc-row-quiz .cc-ico { margin-top:2px; }
+
+  /* Two-line quiz body: name on top, badge+meta below */
+  .cc-quiz-body {
+    flex:1; min-width:0;
+    display:flex; flex-direction:column; gap:4px;
+    padding:1px 0;
+  }
+  .cc-quiz-body .cc-label {
+    white-space:normal; overflow:visible; text-overflow:initial;
+    line-height:1.3; font-weight:500;
+  }
+  .cc-quiz-meta-row {
+    display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+  }
+  .cc-row-quiz .cc-meta {
+    background:rgba(0,0,0,0.045);
+  }
+  .cc-row-quiz .cc-open-arrow,
+  .cc-row-quiz .cc-locked {
+    align-self:center; flex-shrink:0; margin-left:4px;
+  }
+
+  .cc-premium-badge {
+    font-family:'IBM Plex Mono',monospace; font-size:0.62rem; font-weight:700;
+    letter-spacing:0.04em; padding:2px 8px; border-radius:100px;
+    background:rgba(212,160,23,0.14); color:#a87a0d; flex-shrink:0;
+  }
+  [data-theme="dark"] .cc-premium-badge { background:rgba(212,160,23,0.18); color:#e0b84a; }
+  .cc-premium-badge-locked {
+    background:rgba(0,0,0,0.06); color:var(--qz-muted);
+  }
+  [data-theme="dark"] .cc-premium-badge-locked { background:rgba(255,255,255,0.07); color:#a6b2c8; }
+  .cc-row-lesson {
+    padding-left:48px; font-size:0.88rem; color:var(--qz-ink);
+    border-bottom:1px solid rgba(0,0,0,0.03);
+  }
+  .cc-row-lesson:hover { background:rgba(184,83,28,0.04); }
+  .cc-row-lesson.locked { cursor:default; opacity:0.65; }
+  .cc-row-lesson.locked:hover { background:transparent; }
+
+  .cc-caret {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:18px; flex-shrink:0;
+    font-size:0.85rem; color:var(--qz-muted); font-weight:700;
+    transition:transform .18s;
+  }
+  .cc-caret-rotated { transform:rotate(90deg); }
+  .cc-caret-empty { color:rgba(0,0,0,0.18); font-size:1rem; }
+
+  .cc-ico {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:24px; height:24px; flex-shrink:0;
+    border-radius:6px; font-size:0.85rem; font-weight:700;
+  }
+  .cc-ico-subject { background:rgba(184,83,28,0.12); color:var(--qz-accent); }
+  .cc-ico-note    { background:rgba(43,125,232,0.10); color:var(--qz-blue, #2b7de8); }
+  .cc-ico-quiz    { background:rgba(184,83,28,0.10); color:var(--qz-accent); }
+  .cc-ico-lesson  { background:transparent; color:var(--qz-muted); width:18px; height:18px; font-size:0.7rem; }
+
+  /* Dark-mode tree row colors */
+  [data-theme="dark"] .cc-subject { background:rgba(255,255,255,0.04); border-color:rgba(255,255,255,0.08); }
+  [data-theme="dark"] .cc-row-subject { background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border-color:rgba(255,255,255,0.08); color:var(--qz-ink); }
+  [data-theme="dark"] .cc-row-subject:hover { background:linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)); }
+  [data-theme="dark"] .cc-row:hover { background:rgba(184,83,28,0.12); }
+  [data-theme="dark"] .cc-row-note, [data-theme="dark"] .cc-row-quiz { border-bottom-color:rgba(255,255,255,0.04); }
+  [data-theme="dark"] .cc-row-lesson { border-bottom-color:rgba(255,255,255,0.03); }
+
+  .cc-label { flex:1; min-width:0; font-size:0.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cc-label-subject { font-size:0.96rem; letter-spacing:-0.005em; }
+
+  .cc-meta {
+    font-family:'IBM Plex Mono',monospace; font-size:0.7rem;
+    color:var(--qz-muted); flex-shrink:0;
+    padding:2px 8px; background:rgba(0,0,0,0.04); border-radius:100px;
+  }
+  .cc-row-subject .cc-meta { background:rgba(184,83,28,0.10); color:var(--qz-accent); }
+
+  .cc-open {
+    color:var(--qz-accent); font-size:0.82rem; font-weight:600;
+    text-decoration:none; padding:4px 8px; border-radius:6px; flex-shrink:0;
+    transition:background .12s;
+  }
+  .cc-open:hover { background:rgba(184,83,28,0.10); }
+  .cc-open-arrow { color:var(--qz-muted); font-size:0.92rem; flex-shrink:0; opacity:0; transition:opacity .15s, transform .15s; }
+  .cc-row-lesson:hover .cc-open-arrow { opacity:1; transform:translateX(2px); color:var(--qz-accent); }
+  .cc-locked { font-size:0.92rem; flex-shrink:0; opacity:0.7; }
+  .cc-free-badge {
+    display:inline-flex; align-items:center;
+    padding:2px 7px;
+    background:rgba(26,156,91,0.14); color:#1a9c5b;
+    border:1px solid rgba(26,156,91,0.35);
+    border-radius:100px;
+    font-family:'Inter', sans-serif; font-size:0.62rem; font-weight:700;
+    letter-spacing:0.06em; flex-shrink:0;
+  }
+  [data-theme="dark"] .cc-free-badge { background:rgba(26,156,91,0.22); color:#5fd698; border-color:rgba(95,214,152,0.4); }
+
+  /* Mobile tweaks */
+  @media (max-width: 600px) {
+    /* Keep icon + name + count visible on mobile (matches reference design) — just tighten sizing */
+    .cc-tabs { gap:6px; padding:5px; }
+    .cc-tab { padding:11px 8px; gap:6px; font-size:0.82rem; }
+    .cc-tab-label {
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .cc-tab-ico svg { width:16px; height:16px; }
+    .cc-tab-count { padding:2px 8px; font-size:0.72rem; }
+    .cc-row-lesson { padding-left:36px; }
+    /* Subject header row stays single-line and compact */
+    .cc-row-subject .cc-meta { font-size:0.68rem; }
+    /* Quiz & Note rows: comfortable touch target, two-line content */
+    .cc-row-quiz, .cc-row-note { padding:12px 12px; gap:9px; min-height:44px; }
+    .cc-quiz-body .cc-label { font-size:0.88rem; }
+    .cc-quiz-meta-row { gap:6px; }
+    .cc-row-quiz .cc-meta, .cc-row-note .cc-meta { font-size:0.68rem; padding:2px 7px; }
+    .cc-premium-badge, .cc-free-badge { font-size:0.6rem; padding:2px 7px; }
+    .cc-ico { width:22px; height:22px; font-size:0.78rem; }
+    .cc-locked, .cc-row-quiz .cc-open-arrow { font-size:0.85rem; }
+  }
+  @media (max-width: 380px) {
+    .cc-tab { padding:10px 5px; gap:5px; font-size:0.74rem; }
+    .cc-tab-count { padding:1px 6px; font-size:0.66rem; }
+    .cc-tab-ico svg { width:14px; height:14px; }
+  }
+
+  .enroll-box { }
+  .plan-pick {
+    padding:13px; background:var(--qz-white); border:1.5px solid var(--qz-border);
+    border-radius:11px; transition:border-color .15s;
+  }
+  .plan-pick:hover { border-color:var(--qz-accent); }
+  .plan-feats { margin:8px 0 0; padding-left:18px; font-size:0.8rem; color:var(--qz-muted); }
+  .plan-feats li { margin:2px 0; }
+
+  /* Qzio-style status pills inside the enroll panel */
+  .cd-status {
+    display:inline-block; font-size:0.66rem; font-weight:700; padding:0.22rem 0.6rem;
+    border-radius:100px; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.6rem;
+  }
+  .cd-status.ok { background:rgba(26,156,91,0.13); color:var(--qz-green); }
+  .cd-status.warn { background:rgba(201,146,10,0.15); color:var(--qz-gold); }
+  .cd-status.bad { background:rgba(232,75,43,0.13); color:var(--qz-accent); }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main>
+  <div class="cd-wrap">
+    <a href="courses.html" class="cd-back">← All courses</a>
+    <div id="root" class="mt-2"><div class="loading"><div class="spinner"></div><p>Loading…</p></div></div>
+  </div>
+</main>
+
+<script type="module">
+  import { mountHeader, mountFooter, escapeHtml, queryParam, toast, getUser, modal, formatDate, showPurchasePendingModal, renderRichText } from './assets/components.js';
+  import { courses, enrollments, coursePlans, purchases, paymentSettings } from './assets/api.js';
+
+  await mountHeader('courses');
+  mountFooter();
+
+  const id = queryParam('id');
+  const root = document.getElementById('root');
+  if (!id) { root.innerHTML = `<div class="alert alert-error">No course specified.</div>`; throw new Error('no id'); }
+
+  const u = await getUser();
+  let course;
+  try {
+    course = (await courses.get(id)).data;
+  } catch (err) {
+    root.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    throw err;
+  }
+
+  // Per-course subscription plans (public)
+  let plans = [];
+  try { plans = (await coursePlans.list(id)).data || []; } catch { plans = []; }
+
+  const access = course.access || {};
+  const canView = access.canViewContent;
+
+  // ---------- Tabbed content (Quiz Sets / Notes with nested tree) ----------
+
+  function renderTabbedContent(materials, canView) {
+    const quizzes = materials.filter(m => m.type === 'QUIZ_SET');
+    const notes   = materials.filter(m => m.type === 'NOTE');
+    return `
+      <div class="cc-tabs" role="tablist">
+        <button class="cc-tab active" data-cc-tab="quiz" role="tab">
+          <span class="cc-tab-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </span>
+          <span class="cc-tab-label">Quiz Sets</span>
+          <span class="cc-tab-count">${quizzes.length}</span>
+        </button>
+        <button class="cc-tab" data-cc-tab="notes" role="tab">
+          <span class="cc-tab-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </span>
+          <span class="cc-tab-label">Notes</span>
+          <span class="cc-tab-count">${notes.length}</span>
+        </button>
+      </div>
+
+      <div class="cc-panel cc-panel-active" id="cc-panel-quiz">
+        ${quizzes.length
+          ? renderQuizTree(quizzes, canView)
+          : `<div class="cc-empty">No quiz sets in this course yet.</div>`}
+      </div>
+
+      <div class="cc-panel" id="cc-panel-notes">
+        ${notes.length
+          ? renderNotesTree(notes, canView)
+          : `<div class="cc-empty">No notes in this course yet.</div>`}
+      </div>
+    `;
+  }
+
+  function renderQuizTree(quizzes, canView) {
+    // Group quiz sets by subject (sets without a subject go under "Uncategorized")
+    const bySubject = new Map();
+    quizzes.forEach(qz => {
+      const key = qz.qs_subject_id || '__none__';
+      const name = qz.quiz_set_subject_name || 'Uncategorized';
+      if (!bySubject.has(key)) bySubject.set(key, { name, quizzes: [] });
+      bySubject.get(key).quizzes.push(qz);
+    });
+
+    return `<div class="cc-tree">${
+      [...bySubject.entries()].map(([subjId, sub], si) => {
+        const quizRows = sub.quizzes.map((qz, qi) => {
+          const qCount = qz.question_count ?? qz.total_questions ?? 0;
+          const meta = `${qCount} ${qCount === 1 ? 'question' : 'questions'}${qz.duration_minutes ? ' \u00b7 ' + qz.duration_minutes + ' min' : ''}`;
+          const isFree = (qz.is_free_demo === 1);
+          const itemAccess = canView || isFree;
+          const href = itemAccess ? `quiz-detail.html?id=${encodeURIComponent(qz.quiz_set_id)}` : null;
+          const badge = isFree
+            ? '<span class="cc-free-badge">FREE</span>'
+            : (itemAccess ? '<span class="cc-premium-badge">PREMIUM</span>' : '<span class="cc-premium-badge cc-premium-badge-locked">PREMIUM</span>');
+          return `
+            <li class="cc-node cc-node-quiz">
+              ${itemAccess
+                ? `<a href="${href}" class="cc-row cc-row-quiz">
+                    <span class="cc-caret cc-caret-empty">\u2022</span>
+                    <span class="cc-ico cc-ico-quiz">\u270e</span>
+                    <span class="cc-quiz-body">
+                      <span class="cc-label">${escapeHtml(qz.quiz_set_name || '(untitled)')}</span>
+                      <span class="cc-quiz-meta-row">
+                        ${badge}
+                        <span class="cc-meta">${escapeHtml(meta)}</span>
+                      </span>
+                    </span>
+                    <span class="cc-open-arrow">\u2192</span>
+                   </a>`
+                : `<div class="cc-row cc-row-quiz locked">
+                    <span class="cc-caret cc-caret-empty">\u2022</span>
+                    <span class="cc-ico cc-ico-quiz">\u270e</span>
+                    <span class="cc-quiz-body">
+                      <span class="cc-label">${escapeHtml(qz.quiz_set_name || '(untitled)')}</span>
+                      <span class="cc-quiz-meta-row">
+                        ${badge}
+                        <span class="cc-meta">${escapeHtml(meta)}</span>
+                      </span>
+                    </span>
+                    <span class="cc-locked">\u{1F512}</span>
+                   </div>`}
+            </li>`;
+        }).join('');
+
+        return `
+          <div class="cc-subject" data-subject="qz-${si}">
+            <div class="cc-row cc-row-subject" data-toggle="subject-qz-${si}">
+              <span class="cc-caret cc-caret-rotated">\u203a</span>
+              <span class="cc-ico cc-ico-subject">\u25A2</span>
+              <span class="cc-label cc-label-subject">${escapeHtml(sub.name)}</span>
+              <span class="cc-meta">${sub.quizzes.length} ${sub.quizzes.length === 1 ? 'quiz' : 'quizzes'}</span>
+            </div>
+            <ul class="cc-children" id="cc-children-subject-qz-${si}">${quizRows}</ul>
+          </div>`;
+      }).join('')
+    }</div>`;
+  }
+
+  function renderNotesTree(notes, canView) {
+    // Group notes by subject (notes without a subject go under "Uncategorized")
+    const bySubject = new Map();
+    notes.forEach(n => {
+      const key = n.subject_id || '__none__';
+      const name = n.subject_name || 'Uncategorized';
+      if (!bySubject.has(key)) bySubject.set(key, { name, notes: [] });
+      bySubject.get(key).notes.push(n);
+    });
+
+    return `<div class="cc-tree">${
+      [...bySubject.entries()].map(([subjId, sub], si) => {
+        const noteRows = sub.notes.map((n, ni) => {
+          const lessons = n.lessons || [];
+          const isFree = (n.is_free_demo === 1);
+          const itemAccess = canView || isFree;
+          const noteHref = itemAccess ? `note.html?id=${encodeURIComponent(n.note_id)}` : null;
+          const badge = isFree ? '<span class="cc-free-badge">FREE</span>' : '';
+          return `
+            <li class="cc-node cc-node-note">
+              <div class="cc-row cc-row-note" data-toggle="note-${si}-${ni}">
+                <span class="cc-caret ${lessons.length ? '' : 'cc-caret-empty'}">${lessons.length ? '\u203a' : '\u2022'}</span>
+                <span class="cc-ico cc-ico-note"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+                <span class="cc-quiz-body">
+                  <span class="cc-label">${escapeHtml(n.note_title || '(untitled)')}</span>
+                  <span class="cc-quiz-meta-row">
+                    ${badge}
+                    <span class="cc-meta">${lessons.length} ${lessons.length === 1 ? 'lesson' : 'lessons'}</span>
+                  </span>
+                </span>
+                ${itemAccess
+                  ? `<a href="${noteHref}" class="cc-open" onclick="event.stopPropagation();">Open \u2192</a>`
+                  : `<span class="cc-locked">\u{1F512}</span>`}
+              </div>
+              ${lessons.length ? `
+                <ul class="cc-children cc-children-collapsed" id="cc-children-note-${si}-${ni}">
+                  ${lessons.map(l => {
+                    // Lessons inherit the parent note's access (if the note is
+                    // a free demo, its lessons are too)
+                    const href = itemAccess ? `lesson.html?id=${encodeURIComponent(l.id)}` : null;
+                    return `
+                      <li class="cc-node cc-node-lesson">
+                        ${itemAccess
+                          ? `<a href="${href}" class="cc-row cc-row-lesson">
+                              <span class="cc-caret cc-caret-empty">\u2022</span>
+                              <span class="cc-ico cc-ico-lesson">\u25CB</span>
+                              <span class="cc-label">${escapeHtml(l.title || '(untitled)')}</span>
+                              <span class="cc-open-arrow">\u2192</span>
+                            </a>`
+                          : `<div class="cc-row cc-row-lesson locked">
+                              <span class="cc-caret cc-caret-empty">\u2022</span>
+                              <span class="cc-ico cc-ico-lesson">\u25CB</span>
+                              <span class="cc-label">${escapeHtml(l.title || '(untitled)')}</span>
+                              <span class="cc-locked">\u{1F512}</span>
+                            </div>`}
+                      </li>`;
+                  }).join('')}
+                </ul>` : ''}
+            </li>`;
+        }).join('');
+
+        return `
+          <div class="cc-subject" data-subject="${si}">
+            <div class="cc-row cc-row-subject" data-toggle="subject-${si}">
+              <span class="cc-caret cc-caret-rotated">\u203a</span>
+              <span class="cc-ico cc-ico-subject">\u25A2</span>
+              <span class="cc-label cc-label-subject">${escapeHtml(sub.name)}</span>
+              <span class="cc-meta">${sub.notes.length} ${sub.notes.length === 1 ? 'note' : 'notes'}</span>
+            </div>
+            <ul class="cc-children" id="cc-children-subject-${si}">${noteRows}</ul>
+          </div>`;
+      }).join('')
+    }</div>`;
+  }
+
+  function wireTabsAndTree() {
+    // Tab switcher
+    function activateTab(tabKey) {
+      const tabBtn = document.querySelector(`.cc-tab[data-cc-tab="${tabKey}"]`);
+      if (!tabBtn) return;
+      document.querySelectorAll('.cc-tab').forEach(x => x.classList.toggle('active', x === tabBtn));
+      document.querySelectorAll('.cc-panel').forEach(p => {
+        p.classList.toggle('cc-panel-active', p.id === 'cc-panel-' + tabKey);
+      });
+    }
+    document.querySelectorAll('.cc-tab').forEach(t => {
+      t.addEventListener('click', () => {
+        activateTab(t.dataset.ccTab);
+        history.replaceState(null, '', '#' + t.dataset.ccTab);
+      });
+    });
+    // Honor a hash on initial load — lets a back link target a specific tab
+    // (e.g. course-detail.html?id=X#notes opens the Notes tab).
+    const hash = (location.hash || '').replace('#', '');
+    if (hash === 'notes' || hash === 'quiz') activateTab(hash);
+    // Expand / collapse rows
+    document.querySelectorAll('[data-toggle]').forEach(row => {
+      row.addEventListener('click', (e) => {
+        // Don't toggle if the user clicked the inline "Open ->" link.
+        if (e.target.closest('a')) return;
+        const key = row.dataset.toggle;
+        const list = document.getElementById('cc-children-' + key);
+        if (!list) return;
+        list.classList.toggle('cc-children-collapsed');
+        const caret = row.querySelector('.cc-caret');
+        if (caret && !caret.classList.contains('cc-caret-empty')) {
+          caret.classList.toggle('cc-caret-rotated');
+        }
+      });
+    });
+  }
+
+  function renderActivePlanCard(access) {
+    const plan = access.plan || null;
+    const planName = plan?.name || 'Course Access';
+    const purchaseTs = plan?.purchaseDate || access.startsAt;
+    const expiresTs  = access.expiresAt;
+
+    // Compute days left + progress (% consumed of total subscription duration)
+    let daysLeft = null, pct = 0, urgent = false;
+    if (expiresTs) {
+      const expMs = new Date(String(expiresTs).replace(' ', 'T')).getTime();
+      const nowMs = Date.now();
+      daysLeft = Math.max(0, Math.ceil((expMs - nowMs) / 86400000));
+      urgent = daysLeft <= 7;
+      const startMs = purchaseTs
+        ? new Date(String(purchaseTs).replace(' ', 'T')).getTime()
+        : (plan?.durationDays ? expMs - plan.durationDays * 86400000 : nowMs - 30 * 86400000);
+      const total = Math.max(1, expMs - startMs);
+      const used  = Math.max(0, nowMs - startMs);
+      pct = Math.min(100, Math.max(0, (used / total) * 100));
+    }
+    return `
+      <div class="enroll-box">
+        <div class="badge badge-success mb-2">Active enrollment</div>
+        <div class="plan-card">
+          <div class="plan-name">${escapeHtml(planName)}</div>
+          <div class="plan-meta">
+            ${purchaseTs ? `<div class="plan-meta-row"><span>Purchased</span><strong>${escapeHtml(formatDate(purchaseTs))}</strong></div>` : ''}
+            ${expiresTs  ? `<div class="plan-meta-row"><span>Expires</span><strong>${escapeHtml(formatDate(expiresTs))}</strong></div>` : ''}
+          </div>
+          ${daysLeft !== null ? `
+            <div class="plan-days ${urgent ? 'is-urgent' : ''}">
+              ${daysLeft === 0 ? 'Expires today' : `${daysLeft} Day${daysLeft === 1 ? '' : 's'} Left`}
+            </div>
+            <div class="plan-progress" aria-label="Subscription progress">
+              <div class="plan-progress-fill ${urgent ? 'is-urgent' : ''}" style="width:${pct.toFixed(1)}%;"></div>
+            </div>
+            ${urgent ? `<p class="text-muted mt-1" style="font-size:0.8rem; color:var(--error);">Your subscription expires soon. Renew now to avoid interruption.</p>` : ''}
+          ` : `<p class="text-muted" style="font-size:0.82rem; margin-top:6px;">Unlimited access.</p>`}
+        </div>
+      </div>`;
+  }
+
+  function materialRow(m, canView) {
+    const isQuiz = m.type === 'QUIZ_SET';
+    const name = isQuiz ? m.quiz_set_name : m.note_title;
+    const meta = isQuiz
+      ? `${m.question_count ?? m.total_questions ?? 0} questions${m.duration_minutes ? ' \u00b7 ' + m.duration_minutes + ' min' : ''}`
+      : 'Study note';
+    if (canView) {
+      const href = isQuiz
+        ? `quiz-detail.html?id=${encodeURIComponent(m.quiz_set_id)}`
+        : `note.html?id=${encodeURIComponent(m.note_id)}`;
+      return `
+        <a href="${href}" class="material-item">
+          <div class="material-icon ${isQuiz ? 'quiz' : 'note'}">${isQuiz ? '\u270e' : '\u25A4'}</div>
+          <div class="material-body">
+            <div style="font-weight:500;">${escapeHtml(name || '(untitled)')}</div>
+            <div class="material-meta">${escapeHtml(meta)}</div>
+          </div>
+          <span style="color:var(--accent); font-size:0.85rem;">Open \u2192</span>
+        </a>`;
+    }
+    return `
+      <div class="material-item locked">
+        <div class="material-icon ${isQuiz ? 'quiz' : 'note'}">${isQuiz ? '\u270e' : '\u25A4'}</div>
+        <div class="material-body">
+          <div style="font-weight:500;">${escapeHtml(name || '(untitled)')}</div>
+          <div class="material-meta">${escapeHtml(meta)}</div>
+        </div>
+        <span style="font-size:0.95rem;">🔒</span>
+      </div>`;
+  }
+
+  // Enrollment side panel
+  function enrollPanel() {
+    if (!u) {
+      return `
+        <div class="enroll-box">
+          <div class="eyebrow mb-1">Enroll</div>
+          <p class="text-soft mb-2" style="font-size:0.92rem;">Sign in to request enrollment in this course.</p>
+          <a href="login.html?next=${encodeURIComponent(location.pathname + location.search)}" class="btn btn-accent btn-block">Sign in</a>
+        </div>`;
+    }
+    const st = access.status;
+    if (st === 'ACTIVE' || st === 'APPROVED') {
+      return renderActivePlanCard(access);
+    }
+    if (st === 'PENDING') {
+      const pendingPlanId = access.pendingPlanId || '';
+      const purchaseHref  = pendingPlanId
+        ? `purchase.html?courseId=${encodeURIComponent(id)}&planId=${encodeURIComponent(pendingPlanId)}`
+        : `purchase.html?courseId=${encodeURIComponent(id)}`;
+      return `
+        <div class="enroll-box">
+          <!-- Pending tab header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;animation:pulse-dot 1.8s ease-in-out infinite;flex-shrink:0;"></span>
+              <span style="font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#d97706;">Payment Pending</span>
+            </div>
+            <a href="${purchaseHref}"
+              style="display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:var(--accent);text-decoration:none;padding:5px 12px;border:1.5px solid var(--accent);border-radius:100px;transition:all .15s;"
+              onmouseover="this.style.background='var(--accent-soft)'"
+              onmouseout="this.style.background='transparent'">
+              View status →
+            </a>
+          </div>
+
+          <!-- Status card -->
+          <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:var(--radius);padding:16px;">
+            <div style="font-size:1.6rem;text-align:center;margin-bottom:8px;">⏳</div>
+            <p class="text-soft" style="font-size:.9rem;text-align:center;margin-bottom:14px;line-height:1.6;">
+              Your payment is awaiting admin approval.<br>You'll receive a notification once it's reviewed.
+            </p>
+            <!-- Progress steps mini -->
+            <div style="display:flex;gap:0;margin-bottom:14px;">
+              <div style="flex:1;text-align:center;font-size:.7rem;font-weight:700;padding:6px 4px;background:var(--success-soft);color:var(--success);border-radius:6px 0 0 6px;border:1px solid rgba(34,197,94,.3);">✓ Selected</div>
+              <div style="flex:1;text-align:center;font-size:.7rem;font-weight:700;padding:6px 4px;background:var(--success-soft);color:var(--success);border:1px solid rgba(34,197,94,.3);border-left:none;">✓ Paid</div>
+              <div style="flex:1;text-align:center;font-size:.7rem;font-weight:700;padding:6px 4px;background:rgba(239,68,68,.08);color:#dc2626;border:1px solid rgba(239,68,68,.25);border-left:none;border-radius:0 6px 6px 0;">⏳ Approval</div>
+            </div>
+            <a href="${purchaseHref}" class="btn btn-block" style="background:rgba(245,158,11,.12);color:#d97706;border:1.5px solid rgba(245,158,11,.35);font-weight:700;font-size:.88rem;justify-content:center;">
+              📋 View purchase details
+            </a>
+          </div>
+        </div>`;
+    }
+    if (st === 'REJECTED') {
+      if (plans.length) {
+        return `
+          <div class="enroll-box">
+            <div class="badge badge-error mb-2">Previous request rejected</div>
+            <p class="text-soft mb-2" style="font-size:0.92rem;">You can subscribe again with a plan below.</p>
+            <div class="stack" style="--stack:10px;">
+              ${plans.map(p => {
+                const feats = Array.isArray(p.features) ? p.features : [];
+                return `
+                  <div class="plan-pick" data-plan="${p.id}">
+                    <div class="flex-between">
+                      <strong>${escapeHtml(p.name)}</strong>
+                      ${p.is_popular ? '<span class="badge badge-accent">Popular</span>' : ''}
+                    </div>
+                    <div style="font-family:var(--font-mono); margin-top:4px;">
+                      <span style="font-size:1.3rem; color:var(--accent);">${escapeHtml(p.currency)} ${parseFloat(p.price).toFixed(0)}</span>
+                      <span class="text-muted" style="font-size:0.82rem;"> / ${p.duration_days} days</span>
+                    </div>
+                    ${feats.length ? `<ul class="plan-feats">${feats.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul>` : ''}
+                    <a class="btn btn-accent btn-block mt-2" href="purchase.html?courseId=${encodeURIComponent(id)}&planId=${encodeURIComponent(p.id)}" style="text-align:center;text-decoration:none;">Choose this plan</a>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }
+      return `
+        <div class="enroll-box">
+          <div class="badge badge-error mb-2">Request rejected</div>
+          <p class="text-soft mb-2" style="font-size:0.92rem;">Your previous request was rejected. You can request again.</p>
+          <button class="btn btn-accent btn-block" id="enroll-btn">Request again</button>
+        </div>`;
+    }
+    // no enrollment, or cancelled/expired
+    const hasPlans = plans.length > 0;
+    if (hasPlans) {
+      return `
+        <div class="enroll-box">
+          <div class="eyebrow mb-1">Subscribe</div>
+          <p class="text-soft mb-2" style="font-size:0.92rem;">Choose a plan to get full access to this course.</p>
+          <div class="stack" style="--stack:10px;">
+            ${plans.map(p => {
+              const feats = Array.isArray(p.features) ? p.features : [];
+              return `
+                <div class="plan-pick" data-plan="${p.id}">
+                  <div class="flex-between">
+                    <strong>${escapeHtml(p.name)}</strong>
+                    ${p.is_popular ? '<span class="badge badge-accent">Popular</span>' : ''}
+                  </div>
+                  <div style="font-family:var(--font-mono); margin-top:4px;">
+                    <span style="font-size:1.3rem; color:var(--accent);">${escapeHtml(p.currency)} ${parseFloat(p.price).toFixed(0)}</span>
+                    ${p.original_price ? `<span class="text-muted" style="text-decoration:line-through; font-size:0.85rem; margin-left:6px;">${parseFloat(p.original_price).toFixed(0)}</span>` : ''}
+                    <span class="text-muted" style="font-size:0.82rem;"> / ${p.duration_days} days</span>
+                  </div>
+                  ${feats.length ? `<ul class="plan-feats">${feats.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul>` : ''}
+                  <a class="btn btn-accent btn-block mt-2" href="purchase.html?courseId=${encodeURIComponent(id)}&planId=${encodeURIComponent(p.id)}" style="text-align:center;text-decoration:none;">Choose this plan</a>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+    return `
+      <div class="enroll-box">
+        <div class="eyebrow mb-1">Enroll</div>
+        <p class="text-soft mb-2" style="font-size:0.92rem;">
+          ${course.access_type === 'OPEN' && !parseInt(course.requires_approval)
+            ? 'This course is open — enroll instantly.'
+            : 'Request enrollment. An admin will review and approve it.'}
+        </p>
+        <button class="btn btn-accent btn-block" id="enroll-btn">Request enrollment</button>
+      </div>`;
+  }
+
+  // map access type → tag class + label
+  function accessTagHtml() {
+    const a = (course.access_type || 'OPEN').toUpperCase();
+    if (a === 'OPEN')         return '<span class="cd-tag t-open">● Free</span>';
+    if (a === 'APPROVAL')     return '<span class="cd-tag t-approval">⚑ Approval</span>';
+    if (a === 'SUBSCRIPTION') return '<span class="cd-tag t-sub">📅 Subscription</span>';
+    return '<span class="cd-tag t-paid">★ Premium</span>';
+  }
+
+  const quizCount = course.materials.filter(m => m.type === 'QUIZ_SET').length;
+  const noteCount = course.materials.filter(m => m.type === 'NOTE').length;
+  // Lessons live under notes; the notes endpoint returns a 'lessons' array
+  // per material when present. Sum them.
+  const lessonCount = course.materials.reduce((acc, m) =>
+    acc + (Array.isArray(m.lessons) ? m.lessons.length : 0), 0);
+
+  root.innerHTML = `
+    <div class="cd-head">
+      <div class="cd-tags">
+        ${accessTagHtml()}
+        ${course.profession_name ? `<span class="cd-tag t-prof">${escapeHtml(course.profession_name)}</span>` : ''}
+      </div>
+      <div class="cd-title">${escapeHtml(course.title)}</div>
+      ${course.description ? `
+        <div class="cd-desc-wrap is-collapsed" id="cd-desc-wrap">
+          <div class="cd-desc" id="cd-desc">${renderRichText(course.description)}</div>
+          <button type="button" class="cd-readmore-btn" id="cd-readmore-btn">Read more</button>
+        </div>` : ''}
+    </div>
+
+    <div class="cd-strip">
+      <div class="strip-cell">
+        <div class="strip-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="14 2 18 6 7 17 3 17 3 13 14 2"/></svg></div>
+        <div class="strip-n">${quizCount}</div><div class="strip-l">Quiz Sets</div>
+      </div>
+      <div class="strip-cell">
+        <div class="strip-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+        <div class="strip-n">${noteCount}</div><div class="strip-l">Notes</div>
+      </div>
+      <div class="strip-cell">
+        <div class="strip-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="strip-n">${lessonCount}</div><div class="strip-l">Lessons</div>
+      </div>
+      <div class="strip-cell">
+        <div class="strip-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="strip-n">${(course.enrolledCount || 0).toLocaleString()}</div><div class="strip-l">Users Enrolled</div>
+      </div>
+    </div>
+
+    ${course.syllabus ? `
+      <div class="cd-panel cd-syllabus-panel" id="cd-syllabus-panel">
+        <button type="button" class="cd-syllabus-toggle" id="cd-syllabus-toggle" aria-expanded="false">
+          <div class="cd-panel-title"><span>\u{1F4D6}</span> Syllabus</div>
+          <svg class="cd-syllabus-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="cd-syllabus-body" id="cd-syllabus-body">
+          <div class="cd-syllabus-inner">${renderRichText(course.syllabus)}</div>
+        </div>
+      </div>` : ''}
+
+    <div class="course-layout">
+      <div class="cd-panel">
+        <div class="cd-panel-title"><span>\u{1F4DA}</span> Course Content</div>
+        ${!canView ? `<div class="alert alert-info mb-3" style="font-size:0.85rem;">Enroll to unlock the ${course.materials.length} item(s) below.</div>` : ''}
+        ${course.materials.length
+          ? renderTabbedContent(course.materials, canView)
+          : `<p class="text-muted" style="font-size:0.88rem;">No content added to this course yet.</p>`}
+      </div>
+      <aside id="enroll-side">
+        <div class="cd-panel">${enrollPanel()}</div>
+      </aside>
+    </div>`;
+
+  function wireEnrollButton() {
+    const btn = document.getElementById('enroll-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const { el, close } = modal(`
+          <h2>Request enrollment</h2>
+          <p class="text-soft mb-2">Enroll in <strong>${escapeHtml(course.title)}</strong>.</p>
+          <form id="enroll-form" class="stack" style="--stack:14px;">
+            <div class="field">
+              <label>Message to admin <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+              <textarea name="note" rows="3" placeholder="Anything you'd like to add"></textarea>
+            </div>
+            <div id="enroll-alert"></div>
+            <div class="flex" style="gap:10px; justify-content:flex-end;">
+              <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+              <button type="submit" class="btn btn-accent">Submit request</button>
+            </div>
+          </form>`);
+        el.querySelector('#enroll-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const note = el.querySelector('textarea[name="note"]').value.trim();
+          try {
+            const r = await enrollments.request({ courseId: course.id, note: note || null });
+            close();
+            toast(r.message || 'Request submitted', 'success');
+            setTimeout(() => window.location.reload(), 1200);
+          } catch (err) {
+            el.querySelector('#enroll-alert').innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+          }
+        });
+      });
+    }
+    // Subscribe buttons now navigate to purchase.html (see <a> tags rendered above)
+  }
+
+  async function subscribeModal(plan) {
+    // load payment instructions
+    let ps = {};
+    try { ps = (await paymentSettings.get()).data || {}; } catch { ps = {}; }
+
+    const methodLine = (icon, label, val) => val
+      ? `<div style="font-size:0.86rem; margin-top:4px;">${icon} <strong>${escapeHtml(label)}:</strong> ${escapeHtml(val)}</div>` : '';
+
+    const { el, close } = modal(`
+      <h2>Subscribe — ${escapeHtml(plan.name)}</h2>
+      <div class="card card-tight mb-2" style="background:var(--paper-soft);">
+        <div style="font-family:var(--font-mono);">
+          <span style="font-size:1.2rem; color:var(--accent);">${escapeHtml(plan.currency)} ${parseFloat(plan.price).toFixed(0)}</span>
+          <span class="text-muted" style="font-size:0.84rem;"> for ${plan.duration_days} days of access to "${escapeHtml(course.title)}"</span>
+        </div>
+      </div>
+      <div class="alert alert-info mb-2" style="font-size:0.86rem;">
+        <strong>How to pay</strong>
+        ${ps.instructions ? `<div style="margin-top:4px;">${escapeHtml(ps.instructions)}</div>` : ''}
+        ${methodLine('📱', 'eSewa', ps.esewa_id)}
+        ${methodLine('💜', 'Khalti', ps.khalti_id)}
+        ${methodLine('🏦', ps.bank_name || 'Bank', ps.bank_account_number)}
+        ${ps.qr_image_url ? `<div style="margin-top:8px;"><img src="${escapeHtml(ps.qr_image_url)}" alt="Payment QR" style="max-width:160px; border-radius:8px;"></div>` : ''}
+      </div>
+      <form id="sub-form" class="stack" style="--stack:13px;">
+        <div class="field">
+          <label>Transaction ID / reference <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+          <input name="transactionId" placeholder="e.g. eSewa/Khalti txn code">
+        </div>
+        <div class="field">
+          <label>Payment receipt <span style="color:var(--error);">*</span></label>
+          <input name="receipt" type="file" accept="image/*,application/pdf" required>
+          <p class="text-muted" style="font-size:0.78rem; margin-top:3px;">Screenshot or PDF, max 5 MB</p>
+        </div>
+        <div class="field">
+          <label>Note <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+          <textarea name="note" rows="2"></textarea>
+        </div>
+        <div id="sub-alert"></div>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-accent">Submit subscription</button>
+        </div>
+      </form>`);
+
+    el.querySelector('#sub-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const fileInput = form.querySelector('input[name="receipt"]');
+      if (!fileInput.files[0]) {
+        el.querySelector('#sub-alert').innerHTML = `<div class="alert alert-error">Please attach a payment receipt.</div>`;
+        return;
+      }
+      const fd = new FormData();
+      fd.append('coursePlanId', plan.id);
+      fd.append('receipt', fileInput.files[0]);
+      const txn = form.querySelector('input[name="transactionId"]').value.trim();
+      const note = form.querySelector('textarea[name="note"]').value.trim();
+      if (txn) fd.append('transactionId', txn);
+      if (note) fd.append('note', note);
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
+      try {
+        const r = await purchases.request(fd);
+        close();
+        const orderId = r?.data?.id || '';
+        // "Subscription" path uses the course title + plan label as the item name
+        const itemName = (plan.name ? plan.name + ' \u2014 ' : '') + (course.title || '');
+        await showPurchasePendingModal({
+          title:     'Course',
+          itemName,
+          orderId,
+          userEmail: u?.email || '',
+          onClose:   () => window.location.reload(),
+        });
+      } catch (err) {
+        el.querySelector('#sub-alert').innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        submitBtn.disabled = false; submitBtn.textContent = 'Submit subscription';
+      }
+    });
+  }
+
+  // Description "Read more" — only show the button if the content actually
+  // overflows the collapsed height, so short descriptions never get a
+  // pointless button.
+  function wireDescriptionCollapse() {
+    const wrap = document.getElementById('cd-desc-wrap');
+    const desc = document.getElementById('cd-desc');
+    const btn  = document.getElementById('cd-readmore-btn');
+    if (!wrap || !desc || !btn) return;
+
+    const fontSize = parseFloat(getComputedStyle(desc).fontSize) || 16;
+    const COLLAPSED_MAX = 5.6 * fontSize; // matches CSS max-height
+    if (desc.scrollHeight > COLLAPSED_MAX + 4) {
+      wrap.classList.add('has-overflow');
+    } else {
+      wrap.classList.remove('is-collapsed');
+      return;
+    }
+
+    btn.addEventListener('click', () => {
+      const collapsing = !wrap.classList.contains('is-collapsed');
+      wrap.classList.toggle('is-collapsed');
+      btn.textContent = wrap.classList.contains('is-collapsed') ? 'Read more' : 'Read less';
+      if (collapsing) wrap.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  // Syllabus panel — collapsible, starts closed. Height is measured via
+  // scrollHeight so the max-height transition animates smoothly regardless
+  // of how long the rendered Markdown/HTML content is.
+  function wireSyllabusToggle() {
+    const panel = document.getElementById('cd-syllabus-panel');
+    const toggle = document.getElementById('cd-syllabus-toggle');
+    const body = document.getElementById('cd-syllabus-body');
+    if (!panel || !toggle || !body) return;
+
+    toggle.addEventListener('click', () => {
+      const opening = !panel.classList.contains('is-open');
+      if (opening) {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        panel.classList.add('is-open');
+        toggle.setAttribute('aria-expanded', 'true');
+      } else {
+        body.style.maxHeight = '0px';
+        panel.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // If the panel is open and the viewport resizes (rotation, text reflow),
+    // recompute the max-height so content never gets clipped.
+    window.addEventListener('resize', () => {
+      if (panel.classList.contains('is-open')) {
+        body.style.maxHeight = body.scrollHeight + 'px';
+      }
+    });
+  }
+
+  wireEnrollButton();
+  wireTabsAndTree();
+  wireDescriptionCollapse();
+  wireSyllabusToggle();
+
+  // 7-day expiry toast (server-side notification has already been queued; this
+  // gives the user immediate visible feedback on this page).
+  if (course.access?.expiresAt) {
+    const expMs = new Date(String(course.access.expiresAt).replace(' ', 'T')).getTime();
+    const days = Math.ceil((expMs - Date.now()) / 86400000);
+    if (days > 0 && days <= 7) {
+      toast(`Your subscription expires in ${days} day${days === 1 ? '' : 's'}. Renew now to avoid interruption.`, 'warning', 8000);
+    }
+  }
+</script>
+
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('courses', u);
+})();
+</script>
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

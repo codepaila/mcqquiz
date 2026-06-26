@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Quiz Sets · Quiznosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  :root {
+    --ink:#0d0f14; --paper:#f5f3ee; --white:#ffffff;
+    --accent:#e84b2b; --blue:#2b7de8; --green:#1a9c5b; --gold:#c9920a;
+    --muted:#7a7870; --border:#e2dfd8; --card:#ffffff; --sidebar-w:258px;
+  }
+  [data-theme="dark"] {
+    --ink:#e8ecf4; --paper:#0e1626; --white:#16203a;
+    --accent:#e0742f; --blue:#5b9bf0; --green:#4ade80; --gold:#e0a93e;
+    --muted:#6b7794; --border:#2a3a5c; --card:#16203a;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink); min-height:100vh; }
+  a { color:inherit; text-decoration:none; }
+  /* Page no longer uses a flex split — sidebar is a drawer now */
+  .page-wrap { min-height:100vh; }
+
+  /* ---------- Inline toolbar action buttons (Filters + Clear) ---------- */
+  .qz-toolbar-actions {
+    display:flex; align-items:center; gap:8px; flex-shrink:0;
+  }
+  .qz-filter-btn, .qz-clear-btn {
+    position:relative;
+    display:inline-flex; align-items:center; gap:7px;
+    height:38px; padding:0 14px;
+    border:1.5px solid var(--border); border-radius:10px;
+    background:var(--paper); color:var(--ink);
+    font-family:inherit; font-size:0.84rem; font-weight:700;
+    cursor:pointer; white-space:nowrap;
+    transition:background .12s, border-color .12s, color .12s, transform .12s, opacity .12s;
+  }
+  .qz-filter-btn svg, .qz-clear-btn svg { width:14px; height:14px; flex-shrink:0; }
+  .qz-filter-btn:hover, .qz-clear-btn:hover {
+    border-color:var(--accent); color:var(--accent); transform:translateY(-1px);
+  }
+  .qz-clear-btn { color:var(--muted); }
+  .qz-clear-btn:disabled {
+    opacity:0.45; cursor:not-allowed; transform:none;
+    border-color:var(--border); color:var(--muted);
+  }
+  /* Count badge sits inside the Filters button on the right */
+  .qz-filter-btn-count {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:20px; height:20px; padding:0 6px;
+    background:var(--accent); color:#fff;
+    border-radius:100px; font-size:0.7rem; font-weight:700;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  /* Notification dot — small pulsing indicator in the top-right corner
+     of the Filters button when there are unsaved/active filters. */
+  .qz-filter-btn-dot {
+    position:absolute; top:7px; right:7px;
+    width:8px; height:8px; border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 2px var(--white);
+  }
+  .qz-filter-btn-dot::after {
+    content:''; position:absolute; inset:-3px; border-radius:50%;
+    background:var(--accent); opacity:0.35;
+    animation:qz-pulse 1.6s ease-out infinite;
+  }
+  @keyframes qz-pulse {
+    0%   { transform:scale(0.6); opacity:0.50; }
+    100% { transform:scale(1.9); opacity:0;    }
+  }
+  [data-theme="dark"] .qz-filter-btn-dot { box-shadow:0 0 0 2px var(--card); }
+
+  /* Show / hide actions cleanly on small screens — labels collapse to
+     icon-only so the search keeps the lion's share of the row. */
+  .qz-filter-btn-label, .qz-clear-btn-label { font-weight:700; }
+  @media (max-width:520px) {
+    .qz-filter-btn-label, .qz-clear-btn-label { display:none; }
+    .qz-filter-btn, .qz-clear-btn { padding:0 10px; }
+  }
+
+  /* ---------- Filters popup (centered modal) ---------- */
+  .qx-backdrop {
+    position:fixed; inset:0; z-index:100;
+    background:rgba(0,0,0,0.32);
+    opacity:0; pointer-events:none;
+    transition:opacity .22s ease, backdrop-filter .22s ease;
+  }
+  body.qx-drawer-open .qx-backdrop {
+    opacity:1; pointer-events:auto;
+    /* Frosted-glass blur over whatever's behind. Both vendor + standard
+       properties for cross-browser support (Safari still wants -webkit-). */
+    -webkit-backdrop-filter:blur(8px) saturate(140%);
+            backdrop-filter:blur(8px) saturate(140%);
+  }
+  [data-theme="dark"] .qx-backdrop { background:rgba(8,12,22,0.66); }
+  [data-theme="dark"] body.qx-drawer-open .qx-backdrop {
+    -webkit-backdrop-filter:blur(10px) saturate(120%) brightness(0.8);
+            backdrop-filter:blur(10px) saturate(120%) brightness(0.8);
+  }
+
+  .sidebar {
+    position:fixed; top:50%; left:50%; z-index:110;
+    width:min(420px, 92vw); max-height:84vh;
+    transform:translate(-50%, -50%) scale(0.96);
+    opacity:0; pointer-events:none;
+    background:var(--paper); color:var(--ink);
+    border:1px solid var(--border); border-radius:14px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.18);
+    padding:clamp(14px, 3vw, 22px);
+    overflow-y:auto;
+    display:flex; flex-direction:column;
+    transition:opacity .22s ease, transform .22s cubic-bezier(0.4, 0, 0.2, 1);
+    scrollbar-width:thin;
+  }
+  body.qx-drawer-open .sidebar {
+    opacity:1; pointer-events:auto;
+    transform:translate(-50%, -50%) scale(1);
+  }
+  [data-theme="dark"] .sidebar { background:var(--card, #16203a); }
+  .sidebar::-webkit-scrollbar { width:5px; }
+  .sidebar::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  .sb-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .sb-head-title {
+    font-size:0.66rem; font-weight:700; letter-spacing:0.10em;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .sb-close {
+    width:28px; height:28px; padding:0; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:transparent; border:1px solid var(--border);
+    border-radius:6px; color:var(--muted);
+    transition:background .12s, color .12s, border-color .12s;
+  }
+  .sb-close:hover { background:rgba(232,75,43,0.08); color:var(--accent); border-color:var(--accent); }
+  .sb-close svg { width:13px; height:13px; }
+
+  /* Floating pill that opens the drawer (top-left, sits above sticky toolbar) */
+  .sb-brand { font-weight:800; font-size:1.2rem; letter-spacing:-0.03em; margin-bottom:1.6rem; }
+  .sb-brand span { color:var(--accent); }
+  .sb-section { margin-bottom:1.7rem; }
+  /* Pills + tags use clamp() so padding and font-size scale smoothly across
+     viewports. The popup width is min(420px, 92vw), so on very narrow phones
+     these shrink slightly; on tablets/laptops they sit at comfortable sizes. */
+  .mode-pills { display:flex; flex-direction:column; gap:clamp(4px, 1vw, 8px); }
+  .mode-pill {
+    display:flex; align-items:center; gap:clamp(6px, 1.4vw, 12px);
+    padding:clamp(8px, 1.6vw, 12px) clamp(10px, 2vw, 14px);
+    border-radius:8px; cursor:pointer;
+    font-size:clamp(0.78rem, 1.4vw + 0.5rem, 0.92rem); font-weight:600;
+    line-height:1.2;
+    transition:background .15s,color .15s; user-select:none; border:1.5px solid transparent;
+  }
+  .mode-pill:hover { background:var(--paper); }
+  .mode-pill.active { background:var(--ink); color:var(--white); }
+  .pill-icon {
+    font-size:clamp(0.9rem, 1.4vw + 0.5rem, 1.05rem);
+    width:clamp(18px, 3vw, 22px); text-align:center; flex-shrink:0;
+  }
+  .pill-count {
+    margin-left:auto; font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(0.62rem, 1vw + 0.3rem, 0.74rem); opacity:0.5; flex-shrink:0;
+  }
+  .price-toggle { display:flex; border:1.5px solid var(--border); border-radius:8px; overflow:hidden; }
+  .price-btn {
+    flex:1; padding:clamp(7px, 1.4vw, 11px) clamp(4px, 1vw, 8px); text-align:center; font-family:inherit;
+    font-size:clamp(0.7rem, 1.2vw + 0.4rem, 0.82rem); font-weight:700; cursor:pointer; border:none;
+    background:transparent; color:var(--ink); transition:all .15s;
+  }
+  .price-btn:not(:last-child) { border-right:1.5px solid var(--border); }
+  .price-btn.active { background:var(--ink); color:var(--white); }
+  .tag-cloud { display:flex; flex-wrap:wrap; gap:clamp(4px, 0.8vw, 7px); }
+  .tag {
+    padding:clamp(4px, 0.9vw, 7px) clamp(8px, 1.6vw, 12px);
+    border-radius:100px; border:1.5px solid var(--border);
+    background:var(--paper);
+    font-size:clamp(0.66rem, 1.2vw + 0.3rem, 0.78rem); font-weight:700;
+    cursor:pointer; transition:all .15s; white-space:nowrap; user-select:none;
+    line-height:1.2;
+  }
+  .tag:hover { border-color:var(--ink); }
+  .tag.active { border-color:var(--accent); background:var(--accent); color:var(--white); }
+  /* Section labels also scale (slightly) */
+  .sb-label {
+    font-size:clamp(0.62rem, 0.9vw + 0.35rem, 0.7rem);
+    font-weight:700; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:0.7rem;
+  }
+  .apply-btn {
+    flex:1; padding:clamp(9px, 1.6vw, 13px); border-radius:8px; border:none;
+    background:var(--accent); color:#fff;
+    font-family:inherit; font-size:0.86rem; font-weight:700;
+    cursor:pointer; transition:transform .12s, opacity .12s;
+  }
+  .apply-btn:hover { transform:translateY(-1px); opacity:0.94; }
+  .sb-footer {
+    display:flex; gap:8px; margin-top:auto; padding-top:12px;
+    border-top:1px solid var(--border);
+  }
+
+  /* Main column — popup floats above, so no flex sidebar needs accommodating */
+  .main { padding:1.6rem 2rem; min-width:0; max-width:1400px; margin:0 auto; }
+  @media (max-width:600px) { .main { padding:1.2rem 0.9rem; } }
+  .topbar { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.3rem; flex-wrap:wrap; gap:1rem; }
+  .topbar h1 { font-size:1.5rem; font-weight:800; letter-spacing:-0.02em; }
+  .topbar p { font-size:0.82rem; color:var(--muted); margin-top:0.15rem; }
+  .topbar-right { display:flex; align-items:center; gap:0.7rem; }
+  .topbar-right a { font-size:0.82rem; font-weight:700; color:var(--muted); }
+  .topbar-right a:hover { color:var(--ink); }
+  .view-toggle { display:flex; border:1.5px solid var(--border); border-radius:8px; overflow:hidden; }
+  .view-btn { padding:0.42rem 0.65rem; border:none; background:transparent; cursor:pointer; font-size:0.9rem; }
+  .view-btn.active { background:var(--ink); color:var(--white); }
+  .active-filters { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.1rem; min-height:30px; }
+  .chip {
+    display:flex; align-items:center; gap:0.35rem; padding:0.26rem 0.55rem 0.26rem 0.7rem;
+    background:var(--ink); color:var(--white); border-radius:100px; font-size:0.72rem; font-weight:700;
+  }
+  .chip span { cursor:pointer; opacity:0.6; }
+  .chip span:hover { opacity:1; }
+  .results-count { font-size:0.8rem; color:var(--muted); font-weight:600; margin-left:auto; }
+  .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:1rem; }
+
+  /* === Sticky site header that auto-hides on scroll down (this page only) ===
+   * The shared mountHeader() injects a non-sticky <header>. On this page we
+   * override its positioning so it pins to the top, then slides off-screen
+   * upward when the user scrolls down. Scrolling up reveals it again.
+   * Visibility is driven by the `is-hidden` class toggled in JS below.
+   */
+  .site-header {
+    position:sticky; top:0; z-index:60;
+    transition:transform .25s ease;
+    background:var(--paper);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    backdrop-filter:saturate(180%) blur(12px);
+  }
+  [data-theme="dark"] .site-header { background:var(--paper); border-bottom-color:var(--paper-edge); }
+  .site-header.is-hidden { transform:translateY(-100%); }
+
+  /* ---------- Sticky toolbar (search + profession chips) ----------
+   * One bar combining the search input on the left and the horizontally-
+   * scrolling profession chips on the right. Pins to the top of the
+   * viewport when the user scrolls past it.
+   */
+  .qz-toolbar {
+    position:sticky; top:0; z-index:50;
+    margin:0 0 14px;
+    background:var(--paper);
+    padding:10px 0;
+    border-bottom:1px solid transparent;
+    transition:border-color .18s, background .18s, box-shadow .18s, padding .18s;
+  }
+  .qz-toolbar.is-stuck {
+    border-bottom-color:var(--border);
+    box-shadow:0 4px 12px rgba(0,0,0,0.06);
+    padding:8px 0;
+  }
+  [data-theme="dark"] .qz-toolbar { background:var(--paper); }
+  [data-theme="dark"] .qz-toolbar.is-stuck { box-shadow:0 4px 12px rgba(0,0,0,0.30); }
+
+  .qz-toolbar-row {
+    display:flex; align-items:center; gap:10px;
+    flex-wrap:nowrap;            /* stay single row at all screen sizes */
+  }
+  .qz-search {
+    position:relative; display:flex; align-items:center; gap:10px;
+    background:var(--paper); border:1.5px solid var(--border);
+    border-radius:12px; padding:8px 14px;
+    transition:border-color .18s, box-shadow .22s, background .18s;
+    flex:1 1 220px; min-width:140px;
+  }
+  .qz-search:focus-within {
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(232,75,43,0.14);
+  }
+  .qz-search-ico { color:var(--muted); flex-shrink:0; }
+  .qz-search:focus-within .qz-search-ico { color:var(--accent); }
+  .qz-search-input {
+    flex:1; border:none; background:transparent; outline:none;
+    font-family:inherit; font-size:0.92rem; color:var(--ink); min-width:0;
+  }
+  .qz-search-input::placeholder { color:var(--muted); }
+  .qz-search-clear {
+    border:none; background:transparent; color:var(--muted); cursor:pointer;
+    font-size:0.95rem; padding:4px 6px; border-radius:6px; display:none;
+    font-family:inherit;
+  }
+  .qz-search.has-text .qz-search-clear { display:inline-flex; }
+  .qz-search-clear:hover { color:var(--accent); background:rgba(232,75,43,0.08); }
+
+  /* ---------- Profession chip bar ---------- */
+  .qz-prof-bar {
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+    margin-top:10px;            /* small gap below the search row */
+  }
+  .qz-prof-bar::-webkit-scrollbar { height:5px; }
+  .qz-prof-bar::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+  .qz-prof-track { display:inline-flex; gap:6px; padding:1px 1px 4px; }
+  /* Exam Type chip. Smaller than before, no hover lift ("no grow"), and a
+     subtle orange tint at rest so the bar reads as "this is the orange/
+     exam-type filter strip" even before anything is selected. */
+  .qz-chip {
+    display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+    padding:5px 11px; border-radius:100px;
+    background:rgba(232,75,43,0.08);
+    border:1.5px solid rgba(232,75,43,0.35);
+    font-size:0.74rem; font-weight:600; color:var(--accent);
+    cursor:pointer; white-space:nowrap;
+    transition:border-color .18s, background .18s, color .18s, box-shadow .25s;
+  }
+  .qz-chip:hover {
+    border-color:var(--accent);
+    background:rgba(232,75,43,0.14);
+    /* no transform — chip does NOT grow / lift on hover */
+  }
+  .qz-chip .dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+  .qz-chip.on {
+    background:var(--accent); border-color:var(--accent); color:#fff;
+    box-shadow:0 2px 8px rgba(232,75,43,0.25);
+  }
+  .qz-chip.on .dot { background:#fff; }
+  [data-theme="dark"] .qz-chip {
+    background:rgba(255,138,0,0.12);
+    border-color:rgba(255,138,0,0.42);
+    color:#FFB347;
+  }
+  [data-theme="dark"] .qz-chip:hover {
+    background:rgba(255,138,0,0.20);
+    border-color:#FFB347; color:#FFB347;
+  }
+
+  /* ---------- DARK MODE: premium orange/amber theme (this page only) ---------- */
+  [data-theme="dark"] body {
+    background:#0F1117;
+  }
+  [data-theme="dark"] .main, [data-theme="dark"] .sidebar { background:transparent; }
+  [data-theme="dark"] .card, [data-theme="dark"] .quiz-card {
+    background:#1A1D29;
+    border-color:rgba(255,165,0,0.18);
+  }
+  [data-theme="dark"] .quiz-card:hover {
+    border-color:rgba(255,138,0,0.55);
+    box-shadow:0 8px 28px rgba(255,138,0,0.18);
+  }
+  /* Search — glassmorphism + orange glow */
+  [data-theme="dark"] .qz-search {
+    background:rgba(26,29,41,0.65);
+    border:1.5px solid rgba(255,165,0,0.22);
+    -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  [data-theme="dark"] .qz-search:focus-within {
+    border-color:#FF8A00;
+    box-shadow:0 0 0 4px rgba(255,138,0,0.18), 0 6px 20px rgba(255,138,0,0.25);
+    animation:qzBorderPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes qzBorderPulse {
+    0%,100% { box-shadow:0 0 0 4px rgba(255,138,0,0.18), 0 6px 20px rgba(255,138,0,0.25); }
+    50%     { box-shadow:0 0 0 4px rgba(255,179,71,0.28), 0 6px 26px rgba(255,138,0,0.35); }
+  }
+  [data-theme="dark"] .qz-search-ico { color:rgba(255,179,71,0.7); }
+  [data-theme="dark"] .qz-search:focus-within .qz-search-ico { color:#FFB347; }
+  [data-theme="dark"] .qz-search-input { color:#f0e9dc; }
+  [data-theme="dark"] .qz-search-input::placeholder { color:rgba(240,233,220,0.42); }
+  [data-theme="dark"] .qz-search-clear { color:rgba(240,233,220,0.55); }
+  [data-theme="dark"] .qz-search-clear:hover { color:#FFB347; background:rgba(255,138,0,0.12); }
+
+  /* Exam Type chips in dark mode — orange tint at rest, gradient when active */
+  [data-theme="dark"] .qz-chip {
+    background:rgba(255,138,0,0.10);
+    border:1.5px solid rgba(255,138,0,0.38);
+    color:#FFB347;
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  }
+  [data-theme="dark"] .qz-chip:hover {
+    border-color:rgba(255,138,0,0.65);
+    background:rgba(255,138,0,0.18);
+    color:#FFB347;
+    /* No glow box-shadow + no transform — chip should not grow */
+  }
+  [data-theme="dark"] .qz-chip.on {
+    background:linear-gradient(135deg, #FF8A00, #FFB347);
+    border-color:transparent;
+    color:#1a0f00;
+    box-shadow:0 4px 12px rgba(255,138,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  [data-theme="dark"] .qz-chip.on .dot { background:#1a0f00; }
+  /* No hover lift on active chips either */
+  [data-theme="dark"] .qz-prof-bar::-webkit-scrollbar-thumb { background:rgba(255,165,0,0.28); }
+  .qz-section { margin-bottom:2rem; }
+  .qz-section-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:0.9rem; padding-bottom:0.5rem; border-bottom:1.5px solid var(--border);
+  }
+  .qz-section-head h2 { font-size:1.1rem; font-weight:800; }
+  .qz-count {
+    font-family:'IBM Plex Mono',monospace; font-size:0.78rem; font-weight:600;
+    color:var(--muted); background:var(--card); border:1px solid var(--border);
+    border-radius:100px; padding:0.1rem 0.55rem; margin-left:0.35rem;
+  }
+  .qz-seeall {
+    font-size:0.82rem; font-weight:700; color:#fff; background:var(--accent);
+    padding:0.4rem 0.9rem; border-radius:8px; text-decoration:none;
+  }
+  .qz-seeall:hover { background:#d23f20; }
+  [data-theme="dark"] .qz-seeall:hover { background:#f0853e; }
+  .cards-list { display:flex; flex-direction:column; gap:0.6rem; }
+  .quiz-card {
+    background:var(--card); border:1.5px solid var(--border); border-radius:14px;
+    overflow:hidden; transition:transform .18s,box-shadow .18s,border-color .18s;
+    cursor:pointer; position:relative; display:block;
+  }
+  .quiz-card:hover { transform:translateY(-3px); box-shadow:0 12px 36px rgba(0,0,0,0.09); border-color:#ccc; }
+  .ribbon {
+    position:absolute; top:0; right:0; background:var(--gold); color:#fff;
+    font-size:0.62rem; font-weight:700; letter-spacing:0.06em;
+    padding:0.2rem 0.7rem; border-bottom-left-radius:8px;
+  }
+  .ribbon.free { background:var(--green); }
+  .card-body { padding:1.05rem 1.05rem 0.8rem; }
+  .card-meta { display:flex; align-items:center; gap:0.4rem; margin-bottom:0.55rem; flex-wrap:wrap; }
+  .meta-exam {
+    font-size:0.63rem; font-weight:700; letter-spacing:0.05em; padding:0.18rem 0.5rem;
+    border-radius:4px; text-transform:uppercase; background:#edf4ff; color:var(--blue);
+  }
+  .meta-mode {
+    font-size:0.63rem; font-weight:700; padding:0.18rem 0.5rem; border-radius:4px;
+    display:flex; align-items:center; gap:0.25rem;
+  }
+  .mode-test { background:#fff0ed; color:var(--accent); }
+  .mode-practice { background:#edf4ff; color:var(--blue); }
+  .avg-pill {
+    font-size:0.62rem; font-weight:700; padding:0.16rem 0.45rem; border-radius:100px;
+    background:rgba(26,156,91,0.12); color:var(--green);
+  }
+  .avg-pill.low { background:rgba(232,75,43,0.12); color:var(--accent); }
+  .card-title { font-size:0.95rem; font-weight:800; letter-spacing:-0.01em; margin-bottom:0.4rem; line-height:1.3; }
+  .card-sub { font-size:0.74rem; color:var(--muted); margin-bottom:0.8rem; line-height:1.5; min-height:1rem; }
+  .card-stats { display:flex; border-top:1px solid var(--border); margin:0 -1.05rem; }
+  .cstat { flex:1; text-align:center; padding:0.55rem 0.2rem; }
+  .cstat:not(:last-child) { border-right:1px solid var(--border); }
+  .cstat .n { font-family:'IBM Plex Mono',monospace; font-size:0.86rem; font-weight:600; }
+  .cstat .l { font-size:0.58rem; color:var(--muted); font-weight:600; margin-top:0.1rem; text-transform:uppercase; letter-spacing:0.04em; }
+  .card-footer { padding:0.7rem 1.05rem; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--border); }
+  .price-tag { font-weight:800; font-size:0.9rem; }
+  .price-tag.free { color:var(--green); }
+  .start-btn { padding:0.36rem 0.85rem; border-radius:6px; border:none; font-family:inherit; font-size:0.76rem; font-weight:700; cursor:pointer; }
+  .start-free { background:var(--green); color:#fff; }
+  .start-paid { background:var(--accent); color:#fff; }
+  .start-paid:hover { background:#d23f20; }
+  [data-theme="dark"] .start-paid:hover { background:#f0853e; }
+  .list-card {
+    background:var(--card); border:1.5px solid var(--border); border-radius:12px;
+    padding:0.85rem 1.2rem; display:flex; align-items:center; gap:1rem;
+    transition:border-color .15s,box-shadow .15s; cursor:pointer;
+  }
+  .list-card:hover { border-color:#bbb; box-shadow:0 4px 16px rgba(0,0,0,0.06); }
+  .list-main { flex:1; min-width:0; }
+  .list-title { font-size:0.9rem; font-weight:800; }
+  .list-tags { display:flex; gap:0.4rem; margin-top:0.3rem; flex-wrap:wrap; }
+  .list-stats { display:flex; gap:1.4rem; flex-shrink:0; }
+  .ls { text-align:right; }
+  .ls .n { font-family:'IBM Plex Mono',monospace; font-size:0.84rem; font-weight:600; }
+  .ls .l { font-size:0.6rem; color:var(--muted); text-transform:uppercase; }
+  .list-price { font-weight:800; font-size:0.88rem; min-width:78px; text-align:right; }
+  .empty-state { text-align:center; padding:4rem 2rem; }
+  .empty-state .icon { font-size:2.6rem; margin-bottom:0.8rem; }
+  .empty-state h3 { font-size:1.05rem; font-weight:800; margin-bottom:0.4rem; }
+  .empty-state p { font-size:0.86rem; color:var(--muted); }
+  .loading { display:flex; justify-content:center; padding:4rem; }
+  .spinner { width:30px; height:30px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<div class="qx-backdrop" id="qx-backdrop"></div>
+
+<div class="page-wrap">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <div class="sb-head-title">Refine quizzes</div>
+      <button class="sb-close" id="sb-close" type="button" aria-label="Close filters">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Access Type</div>
+      <div class="price-toggle" id="access-toggle">
+        <button type="button" class="price-btn active" data-access="">All</button>
+        <button type="button" class="price-btn" data-access="FREE">Free</button>
+        <button type="button" class="price-btn" data-access="PREMIUM">Premium</button>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Study Mode</div>
+      <div class="mode-pills" id="mode-pills">
+        <div class="mode-pill active" data-mode=""><span class="pill-icon">⚡</span> All Modes <span class="pill-count" id="cnt-all">—</span></div>
+        <div class="mode-pill" data-mode="MODEL_TEST"><span class="pill-icon">⏱</span> Timed Test <span class="pill-count" id="cnt-test">—</span></div>
+        <div class="mode-pill" data-mode="PRACTICE"><span class="pill-icon">📖</span> Practice Mode <span class="pill-count" id="cnt-practice">—</span></div>
+      </div>
+    </div>
+    <div class="sb-section" id="profession-section">
+      <div class="sb-label">Profession</div>
+      <div class="tag-cloud" id="profession-tags"><span style="font-size:0.72rem;color:var(--muted)">…</span></div>
+    </div>
+    <div class="sb-section" id="subject-section">
+      <div class="sb-label">Subject</div>
+      <div class="tag-cloud" id="subject-tags"><span style="font-size:0.72rem;color:var(--muted)">…</span></div>
+    </div>
+    <div class="sb-footer">
+      <button class="apply-btn" id="apply-btn">Apply filters</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="page-title">Quiz Sets</h1>
+        <p id="page-sub">Loksewa, NMCLE, MECEE &amp; more</p>
+      </div>
+      <div class="topbar-right">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="courses.html">Courses</a>
+        <div class="view-toggle">
+          <button class="view-btn active" data-view="grid" title="Grid">▦</button>
+          <button class="view-btn" data-view="list" title="List">☰</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sticky toolbar. Row 1: Search (flex:1) + Filters + Clear, single
+         horizontal row at every width. Row 2: Exam Type chip bar (horizontal
+         scroll). The toolbar pins to the top of the viewport on scroll. -->
+    <div class="qz-toolbar" id="qz-toolbar">
+      <div class="qz-toolbar-row">
+        <div class="qz-search">
+          <svg class="qz-search-ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="qz-search-input" class="qz-search-input" placeholder="Search quizzes, topics..." autocomplete="off">
+          <button class="qz-search-clear" id="qz-search-clear" aria-label="Clear search" title="Clear">&#x2715;</button>
+        </div>
+
+        <div class="qz-toolbar-actions">
+          <button class="qz-filter-btn" id="qz-filter-btn" type="button" aria-label="Open filters">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="6" cy="18" r="2"/></svg>
+            <span class="qz-filter-btn-label">Filters</span>
+            <span class="qz-filter-btn-count" id="qz-filter-btn-count" hidden>0</span>
+            <span class="qz-filter-btn-dot" id="qz-filter-btn-dot" hidden></span>
+          </button>
+          <button class="qz-clear-btn" id="qz-clear-btn" type="button" aria-label="Clear all filters" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <span class="qz-clear-btn-label">Clear</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="qz-prof-bar" id="qz-prof-bar" hidden>
+        <div class="qz-prof-track" id="qz-prof-track"></div>
+      </div>
+    </div>
+
+    <div class="active-filters" id="active-filters">
+      <span class="results-count" id="results-count"></span>
+    </div>
+    <div id="results"><div class="loading"><div class="spinner"></div></div></div>
+  </main>
+</div>
+
+<script type="module">
+  const { escapeHtml, mountHeader, mountFooter } = await import('./assets/components.js');
+  const { quiz, taxonomy } = await import('./assets/api.js');
+
+  // Site nav bar — mounted, but hidden while scrolling down + revealed on
+  // scroll up (so it doesn't compete with the sticky toolbar for vertical
+  // space when the user is browsing the list).
+  await mountHeader('quizzes');
+
+  // Filters drawer (slides in from the left)
+  const drawerBackdrop = document.getElementById('qx-backdrop');
+  function openDrawer()  {
+    // Every open seeds the popup's staged state from the live state so the
+    // user can also dismiss without changes (close = discard, Apply = commit).
+    if (typeof syncPendingFromLive === 'function') syncPendingFromLive();
+    document.body.classList.add('qx-drawer-open');
+  }
+  function closeDrawer() { document.body.classList.remove('qx-drawer-open'); }
+  document.getElementById('qz-filter-btn').addEventListener('click', openDrawer);
+  document.getElementById('qz-clear-btn').addEventListener('click', () => {
+    // Toolbar Clear — instantly resets every filter without opening the popup.
+    state.mode = state.examType = state.subject = state.profession = state.access = '';
+    state.examTypeName = state.subjectName = state.professionName = '';
+    if (typeof pending !== 'undefined') {
+      pending.mode = pending.subject = pending.subjectName = '';
+      pending.profession = pending.professionName = '';
+      pending.access = '';
+    }
+    document.querySelectorAll('.mode-pill').forEach((p,i) => p.classList.toggle('active', i===0));
+    document.querySelectorAll('#subject-tags .tag').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#profession-tags .tag').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#access-toggle .price-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+    document.querySelectorAll('#qz-prof-track .qz-chip').forEach((c,i) => c.classList.toggle('on', i===0));
+    applyFilters();
+  });
+  document.getElementById('sb-close').addEventListener('click', closeDrawer);
+  drawerBackdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('qx-drawer-open')) closeDrawer();
+  });
+
+  // Sticky toolbar — add an "is-stuck" class once it pins to the top so we
+  // can paint the bottom border + shadow only while stuck (a sentinel above
+  // the toolbar is the canonical IntersectionObserver pattern).
+  (function wireStickyToolbar() {
+    const toolbar = document.getElementById('qz-toolbar');
+    if (!toolbar) return;
+    // Insert a 1px sentinel right before the toolbar. When the sentinel
+    // scrolls out of the viewport above, the toolbar is stuck.
+    const sentinel = document.createElement('div');
+    sentinel.style.cssText = 'position:relative; height:1px;';
+    toolbar.parentNode.insertBefore(sentinel, toolbar);
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(([entry]) => {
+        toolbar.classList.toggle('is-stuck', !entry.isIntersecting);
+      }, { threshold: 0 });
+      io.observe(sentinel);
+    }
+  })();
+
+  // Auto-hide the site header while scrolling DOWN, reveal on scroll UP.
+  // Uses requestAnimationFrame for smoothness; threshold + delta prevent
+  // jitter on small/momentum scrolls. The header is always visible near
+  // the top of the page regardless of scroll direction.
+  (function wireHeaderAutoHide() {
+    const hdr = document.querySelector('.site-header');
+    if (!hdr) return;
+    let last = window.scrollY;
+    let raf = 0;
+    function onScroll() {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const cur = window.scrollY;
+        const delta = cur - last;
+        const NEAR_TOP = 60;
+        const DELTA   = 6;
+        if (cur < NEAR_TOP) {
+          hdr.classList.remove('is-hidden');
+        } else if (delta > DELTA) {
+          // Scrolling down — hide
+          hdr.classList.add('is-hidden');
+        } else if (delta < -DELTA) {
+          // Scrolling up — show
+          hdr.classList.remove('is-hidden');
+        }
+        last = cur;
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+  })();
+
+  // ?access=FREE or ?access=PREMIUM → single filtered full list ("See all" target).
+  // No param → the two-section (Free + Premium) view.
+  const urlAccess = new URLSearchParams(location.search).get('access');
+  const state = {
+    mode:'', access: (urlAccess === 'FREE' || urlAccess === 'PREMIUM') ? urlAccess : '',
+    examType:'', examTypeName:'', subject:'', subjectName:'',
+    profession:'', professionName:'', search:'', view: window.innerWidth >= 1024 ? 'grid' : 'list'
+  };
+  let allSets = [];
+
+  // In filtered mode, reflect it in the page heading + offer a way back
+  if (state.access) {
+    document.getElementById('page-title').textContent =
+      state.access === 'FREE' ? 'Free Quiz Sets' : 'Premium Quiz Sets';
+    document.getElementById('page-sub').innerHTML =
+      `<a href="quizzes.html" style="color:var(--accent);font-weight:700;">← All quiz sets</a>`;
+  }
+
+  try {
+    const subs = (await taxonomy.subjects()).data || [];
+    document.getElementById('subject-tags').innerHTML = subs.length
+      ? subs.map(s => `<div class="tag" data-sub="${escapeHtml(s.id)}" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`).join('')
+      : '<span style="font-size:0.72rem;color:var(--muted)">None yet</span>';
+  } catch { document.getElementById('subject-section').style.display = 'none'; }
+
+  // Profession tag cloud — mirrors the Subject pattern. The Profession
+  // filter narrows quizzes by their profession_id (applied client-side
+  // in render() since the API endpoint doesn't filter by profession).
+  let _profMap = {};
+  try {
+    const profs = (await taxonomy.professions()).data || [];
+    if (profs.length) {
+      _profMap = Object.fromEntries(profs.map(p => [p.id, p.name]));
+      document.getElementById('profession-tags').innerHTML = profs
+        .map(p => `<div class="tag" data-prof="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>`)
+        .join('');
+    } else {
+      document.getElementById('profession-section').style.display = 'none';
+    }
+  } catch { document.getElementById('profession-section').style.display = 'none'; }
+
+  // Sticky-toolbar Exam Type chip bar — populated from the examTypes
+  // taxonomy. Replaces the older profession chip bar (the page now
+  // uses Exam Type as its top-level horizontal filter; profession remains
+  // available via the URL ?profession= param if any external link uses it).
+  // Dot color is derived from the exam type id so the same one always
+  // gets the same color (no flicker across reloads).
+  function etDotColor(id) {
+    const palette = ['#FF8A00','#FFB347','#FF6B6B','#4ECDC4','#A78BFA','#36D399','#F472B6','#60A5FA','#FBBF24','#34D399'];
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return palette[h % palette.length];
+  }
+  try {
+    const ets2 = (await taxonomy.examTypes()).data || [];
+    if (ets2.length) {
+      const bar = document.getElementById('qz-prof-bar');
+      const track = document.getElementById('qz-prof-track');
+      track.innerHTML =
+        `<div class="qz-chip on" data-et=""><span class="dot" style="background:#FFB347"></span>All</div>` +
+        ets2.map(e =>
+          `<div class="qz-chip" data-et="${escapeHtml(e.id)}" data-name="${escapeHtml(e.name)}">` +
+          `<span class="dot" style="background:${etDotColor(e.id)}"></span>${escapeHtml(e.name)}</div>`
+        ).join('');
+      bar.hidden = false;
+      track.addEventListener('click', e => {
+        const c = e.target.closest('.qz-chip'); if (!c) return;
+        track.querySelectorAll('.qz-chip').forEach(x => x.classList.toggle('on', x === c));
+        state.examType     = c.dataset.et || '';
+        state.examTypeName = c.dataset.name || '';
+        // Toolbar chips apply immediately (one-tap filtering).
+        applyFilters();
+      });
+    }
+  } catch { /* taxonomy missing — silently hide the bar */ }
+
+  // Search — debounced, filters by quiz name + description
+  const searchEl   = document.getElementById('qz-search-input');
+  const searchWrap = searchEl.parentElement;
+  const searchClr  = document.getElementById('qz-search-clear');
+  let searchT = null;
+  searchEl.addEventListener('input', () => {
+    searchWrap.classList.toggle('has-text', !!searchEl.value);
+    clearTimeout(searchT);
+    searchT = setTimeout(() => {
+      state.search = searchEl.value.trim().toLowerCase();
+      render();
+    }, 140);
+  });
+  searchClr.addEventListener('click', () => {
+    searchEl.value = '';
+    searchWrap.classList.remove('has-text');
+    state.search = '';
+    render();
+    searchEl.focus();
+  });
+
+  // --- Popup filter staging ---
+  // Inside the popup (Mode + Subject), clicking a pill or tag updates a
+  // PENDING staging object, not the live state. The change isn't applied
+  // until the user clicks "Apply filters" (or "Clear" which empties +
+  // applies). Opening the popup syncs pending back from live state so
+  // the user can also just close the popup with no changes.
+  // PENDING staging object, not the live state. The change isn't applied
+  // until the user clicks "Apply filters" (or "Clear" which empties +
+  // applies). Opening the popup syncs pending back from live state so
+  // the user can also just close the popup with no changes.
+  const pending = {
+    mode:        state.mode,
+    subject:     state.subject,
+    subjectName: state.subjectName,
+    access:      state.access || '',
+    profession:  state.profession || '',
+    professionName: state.professionName || '',
+  };
+
+  function syncPendingToUI() {
+    document.querySelectorAll('.mode-pill').forEach(p =>
+      p.classList.toggle('active', (p.dataset.mode || '') === (pending.mode || ''))
+    );
+    document.querySelectorAll('#subject-tags .tag').forEach(t =>
+      t.classList.toggle('active', t.dataset.sub === pending.subject)
+    );
+    document.querySelectorAll('#profession-tags .tag').forEach(t =>
+      t.classList.toggle('active', t.dataset.prof === pending.profession)
+    );
+    document.querySelectorAll('#access-toggle .price-btn').forEach(b =>
+      b.classList.toggle('active', (b.dataset.access || '') === (pending.access || ''))
+    );
+  }
+  function syncPendingFromLive() {
+    pending.mode           = state.mode;
+    pending.subject        = state.subject;
+    pending.subjectName    = state.subjectName;
+    pending.access         = state.access || '';
+    pending.profession     = state.profession || '';
+    pending.professionName = state.professionName || '';
+    syncPendingToUI();
+  }
+
+  document.getElementById('mode-pills').addEventListener('click', e => {
+    const pill = e.target.closest('.mode-pill'); if (!pill) return;
+    pending.mode = pill.dataset.mode || '';
+    syncPendingToUI();
+  });
+  document.getElementById('subject-tags').addEventListener('click', e => {
+    const t = e.target.closest('.tag'); if (!t) return;
+    if (t.classList.contains('active')) { pending.subject = ''; pending.subjectName = ''; }
+    else                                 { pending.subject = t.dataset.sub; pending.subjectName = t.dataset.name; }
+    syncPendingToUI();
+  });
+  document.getElementById('profession-tags').addEventListener('click', e => {
+    const t = e.target.closest('.tag'); if (!t) return;
+    if (t.classList.contains('active')) { pending.profession = ''; pending.professionName = ''; }
+    else                                 { pending.profession = t.dataset.prof; pending.professionName = t.dataset.name; }
+    syncPendingToUI();
+  });
+  document.getElementById('access-toggle').addEventListener('click', e => {
+    const b = e.target.closest('.price-btn'); if (!b) return;
+    pending.access = b.dataset.access || '';
+    syncPendingToUI();
+  });
+  document.getElementById('apply-btn').addEventListener('click', () => {
+    state.mode           = pending.mode;
+    state.subject        = pending.subject;
+    state.subjectName    = pending.subjectName;
+    state.access         = pending.access;
+    state.profession     = pending.profession;
+    state.professionName = pending.professionName;
+    applyFilters();
+    closeDrawer();
+  });
+  document.querySelector('.view-toggle').addEventListener('click', e => {
+    const b = e.target.closest('.view-btn'); if (!b) return;
+    document.querySelectorAll('.view-btn').forEach(x => x.classList.toggle('active', x === b));
+    state.view = b.dataset.view;
+    render();
+  });
+
+  // Sync toggle button active state to the responsive default on load
+  document.querySelectorAll('.view-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.view === state.view)
+  );
+
+  async function applyFilters() {
+    const results = document.getElementById('results');
+    results.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    const params = { per_page: 100 };
+    if (state.mode) params.mode = state.mode;
+    if (state.access) params.access = state.access;
+    if (state.examType) params.exam_type_id = state.examType;
+    if (state.subject) params.subject_id = state.subject;
+    try {
+      const r = await quiz.listSets(params);
+      allSets = r.data || [];
+      render();
+    } catch (err) {
+      results.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>Couldn't load</h3><p>${escapeHtml(err.message)}</p></div>`;
+    }
+    renderChips();
+  }
+
+  function renderChips() {
+    const bar = document.getElementById('active-filters');
+    const chips = [];
+    if (state.mode)       chips.push(['mode', state.mode === 'PRACTICE' ? 'Practice' : 'Timed Test']);
+    if (state.access)     chips.push(['access', state.access === 'FREE' ? 'Free' : 'Premium']);
+    if (state.examType)   chips.push(['examType', state.examTypeName]);
+    if (state.profession) chips.push(['profession', state.professionName || _profMap[state.profession] || 'Profession']);
+    if (state.subject)    chips.push(['subject', state.subjectName]);
+    bar.innerHTML = chips.map(c =>
+      `<div class="chip">${escapeHtml(c[1])} <span data-clear="${c[0]}">✕</span></div>`
+    ).join('') + `<span class="results-count" id="results-count"></span>`;
+    bar.querySelectorAll('[data-clear]').forEach(x => x.addEventListener('click', () => {
+      const k = x.dataset.clear;
+      if (k === 'mode') {
+        state.mode = '';
+        if (typeof pending !== 'undefined') pending.mode = '';
+        document.querySelectorAll('.mode-pill').forEach((p,i) => p.classList.toggle('active', i===0));
+      }
+      if (k === 'access') {
+        state.access = '';
+        if (typeof pending !== 'undefined') pending.access = '';
+        document.querySelectorAll('#access-toggle .price-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+        // If we landed here from ?access=FREE/PREMIUM, drop that param so a
+        // reload doesn't restore it.
+        if (location.search.includes('access=')) {
+          history.replaceState(null, '', location.pathname);
+          // Also clear the page heading override
+          const pt = document.getElementById('page-title');
+          const ps = document.getElementById('page-sub');
+          if (pt) pt.textContent = 'Quiz Sets';
+          if (ps) ps.textContent = 'Loksewa, NMCLE, MECEE & more';
+        }
+      }
+      if (k === 'examType') {
+        state.examType = '';
+        state.examTypeName = '';
+        // Exam Type chip lives in the top toolbar's row 2
+        document.querySelectorAll('#qz-prof-track .qz-chip').forEach((c,i) => c.classList.toggle('on', i===0));
+      }
+      if (k === 'profession') {
+        state.profession = '';
+        state.professionName = '';
+        if (typeof pending !== 'undefined') { pending.profession = ''; pending.professionName = ''; }
+        document.querySelectorAll('#profession-tags .tag').forEach(t => t.classList.remove('active'));
+      }
+      if (k === 'subject') {
+        state.subject = '';
+        state.subjectName = '';
+        if (typeof pending !== 'undefined') { pending.subject = ''; pending.subjectName = ''; }
+        document.querySelectorAll('#subject-tags .tag').forEach(t => t.classList.remove('active'));
+      }
+      applyFilters();
+    }));
+    // Mirror the active-filter count onto the toolbar's Filters button
+    // (count badge + small pulsing notification dot) so the user knows
+    // they have filters applied even with the popup closed. The Clear
+    // button is enabled only when at least one filter is active.
+    const cnt = document.getElementById('qz-filter-btn-count');
+    const dot = document.getElementById('qz-filter-btn-dot');
+    const clr = document.getElementById('qz-clear-btn');
+    const active = chips.length;
+    if (cnt) {
+      if (active > 0) { cnt.textContent = active; cnt.hidden = false; }
+      else            { cnt.hidden = true; }
+    }
+    if (dot) dot.hidden = (active === 0);
+    if (clr) clr.disabled = (active === 0);
+  }
+
+  function modeCounts() {
+    document.getElementById('cnt-all').textContent = allSets.length;
+    document.getElementById('cnt-test').textContent = allSets.filter(s => s.mode === 'MODEL_TEST').length;
+    document.getElementById('cnt-practice').textContent = allSets.filter(s => s.mode === 'PRACTICE').length;
+  }
+
+  function render() {
+    const results = document.getElementById('results');
+    // Apply the top-bar filters (search + profession) on top of whatever
+    // sidebar filters already shaped allSets.
+    let sets = allSets;
+    if (state.profession) {
+      sets = sets.filter(s => (s.profession_id || '') === state.profession);
+    }
+    if (state.search) {
+      const q = state.search;
+      sets = sets.filter(s =>
+        (s.name || '').toLowerCase().includes(q) ||
+        (s.description || '').toLowerCase().includes(q)
+      );
+    }
+    modeCounts();
+    const cnt = document.getElementById('results-count');
+    if (cnt) cnt.textContent = `${sets.length} set${sets.length===1?'':'s'}`;
+    if (!sets.length) {
+      results.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>No quiz sets found</h3><p>Try clearing some filters.</p></div>`;
+      return;
+    }
+
+    const renderCards = list => state.view === 'grid'
+      ? `<div class="cards-grid">${list.map(cardHtml).join('')}</div>`
+      : `<div class="cards-list">${list.map(listHtml).join('')}</div>`;
+
+    // Filtered mode (?access=FREE|PREMIUM) — single list, no section split
+    if (state.access) {
+      results.innerHTML = renderCards(sets);
+      return;
+    }
+
+    // Default — two sections: Free and Premium, each capped with a "See all"
+    const PREVIEW = 6;
+    const free    = sets.filter(s => parseInt(s.is_paid) !== 1);
+    const premium = sets.filter(s => parseInt(s.is_paid) === 1);
+
+    function section(title, list, accessKey) {
+      if (!list.length) return '';
+      const shown = list.slice(0, PREVIEW);
+      const more  = list.length > PREVIEW;
+      return `
+        <div class="qz-section">
+          <div class="qz-section-head">
+            <h2>${title} <span class="qz-count">${list.length}</span></h2>
+            ${more ? `<a class="qz-seeall" href="quizzes.html?access=${accessKey}">See all →</a>` : ''}
+          </div>
+          ${renderCards(shown)}
+        </div>`;
+    }
+
+    results.innerHTML =
+      section('Free Quiz Sets', free, 'FREE') +
+      section('Premium Quiz Sets', premium, 'PREMIUM');
+  }
+
+  function cardHtml(s) {
+    const paid = parseInt(s.is_paid) === 1;
+    const price = parseFloat(s.price || 0);
+    const avg = s.avg_score != null ? parseInt(s.avg_score) : null;
+    const isTest = s.mode === 'MODEL_TEST';
+    return `
+      <a class="quiz-card" href="quiz-detail.html?id=${encodeURIComponent(s.id)}">
+        <div class="ribbon ${paid?'':'free'}">${paid?'PREMIUM':'FREE'}</div>
+        <div class="card-body">
+          <div class="card-meta">
+            ${s.exam_type_name ? `<span class="meta-exam">${escapeHtml(s.exam_type_name)}</span>` : ''}
+            <span class="meta-mode ${isTest?'mode-test':'mode-practice'}">${isTest?'⏱ Test':'📖 Practice'}</span>
+            ${avg!=null ? `<span class="avg-pill ${avg<50?'low':''}">${avg}% avg</span>` : ''}
+          </div>
+          <div class="card-title">${escapeHtml(s.name)}</div>
+          <div class="card-sub">${escapeHtml((s.description||'').slice(0,80))}${(s.description||'').length>80?'…':''}</div>
+          <div class="card-stats">
+            <div class="cstat"><div class="n">${s.total_questions||0}</div><div class="l">Questions</div></div>
+            <div class="cstat"><div class="n">${s.duration_minutes?s.duration_minutes+'m':'—'}</div><div class="l">Duration</div></div>
+            <div class="cstat"><div class="n">${s.attempts_count||0}</div><div class="l">Attempts</div></div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="price-tag ${paid?'':'free'}">${paid ? `${escapeHtml(s.currency||'NPR')} ${price.toFixed(0)}` : 'FREE'}</div>
+          <button class="start-btn ${paid?'start-paid':'start-free'}">${paid?'Unlock →':'Start Free →'}</button>
+        </div>
+      </a>`;
+  }
+
+  function listHtml(s) {
+    const paid = parseInt(s.is_paid) === 1;
+    const price = parseFloat(s.price || 0);
+    const isTest = s.mode === 'MODEL_TEST';
+    return `
+      <a class="list-card" href="quiz-detail.html?id=${encodeURIComponent(s.id)}">
+        <div class="list-main">
+          <div class="list-title">${escapeHtml(s.name)}</div>
+          <div class="list-tags">
+            ${s.exam_type_name ? `<span class="meta-exam">${escapeHtml(s.exam_type_name)}</span>` : ''}
+            <span class="meta-mode ${isTest?'mode-test':'mode-practice'}">${isTest?'⏱ Test':'📖 Practice'}</span>
+          </div>
+        </div>
+        <div class="list-stats">
+          <div class="ls"><div class="n">${s.total_questions||0}</div><div class="l">Qs</div></div>
+          <div class="ls"><div class="n">${s.duration_minutes?s.duration_minutes+'m':'—'}</div><div class="l">Time</div></div>
+          <div class="ls"><div class="n">${s.attempts_count||0}</div><div class="l">Tries</div></div>
+        </div>
+        <div class="list-price" style="${paid?'':'color:var(--green)'}">${paid ? `${escapeHtml(s.currency||'NPR')} ${price.toFixed(0)}` : 'FREE'}</div>
+      </a>`;
+  }
+
+  applyFilters();
+</script>
+
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('quizzes', u);
+})();
+</script>
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

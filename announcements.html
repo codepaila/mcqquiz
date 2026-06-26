@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Announcements · Quiznosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  :root {
+    --ink:#0d0f14; --paper:#f5f3ee; --white:#ffffff;
+    --accent:#e84b2b; --blue:#2b7de8; --green:#1a9c5b; --gold:#c9920a;
+    --muted:#7a7870; --border:#e2dfd8;
+  }
+  [data-theme="dark"] {
+    --ink:#e8ecf4; --paper:#0e1626; --white:#16203a;
+    --accent:#e0742f; --blue:#5b9bf0; --green:#4ade80; --gold:#e0a93e;
+    --muted:#6b7794; --border:#2a3a5c;
+  }
+  .ann-wrap { max-width:780px; margin:0 auto; padding:1.8rem 1.5rem 3rem; font-family:'Inter',sans-serif; }
+  .ann-head { margin-bottom:1.5rem; }
+  .ann-head .eyebrow { font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+  .ann-head h1 { font-size:1.8rem; font-weight:800; margin-top:0.2rem; color:var(--ink); }
+  .ann-head p { font-size:0.88rem; color:var(--muted); margin-top:0.3rem; }
+  .ann-card {
+    background:var(--paper); border:1.5px solid var(--border); border-radius:14px;
+    padding:1.3rem 1.4rem; margin-bottom:1rem;
+  }
+  .ann-card.pinned { border-color:var(--gold); }
+  .ann-meta { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.55rem; flex-wrap:wrap; }
+  .ann-tag {
+    font-size:0.64rem; font-weight:700; padding:0.18rem 0.55rem; border-radius:5px;
+    text-transform:uppercase; letter-spacing:0.04em;
+  }
+  .tag-global { background:#edf4ff; color:var(--blue); }
+  .tag-course { background:#fff0ed; color:var(--accent); }
+  .tag-pin    { background:#fffbeb; color:var(--gold); }
+  .ann-date { font-size:0.72rem; color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-left:auto; }
+  .ann-title { font-size:1.08rem; font-weight:800; color:var(--ink); margin-bottom:0.4rem; }
+  .ann-body { font-size:0.9rem; color:var(--ink); line-height:1.65; }
+  .ann-body p { margin:0 0 0.7em; }
+  .ann-body p:last-child { margin-bottom:0; }
+  .ann-body h1, .ann-body h2, .ann-body h3 { margin:0.6em 0 0.3em; font-weight:700; }
+  .ann-body h1:first-child, .ann-body h2:first-child, .ann-body h3:first-child { margin-top:0; }
+  .ann-body ul, .ann-body ol { margin:0.3em 0 0.7em 1.4em; padding:0; }
+  .ann-body li { margin:0.2em 0; }
+  .ann-body blockquote {
+    margin:0.5em 0; padding:6px 12px; border-left:3px solid var(--accent);
+    background:rgba(184,83,28,0.05); font-style:italic;
+  }
+  .ann-body a { color:var(--accent); }
+  .empty { text-align:center; padding:4rem 1rem; color:var(--muted); }
+  .empty .icon { font-size:2.6rem; margin-bottom:0.7rem; }
+  .empty h3 { font-size:1.05rem; font-weight:800; color:var(--ink); margin-bottom:0.3rem; }
+  .loading { display:flex; justify-content:center; padding:3.5rem; }
+  .spinner { width:30px; height:30px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  body { background:var(--paper); }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main>
+  <div class="ann-wrap">
+    <div class="ann-head">
+      <div class="eyebrow">Latest updates</div>
+      <h1>📢 Announcements</h1>
+      <p>News and updates from Quiznosis and your enrolled courses.</p>
+    </div>
+    <div id="list"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</main>
+
+<script type="module">
+  const { mountHeader, escapeHtml, formatDate } = await import('./assets/components.js');
+  const { announcements } = await import('./assets/api.js');
+  const { renderMarkdown } = await import('./assets/markdown.js');
+
+  await mountHeader('announcements');
+
+  const list = document.getElementById('list');
+  try {
+    const rows = (await announcements.list()).data || [];
+    if (!rows.length) {
+      list.innerHTML = `<div class="empty"><div class="icon">📭</div><h3>No announcements yet</h3><p>Check back later for updates.</p></div>`;
+    } else {
+      list.innerHTML = rows.map(a => {
+        const isCourse = a.audience === 'COURSE';
+        const pinned = parseInt(a.pinned) === 1;
+        const when = a.published_at ? formatDate(a.published_at) : '';
+        return `
+          <div class="ann-card ${pinned?'pinned':''}">
+            <div class="ann-meta">
+              ${pinned ? '<span class="ann-tag tag-pin">📌 Pinned</span>' : ''}
+              <span class="ann-tag ${isCourse?'tag-course':'tag-global'}">${isCourse ? (escapeHtml(a.course_title||'Course')) : 'Everyone'}</span>
+              <span class="ann-date">${escapeHtml(when)}</span>
+            </div>
+            <div class="ann-title">${escapeHtml(a.title)}</div>
+            <div class="ann-body">${renderMarkdown(a.body)}</div>
+          </div>`;
+      }).join('');
+    }
+  } catch (err) {
+    list.innerHTML = `<div class="empty"><div class="icon">⚠️</div><h3>Couldn't load announcements</h3><p>${escapeHtml(err.message)}</p></div>`;
+  }
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

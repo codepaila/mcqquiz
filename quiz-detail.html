@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz · Quiznosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  :root {
+    --ink:#0d0f14; --paper:#f5f3ee; --white:#ffffff;
+    --accent:#e84b2b; --blue:#2b7de8; --green:#1a9c5b; --gold:#c9920a;
+    --muted:#7a7870; --border:#e2dfd8; --card:#ffffff;
+  }
+  [data-theme="dark"] {
+    --ink:#e8ecf4; --paper:#0e1626; --white:#16203a;
+    --accent:#e0742f; --blue:#5b9bf0; --green:#4ade80; --gold:#e0a93e;
+    --muted:#6b7794; --border:#2a3a5c; --card:#16203a;
+  }
+  .qd-body { font-family:'Sora',sans-serif; background:var(--paper); color:var(--ink); }
+  .qd-wrap { max-width:1080px; margin:0 auto; padding:1.8rem 1.5rem 3rem; }
+  .qd-back { font-size:0.84rem; font-weight:700; color:var(--muted); text-decoration:none; }
+  .qd-back:hover { color:var(--ink); }
+  .qd-head { margin:1rem 0 1.4rem; }
+  .qd-tags { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.7rem; }
+  .qd-tag {
+    font-size:0.66rem; font-weight:700; letter-spacing:0.04em; padding:0.2rem 0.6rem;
+    border-radius:5px; text-transform:uppercase;
+  }
+  .tag-test { background:#fff0ed; color:var(--accent); }
+  .tag-practice { background:#edf4ff; color:var(--blue); }
+  .tag-free { background:#edfff6; color:var(--green); }
+  .tag-premium { background:#fffbeb; color:var(--gold); }
+  .qd-title { font-family:'Sora',sans-serif; font-size:1.9rem; font-weight:800; letter-spacing:-0.02em; }
+  .qd-desc { font-size:0.9rem; color:var(--muted); margin-top:0.4rem; line-height:1.55; }
+
+  /* stat strip */
+  .stat-strip {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    background:var(--card); border:1.5px solid var(--border); border-radius:14px;
+    overflow:hidden; margin-bottom:1.5rem;
+  }
+  .strip-cell { text-align:center; padding:1.1rem 0.5rem; }
+  .strip-cell:not(:last-child) { border-right:1px solid var(--border); }
+  .strip-n { font-family:'IBM Plex Mono',monospace; font-size:1.5rem; font-weight:600; }
+  .strip-l { font-size:0.64rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-top:0.2rem; }
+
+  .qd-grid { display:grid; grid-template-columns:1fr 1.35fr; gap:1.25rem; align-items:start; }
+  @media (max-width:760px) { .qd-grid { grid-template-columns:1fr; } }
+
+  .qd-panel {
+    background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:1.4rem;
+  }
+  .qd-panel-title {
+    display:flex; align-items:center; gap:0.5rem; font-size:1rem; font-weight:800;
+    margin-bottom:1rem;
+  }
+  .qd-panel-title .ico { font-size:1.1rem; }
+
+  /* start checklist */
+  .check-list { display:flex; flex-direction:column; gap:0.7rem; margin-bottom:1.2rem; }
+  .check-item { display:flex; align-items:center; gap:0.6rem; font-size:0.88rem; }
+  .check-mark { color:var(--green); font-weight:700; }
+  .check-item.off .check-mark { color:var(--muted); }
+  .check-item b { font-weight:800; }
+  .start-now {
+    width:100%; padding:0.85rem; border-radius:10px; border:none;
+    background:var(--accent); color:#fff; font-family:inherit; font-size:0.95rem;
+    font-weight:800; cursor:pointer; transition:background .15s;
+    display:flex; align-items:center; justify-content:center; gap:0.5rem;
+  }
+  .start-now:hover { background:#d23f20; }
+  .start-now.locked { background:var(--ink); }
+  .start-now.signin { background:var(--ink); }
+  [data-theme="dark"] .start-now.locked,
+  [data-theme="dark"] .start-now.signin {
+    background:var(--accent); color:#fff;
+  }
+  [data-theme="dark"] .start-now.locked:hover,
+  [data-theme="dark"] .start-now.signin:hover { background:#f0853e; }
+
+  /* leaderboard */
+  .lb-row { display:flex; align-items:center; gap:0.75rem; padding:0.65rem 0; }
+  .lb-row:not(:last-child) { border-bottom:1px solid var(--border); }
+  .lb-rank {
+    width:26px; height:26px; border-radius:7px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:0.8rem;
+    background:var(--paper); color:var(--muted);
+  }
+  .lb-rank.gold { background:#fff6dd; color:var(--gold); }
+  .lb-rank.silver { background:#eef0f2; color:#8a8d92; }
+  .lb-rank.bronze { background:#f6e8dd; color:#b07a3e; }
+  .lb-avatar {
+    width:32px; height:32px; border-radius:50%; flex-shrink:0;
+    background:var(--accent); color:#fff; display:flex; align-items:center;
+    justify-content:center; font-weight:700; font-size:0.85rem;
+  }
+  .lb-name { flex:1; min-width:0; }
+  .lb-name .nm { font-size:0.86rem; font-weight:700; }
+  .lb-name .sub { font-size:0.7rem; color:var(--muted); }
+  .lb-score { text-align:right; }
+  .lb-score .pct { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:0.95rem; }
+  .lb-score .lbl { font-size:0.62rem; color:var(--muted); }
+
+  .qd-note {
+    background:#fff8ee; border-left:3px solid var(--gold); border-radius:8px;
+    padding:0.8rem 1rem; font-size:0.84rem; line-height:1.55; margin-bottom:1.2rem; color:var(--ink);
+  }
+  [data-theme="dark"] .qd-note { background:#2a2113; color:var(--ink); }
+  .muted-line { font-size:0.85rem; color:var(--muted); }
+  .loading { display:flex; justify-content:center; padding:4rem; }
+  .spinner { width:30px; height:30px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .alert-error { background:#f2dede; color:#9b2c2c; padding:0.9rem 1.1rem; border-radius:8px; font-size:0.88rem; }
+
+  /* Access-source badge shown below the Start button */
+  .access-badge {
+    display:flex; align-items:center; gap:0.45rem;
+    margin-top:0.75rem; padding:0.55rem 0.85rem;
+    border-radius:8px; font-size:0.78rem; font-weight:700; line-height:1.3;
+  }
+  .access-badge.via-free     { background:#edfff6; color:var(--green); }
+  .access-badge.via-purchase { background:#edf4ff; color:var(--blue);  }
+  .access-badge.via-course   { background:#fffbeb; color:var(--gold);  }
+  .access-badge.via-demo     { background:#f3f0ff; color:#7c3aed;      }
+  .access-badge .badge-ico   { font-size:1rem; flex-shrink:0; }
+  .access-badge .badge-sub   { font-weight:400; opacity:0.82; font-size:0.72rem; display:block; margin-top:1px; }
+  [data-theme="dark"] .access-badge.via-free     { background:#0d2e1f; }
+  [data-theme="dark"] .access-badge.via-purchase { background:#0d1e35; }
+  [data-theme="dark"] .access-badge.via-course   { background:#2a200c; }
+  [data-theme="dark"] .access-badge.via-demo     { background:#1a1030; }
+
+  /* Pending payment panel */
+  .pending-panel {
+    background: rgba(245,158,11,.07);
+    border: 1.5px solid rgba(245,158,11,.28);
+    border-radius: 14px; padding: 20px 18px; margin-bottom: 14px;
+  }
+  .pending-header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px; margin-bottom: 14px;
+  }
+  .pending-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #f59e0b; display: inline-block; flex-shrink: 0;
+    animation: pend-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pend-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.65)} }
+  .pending-steps {
+    display: flex; gap: 0; margin-bottom: 14px; border-radius: 8px; overflow: hidden;
+  }
+  .ps { flex:1; text-align:center; font-size:.68rem; font-weight:700;
+        padding:6px 4px; border:1px solid transparent; }
+  .ps.done  { background:var(--success-soft); color:var(--success); border-color:rgba(34,197,94,.3); }
+  .ps.act   { background:rgba(239,68,68,.08); color:#dc2626; border-color:rgba(239,68,68,.25); }
+  .ps + .ps { border-left:none; }
+  .pending-msg { font-size:.88rem; color:var(--ink-soft); line-height:1.6;
+                 text-align:center; margin-bottom:14px; }
+  .pending-tabs {
+    display: grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:4px;
+  }
+  .pending-tab {
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    padding:12px 6px; background:var(--paper-soft);
+    border:1.5px solid var(--paper-edge); border-radius:var(--radius);
+    text-decoration:none; color:var(--ink); font-weight:700; font-size:.75rem;
+    transition:all .15s;
+  }
+  .pending-tab:hover { border-color:var(--ink-muted); background:var(--paper); }
+  .pending-tab.primary { border-color:var(--accent); color:var(--accent); }
+  .pending-tab.primary:hover { background:var(--accent-soft); }
+  .pending-tab .pt-ico { font-size:1.2rem; }
+
+  /* Locked notice above purchase button */
+  .lock-notice {
+    background:#fff8ee; border-left:3px solid var(--gold);
+    border-radius:8px; padding:0.7rem 0.9rem;
+    font-size:0.82rem; line-height:1.5; margin-bottom:0.85rem; color:var(--ink);
+  }
+  [data-theme="dark"] .lock-notice { background:#2a2010; }
+</style>
+</head>
+<body class="qd-body">
+  <div class="qd-wrap">
+    <a href="quizzes.html" class="qd-back">← Back to quizzes</a>
+    <div id="detail" class="mt-2"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
+<script type="module">
+  const { mountHeader, escapeHtml, queryParam, getUser } = await import('./assets/components.js');
+  const { quiz, purchases } = await import('./assets/api.js');
+
+  await mountHeader('quizzes');
+
+  const id = queryParam('id');
+  const slug = queryParam('slug');
+  const root = document.getElementById('detail');
+  if (!id && !slug) { root.innerHTML = `<div class="alert-error">No quiz specified.</div>`; throw new Error('no id'); }
+
+  let set;
+  try {
+    set = (await quiz.getSet(id ? { id } : { slug })).data;
+  } catch (err) {
+    root.innerHTML = `<div class="alert-error">${escapeHtml(err.message)}</div>`;
+    throw err;
+  }
+
+  let u = null;
+  try { u = await getUser(); } catch { u = null; }
+  const totalQuestions = set.total_questions || (set.items ? set.items.length : 0);
+  const isPaid = parseInt(set.is_paid) === 1;
+  const isTest = set.mode === 'MODEL_TEST';
+  const negOn = parseInt(set.enable_negative_marking) === 1;
+  const negVal = parseFloat(set.negative_mark_per_question || 0.25);
+  const passMark = set.passing_score != null ? parseFloat(set.passing_score) : null;
+  const duration = set.duration_minutes ? `${set.duration_minutes} min` : '—';
+
+// paid access check — call the dedicated read-only endpoint so we
+// never create a phantom IN_PROGRESS attempt just by loading this page.
+let showPurchase = false;
+let accessData   = null; // { allowed, via, courseTitle?, reason? }
+let pendingPurchase = null; // pending payment for this quiz set
+
+if (u && u.role !== 'ADMIN') {
+  if (!isPaid) {
+    accessData = { allowed: true, via: 'free' };
+  } else {
+    try {
+      const res = await quiz.checkAccess(set.id);
+      accessData = res.data;
+      showPurchase = !accessData.allowed;
+    } catch (err) {
+      accessData = null;
+      showPurchase = false;
+      console.warn('Access check failed, defaulting to allowed:', err.message);
+    }
+    // Check for a pending purchase so we can show status instead of lock button
+    if (showPurchase) {
+      try {
+        const mine = (await purchases.mine()).data || [];
+        pendingPurchase = mine.find(p =>
+          p.quiz_set_id === set.id && p.status === 'PENDING'
+        ) || null;
+      } catch {}
+    }
+  }
+}
+
+  // --- access badge helper ---
+  function buildAccessBadge(data) {
+    if (!data || !data.allowed) return '';
+    const cfg = {
+      free:     { ico: '🟢', label: 'Free quiz',    sub: 'No purchase needed'                                                  },
+      purchase: { ico: '💳', label: 'Purchased',     sub: 'Unlocked via direct quiz purchase'                                  },
+      course:   { ico: '🎓', label: 'Course access', sub: data.courseTitle ? `Via: ${escapeHtml(data.courseTitle)}` : 'Unlocked via course enrollment' },
+      demo:     { ico: '👁',  label: 'Free preview',  sub: 'Demo access — some questions may be hidden'                        },
+    };
+    const c = cfg[data.via] || { ico: '✅', label: 'Access granted', sub: '' };
+
+    // For course access, add a tappable "View course" link
+    let courseBtn = '';
+    if (data.via === 'course') {
+      const href = data.courseSlug
+        ? `course-detail.html?id=${encodeURIComponent(data.courseSlug)}`
+        : data.courseId
+          ? `course-detail.html?id=${encodeURIComponent(data.courseId)}`
+          : 'my-courses.html';
+      courseBtn = `<a href="${escapeHtml(href)}"
+        style="margin-left:auto; font-size:0.72rem; font-weight:700;
+               padding:3px 10px; border-radius:6px;
+               background:var(--gold); color:#fff; text-decoration:none;
+               white-space:nowrap; flex-shrink:0;"
+        >View course →</a>`;
+    }
+
+    return `
+      <div class="access-badge via-${escapeHtml(data.via || 'free')}">
+        <span class="badge-ico">${c.ico}</span>
+        <span style="flex:1;"><span>${c.label}</span><span class="badge-sub">${c.sub}</span></span>
+        ${courseBtn}
+      </div>`;
+  }
+
+  // --- lock notice helper ---
+  function buildLockNotice(setData) {
+    return `
+      <div class="lock-notice">
+        🔒 <b>This quiz is premium.</b><br>
+        Purchase this quiz directly, or enroll in a course that includes it to get access.
+        ${setData.price ? `<br><span style="margin-top:4px;display:block;">Direct purchase: <b>${escapeHtml(setData.currency||'NPR')} ${parseFloat(setData.price).toFixed(0)}</b></span>` : ''}
+      </div>`;
+  }
+
+  let startBtnHtml;
+  if (!u) {
+    startBtnHtml = `
+      <a href="login.html?next=${encodeURIComponent(location.pathname+location.search)}"
+        class="start-now signin" style="text-decoration:none;">Sign in to start</a>`;
+  } else if (showPurchase) {
+    if (pendingPurchase) {
+      // Payment submitted, awaiting approval
+      const purchaseHref = `purchase.html?quizSetId=${encodeURIComponent(set.id)}`;
+      startBtnHtml = `
+        <div class="pending-panel">
+          <div class="pending-header">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="pending-dot"></span>
+              <span style="font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#d97706;">Payment Pending</span>
+            </div>
+            <a href="${purchaseHref}"
+              style="font-size:.78rem;font-weight:700;color:var(--accent);text-decoration:none;padding:4px 12px;border:1.5px solid var(--accent);border-radius:100px;">
+              View status →
+            </a>
+          </div>
+          <div class="pending-steps">
+            <div class="ps done">✓ Selected</div>
+            <div class="ps done">✓ Paid</div>
+            <div class="ps act">⏳ Approval</div>
+          </div>
+          <div class="pending-msg">
+            🔔 You'll receive a <strong>notification</strong> once the admin approves your request.
+          </div>
+          <div class="pending-tabs">
+            <a href="${purchaseHref}" class="pending-tab primary">
+              <span class="pt-ico">📋</span>View details
+            </a>
+            <a href="my-quiz-sets.html" class="pending-tab">
+              <span class="pt-ico">📝</span>My Quizzes
+            </a>
+            <a href="contact.html" class="pending-tab">
+              <span class="pt-ico">📞</span>Contact
+            </a>
+          </div>
+        </div>`;
+    } else {
+      startBtnHtml = `
+        ${buildLockNotice(set)}
+        <a href="purchase.html?quizSetId=${encodeURIComponent(set.id)}"
+          class="start-now locked" style="text-decoration:none;">🔒 Unlock to start</a>`;
+    }
+  } else {
+    startBtnHtml = `
+      <button class="start-now" id="start-btn">▶ Start Quiz Now</button>
+      ${buildAccessBadge(accessData)}`;
+  }
+
+  root.innerHTML = `
+    <div class="qd-head">
+      <div class="qd-tags">
+        <span class="qd-tag ${isTest?'tag-test':'tag-practice'}">${isTest?'⏱ Timed Test':'📖 Practice'}</span>
+        <span class="qd-tag ${isPaid?'tag-premium':'tag-free'}">${isPaid?`★ Premium · ${escapeHtml(set.currency||'NPR')} ${parseFloat(set.price||0).toFixed(0)}`:'● Free'}</span>
+      </div>
+      <div class="qd-title">${escapeHtml(set.name)}</div>
+      ${set.description ? `<div class="qd-desc">${escapeHtml(set.description)}</div>` : ''}
+    </div>
+
+    <div class="stat-strip">
+      <div class="strip-cell"><div class="strip-n">${totalQuestions}</div><div class="strip-l">Questions</div></div>
+      <div class="strip-cell"><div class="strip-n">${duration}</div><div class="strip-l">Duration</div></div>
+      <div class="strip-cell"><div class="strip-n">${totalQuestions}</div><div class="strip-l">Total Marks</div></div>
+      <div class="strip-cell"><div class="strip-n" id="attempt-n">—</div><div class="strip-l">Attempts</div></div>
+    </div>
+
+    <div class="qd-grid">
+      <div class="qd-panel">
+        <div class="qd-panel-title"><span class="ico">▶</span> Start Quiz</div>
+        <div class="check-list">
+          <div class="check-item"><span class="check-mark">✓</span> <b>${totalQuestions}</b> questions</div>
+          <div class="check-item ${isTest?'':'off'}"><span class="check-mark">${isTest?'✓':'○'}</span>
+            ${isTest ? `<b>${duration}</b> time limit` : 'No time limit (practice)'}</div>
+          <div class="check-item"><span class="check-mark">✓</span> <b>+1.00</b> per correct answer</div>
+          <div class="check-item ${negOn?'':'off'}"><span class="check-mark">${negOn?'✓':'○'}</span>
+            ${negOn ? `<b>−${negVal.toFixed(2)}</b> per wrong answer` : 'No negative marking'}</div>
+          ${passMark!=null ? `<div class="check-item"><span class="check-mark">✓</span> Pass at <b>${passMark.toFixed(0)}%</b></div>` : ''}
+        </div>
+        ${isTest
+          ? `<div class="qd-note"><b>Before you start:</b> the timer doesn't stop once you begin. You can mark questions for review and revisit them. Submit when ready.</div>`
+          : `<div class="qd-note"><b>Practice mode:</b> there's no timer — take your time. You'll see whether each answer is right or wrong with an explanation as you go. Mark questions to revisit them.</div>`}
+        ${startBtnHtml}
+      </div>
+
+      <div class="qd-panel">
+        <div class="qd-panel-title"><span class="ico">🏆</span> Top Scorers</div>
+        <div id="leaderboard"><div class="muted-line">Loading…</div></div>
+      </div>
+    </div>`;
+
+  // Start button → pre-start screen
+  document.getElementById('start-btn')?.addEventListener('click', () => {
+    window.location.href = `quiz-attempt.html?quizSetId=${encodeURIComponent(set.id)}`;
+  });
+
+  // Leaderboard / Top Scorers
+  (async () => {
+    const lb = document.getElementById('leaderboard');
+    try {
+      const r = await quiz.leaderboard(set.id, 10);
+      const rows = r.data || [];
+      document.getElementById('attempt-n').textContent = r.totalAttempts != null ? r.totalAttempts : rows.length;
+      if (!rows.length) {
+        lb.innerHTML = `<div class="muted-line">No attempts yet — be the first.</div>`;
+        return;
+      }
+      lb.innerHTML = rows.map(e => {
+        const name = ((e.user?.firstName || e.firstName || '') + ' ' + (e.user?.lastName || e.lastName || '')).trim() || 'Anonymous';
+        const initial = name.charAt(0).toUpperCase() || '?';
+        const pct = parseFloat(e.bestPercentage || 0).toFixed(1);
+        const rankCls = e.rank===1?'gold':e.rank===2?'silver':e.rank===3?'bronze':'';
+        return `
+          <div class="lb-row">
+            <div class="lb-rank ${rankCls}">${e.rank}</div>
+            <div class="lb-avatar">${escapeHtml(initial)}</div>
+            <div class="lb-name">
+              <div class="nm">${escapeHtml(name)}</div>
+              <div class="sub">${e.bestScore!=null?`${e.bestScore} marks`:''}</div>
+            </div>
+            <div class="lb-score"><div class="pct">${pct}%</div><div class="lbl">best</div></div>
+          </div>`;
+      }).join('');
+    } catch {
+      lb.innerHTML = `<div class="muted-line">Couldn't load scores.</div>`;
+      document.getElementById('attempt-n').textContent = '0';
+    }
+  })();
+</script>
+</body>
+</html>

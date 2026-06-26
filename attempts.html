@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>My Attempts · Quiznosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  :root {
+    --ink:#0d0f14; --paper:#f5f3ee; --white:#ffffff;
+    --accent:#e84b2b; --blue:#2b7de8; --green:#1a9c5b; --gold:#c9920a; --purple:#7c4dff;
+    --muted:#7a7870; --border:#e2dfd8; --card:#ffffff;
+  }
+  [data-theme="dark"] {
+    --ink:#e8ecf4; --paper:#0e1626; --white:#16203a;
+    --accent:#e0742f; --blue:#5b9bf0; --green:#4ade80; --gold:#e0a93e; --purple:#a78bfa;
+    --muted:#7886a8; --border:#2a3a5c; --card:#16203a;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:'Inter', sans-serif;
+    background:var(--paper); color:var(--ink);
+    min-height:100vh;
+  }
+  a { color:inherit; text-decoration:none; }
+
+  .page { max-width:1100px; margin:0 auto; padding:clamp(16px, 3vw, 32px); }
+
+  .page-head { margin-bottom:clamp(16px, 2.5vw, 26px); }
+  .page-head .eyebrow {
+    font-size:0.72rem; font-weight:700; letter-spacing:0.10em;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .page-head h1 {
+    font-size:clamp(1.4rem, 2vw + 1rem, 1.85rem);
+    font-weight:700; letter-spacing:-0.01em;
+    margin-top:0.3rem;
+  }
+  .page-head .sub {
+    font-size:clamp(0.84rem, 0.4vw + 0.74rem, 0.94rem);
+    color:var(--muted); margin-top:0.4rem;
+  }
+
+  /* Status filter tabs */
+  .at-tabs {
+    display:flex; gap:6px; flex-wrap:wrap;
+    margin:18px 0 18px;
+    border-bottom:1px solid var(--border);
+    padding-bottom:0;
+  }
+  .at-tab {
+    padding:clamp(7px, 1vw, 10px) clamp(10px, 1.4vw, 16px);
+    font-size:clamp(0.76rem, 0.4vw + 0.66rem, 0.86rem);
+    font-weight:600; color:var(--muted);
+    background:transparent; border:none; cursor:pointer;
+    font-family:inherit;
+    border-bottom:2px solid transparent;
+    transition:color .15s, border-color .15s;
+    margin-bottom:-1px;
+  }
+  .at-tab:hover { color:var(--ink); }
+  .at-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+  /* Attempts list */
+  .at-list { display:flex; flex-direction:column; gap:clamp(8px, 1.2vw, 12px); }
+  .at-row {
+    display:flex; align-items:center; gap:clamp(10px, 1.5vw, 16px);
+    padding:clamp(12px, 1.8vw, 18px);
+    background:var(--paper);
+    border:1px solid var(--border);
+    border-radius:12px;
+    transition:border-color .15s, transform .15s;
+  }
+  .at-row:hover { border-color:var(--accent); transform:translateY(-1px); }
+  .at-ico {
+    width:clamp(38px, 4vw, 46px); height:clamp(38px, 4vw, 46px);
+    flex-shrink:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:50%; font-size:clamp(1rem, 1.2vw + 0.6rem, 1.25rem);
+  }
+  .at-ico.practice { background:rgba(43,125,232,0.12); color:var(--blue); }
+  .at-ico.test     { background:rgba(232,75,43,0.12); color:var(--accent); }
+  .at-body { flex:1; min-width:0; }
+  .at-title {
+    font-size:clamp(0.92rem, 0.5vw + 0.78rem, 1.05rem);
+    font-weight:600; color:var(--ink);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .at-meta {
+    display:flex; flex-wrap:wrap; gap:10px;
+    font-size:clamp(0.72rem, 0.3vw + 0.66rem, 0.78rem);
+    color:var(--muted); margin-top:4px;
+  }
+  .at-meta .dot { width:3px; height:3px; border-radius:50%; background:currentColor; align-self:center; opacity:0.4; }
+  .at-score {
+    flex-shrink:0; text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .at-score .pct {
+    font-size:clamp(1rem, 0.6vw + 0.85rem, 1.2rem);
+    font-weight:700;
+  }
+  .at-score .pct.pass { color:var(--green); }
+  .at-score .pct.fail { color:var(--accent); }
+  .at-score .raw {
+    font-size:0.72rem; color:var(--muted); margin-top:2px;
+  }
+  .at-status {
+    flex-shrink:0;
+    padding:3px 9px; border-radius:100px;
+    font-size:0.66rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.05em;
+  }
+  .at-status.completed   { background:rgba(26,156,91,0.14); color:var(--green); }
+  .at-status.in_progress { background:rgba(43,125,232,0.14); color:var(--blue); }
+  .at-status.paused      { background:rgba(201,146,10,0.14); color:var(--gold); }
+  .at-status.timed_out   { background:rgba(232,75,43,0.14); color:var(--accent); }
+  .at-status.abandoned   { background:rgba(122,120,112,0.18); color:var(--muted); }
+  /* Make resume rows feel actionable */
+  .at-row[data-action="resume"] {
+    background:linear-gradient(90deg, rgba(201,146,10,0.06), transparent 60%);
+  }
+  .at-row[data-action="resume"] .at-ico::after {
+    content:'▶'; position:absolute; right:-2px; bottom:-2px;
+    font-size:0.6rem; color:var(--gold);
+    background:var(--paper); border-radius:50%;
+    width:14px; height:14px;
+    display:inline-flex; align-items:center; justify-content:center;
+    border:1.5px solid var(--gold);
+  }
+  .at-ico { position:relative; }
+  /* On phones, hide the badge column to keep the row clean */
+  @media (max-width:480px) {
+    .at-status { display:none; }
+    .at-title { white-space:normal; }
+  }
+
+  /* Pagination */
+  .at-pager {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin-top:18px;
+  }
+  .at-pager button {
+    padding:7px 14px; font-family:inherit; font-size:0.82rem; font-weight:600;
+    color:var(--ink); background:var(--paper);
+    border:1.5px solid var(--border); border-radius:8px;
+    cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .at-pager button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .at-pager button:disabled { opacity:0.45; cursor:not-allowed; }
+  .at-pager .info {
+    font-size:0.78rem; color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  .empty, .loading {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:60px 20px; color:var(--muted);
+  }
+  .empty .ico { font-size:3rem; margin-bottom:12px; opacity:0.4; }
+  .empty p { font-size:0.92rem; margin-top:4px; }
+  .spinner {
+    width:28px; height:28px;
+    border:3px solid var(--border); border-top-color:var(--accent);
+    border-radius:50%; animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* Sticky nav (auto-hide on scroll-down) */
+  .site-header {
+    position:sticky; top:0; z-index:60;
+    transition:transform .25s ease;
+    background:var(--paper);
+    -webkit-backdrop-filter:saturate(180%) blur(12px);
+    backdrop-filter:saturate(180%) blur(12px);
+  }
+  [data-theme="dark"] .site-header { background:var(--paper); border-bottom-color:var(--paper-edge); }
+  .site-header.is-hidden { transform:translateY(-100%); }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+
+<div class="page">
+  <div class="page-head">
+    <div class="eyebrow">Performance</div>
+    <h1>My Attempts</h1>
+    <p class="sub">Every quiz you've started, paused, completed, or abandoned.</p>
+  </div>
+
+  <div class="at-tabs" id="at-tabs">
+    <button class="at-tab active" data-status="">All</button>
+    <button class="at-tab" data-status="COMPLETED">Completed</button>
+    <button class="at-tab" data-status="IN_PROGRESS">In Progress</button>
+    <button class="at-tab" data-status="PAUSED">Paused</button>
+    <button class="at-tab" data-status="TIMED_OUT">Timed Out</button>
+    <button class="at-tab" data-status="ABANDONED">Abandoned</button>
+  </div>
+
+  <div id="at-content">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<script type="module">
+  /*
+   * My Attempts — paged list of the current user's quiz attempts.
+   * Backend: GET /api/me/attempts?page=&pageSize=&status=
+   * Renders a row per attempt with score, time, and a status badge.
+   */
+  import { escapeHtml, mountHeader, mountFooter, requireAuth, formatRelative, formatClock } from './assets/components.js';
+  import { me } from './assets/api.js';
+
+  await requireAuth('login.html');
+  await mountHeader('attempts');
+
+  // Auto-hide site header on scroll-down (matches quizzes/courses/dashboard).
+  (function wireHeaderAutoHide() {
+    const hdr = document.querySelector('.site-header');
+    if (!hdr) return;
+    let last = window.scrollY, raf = 0;
+    window.addEventListener('scroll', () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const cur = window.scrollY, delta = cur - last;
+        if (cur < 60)        hdr.classList.remove('is-hidden');
+        else if (delta > 6)  hdr.classList.add('is-hidden');
+        else if (delta < -6) hdr.classList.remove('is-hidden');
+        last = cur;
+      });
+    }, { passive: true });
+  })();
+
+  const state = { status: '', page: 1, pageSize: 15 };
+  const content = document.getElementById('at-content');
+
+  function statusLabel(s) {
+    return ({
+      COMPLETED:'Completed', IN_PROGRESS:'In Progress', PAUSED:'Paused',
+      TIMED_OUT:'Timed Out', ABANDONED:'Abandoned'
+    })[s] || s;
+  }
+
+  /*
+   * Build one row.  The destination URL depends on the attempt's status:
+   *   COMPLETED / TIMED_OUT / ABANDONED -> results.html (view-only)
+   *   IN_PROGRESS / PAUSED              -> quiz-attempt.html
+   *
+   * quiz-attempt.html auto-resumes paused attempts server-side on load,
+   * so we DO NOT call quiz.resume() from here — that would cause a 409
+   * because quiz-attempt.html would then try to resume an already-resumed
+   * attempt.
+   * Both pages accept the same param name: ?attemptId=<id>
+   */
+  function rowHtml(a) {
+    const isPractice = a.quiz_set_mode === 'PRACTICE';
+    const isComplete = a.status === 'COMPLETED';
+    const pct = a.percentage != null ? Number(a.percentage) : null;
+    const passClass = a.passed === 1 ? 'pass' : (a.passed === 0 ? 'fail' : '');
+    const when = formatRelative(a.start_time);
+    const dur = a.time_spent_sec ? formatClock(Number(a.time_spent_sec)) : null;
+    const statusKey = (a.status || '').toLowerCase();
+
+    // Route per status — purely an href, no JS intercept needed.
+    let href, action;
+    switch (a.status) {
+      case 'IN_PROGRESS':
+        href = `quiz-attempt.html?attemptId=${encodeURIComponent(a.id)}`;
+        action = 'continue';
+        break;
+      case 'PAUSED':
+        href = `quiz-attempt.html?attemptId=${encodeURIComponent(a.id)}`;
+        action = 'resume';
+        break;
+      case 'COMPLETED':
+      case 'TIMED_OUT':
+      case 'ABANDONED':
+      default:
+        href = `results.html?attemptId=${encodeURIComponent(a.id)}`;
+        action = 'view';
+    }
+
+    return `
+      <a class="at-row" href="${href}" data-action="${action}" data-id="${escapeHtml(a.id)}">
+        <div class="at-ico ${isPractice ? 'practice' : 'test'}">${isPractice ? '📖' : '⏱'}</div>
+        <div class="at-body">
+          <div class="at-title">${escapeHtml(a.quiz_set_name || '(quiz set)')}</div>
+          <div class="at-meta">
+            <span>${isPractice ? 'Practice' : 'Timed Test'}</span>
+            <span class="dot"></span>
+            <span>${escapeHtml(when)}</span>
+            ${dur ? `<span class="dot"></span><span>${dur}</span>` : ''}
+            ${a.total_questions ? `<span class="dot"></span><span>${a.total_questions} Qs</span>` : ''}
+          </div>
+        </div>
+        <span class="at-status ${statusKey}">${statusLabel(a.status)}</span>
+        <div class="at-score">
+          ${pct != null
+            ? `<div class="pct ${passClass}">${pct.toFixed(1)}%</div>
+               <div class="raw">${a.score}/${a.total_points}</div>`
+            : (isComplete ? '<div class="pct">—</div>' : '<div class="raw">—</div>')}
+        </div>
+      </a>`;
+  }
+
+  function pagerHtml(total, page, pageSize) {
+    const last = Math.max(1, Math.ceil(total / pageSize));
+    const start = total === 0 ? 0 : ((page - 1) * pageSize + 1);
+    const end   = Math.min(total, page * pageSize);
+    return `
+      <div class="at-pager">
+        <button id="prev-pg" ${page <= 1 ? 'disabled' : ''}>← Prev</button>
+        <span class="info">${start}–${end} of ${total}</span>
+        <button id="next-pg" ${page >= last ? 'disabled' : ''}>Next →</button>
+      </div>`;
+  }
+
+  async function load() {
+    content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const params = { page: state.page, pageSize: state.pageSize };
+      if (state.status) params.status = state.status;
+      const r = await me.attempts(params);
+      const items    = r?.data?.items || [];
+      const total    = r?.data?.total || 0;
+      const page     = r?.data?.page || 1;
+      const pageSize = r?.data?.pageSize || state.pageSize;
+      if (!items.length) {
+        content.innerHTML = `
+          <div class="empty">
+            <div class="ico">📭</div>
+            <p>${state.status ? 'No attempts match this filter.' : 'No quiz attempts yet.'}</p>
+          </div>`;
+        return;
+      }
+      content.innerHTML =
+        `<div class="at-list">${items.map(rowHtml).join('')}</div>` +
+        pagerHtml(total, page, pageSize);
+      document.getElementById('prev-pg')?.addEventListener('click', () => { state.page = Math.max(1, state.page - 1); load(); });
+      document.getElementById('next-pg')?.addEventListener('click', () => { state.page = state.page + 1; load(); });
+    } catch (err) {
+      content.innerHTML = `<div class="empty"><p>Couldn't load: ${escapeHtml(err.message)}</p></div>`;
+    }
+  }
+
+  // Status tabs — clicking resets to page 1.
+  document.getElementById('at-tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('.at-tab'); if (!b) return;
+    document.querySelectorAll('.at-tab').forEach(t => t.classList.toggle('active', t === b));
+    state.status = b.dataset.status;
+    state.page = 1;
+    load();
+  });
+
+  load();
+  mountFooter();
+</script>
+
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('dashboard', u);
+})();
+</script>
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

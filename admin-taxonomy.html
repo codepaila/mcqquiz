@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Taxonomy · Admin · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  th, td { vertical-align: top; }
+  th { font-weight: 500; }
+  .filter-bar { display:flex; gap:12px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+  .filter-bar select, .filter-bar input { width:auto; min-width:180px; }
+  .panel-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px; }
+  .count-pill {
+    display:inline-block; padding:2px 8px; background:var(--paper-edge);
+    border-radius:100px; font-family:var(--font-mono); font-size:0.74rem; color:var(--ink-soft);
+    margin-left:6px;
+  }
+  .row-actions { white-space:nowrap; }
+  .row-actions button { margin-left:4px; }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main class="section">
+  <div class="container">
+    <div id="err-banner" style="display:none; padding:14px 18px; background:#f2dede; color:#722; border-left:4px solid #9b2c2c; border-radius:6px; margin-bottom:16px; font-family:var(--font-mono); font-size:0.86rem;"></div>
+    <div class="flex-between mb-2">
+      <div>
+        <a href="admin.html" class="text-muted" style="font-size:0.9rem;">← Back to admin</a>
+        <h1 class="display mt-1" style="font-size:2.2rem;">Taxonomy</h1>
+        <p class="text-soft" style="font-size:0.94rem;">Manage professions, subjects, topics, and exam types — the categories used across the platform.</p>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" data-tab="professions">Professions</button>
+      <button class="tab" data-tab="exam-types">Exam Types</button>
+      <button class="tab" data-tab="subjects">Subjects</button>
+      <button class="tab" data-tab="topics">Topics</button>
+    </div>
+
+    <!-- ============ PROFESSIONS ============ -->
+    <div class="panel active" id="panel-professions">
+      <div class="panel-head">
+        <div>
+          <h2 class="display" style="font-size:1.4rem;">Professions <span class="count-pill" id="prof-count">—</span></h2>
+          <p class="text-muted" style="font-size:0.88rem;">Top-level categories like Medical, Engineering, Banking.</p>
+        </div>
+        <button class="btn btn-accent" id="prof-new">+ New profession</button>
+      </div>
+      <div id="prof-table"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ============ EXAM TYPES ============ -->
+    <div class="panel" id="panel-exam-types">
+      <div class="panel-head">
+        <div>
+          <h2 class="display" style="font-size:1.4rem;">Exam Types <span class="count-pill" id="exam-count">—</span></h2>
+          <p class="text-muted" style="font-size:0.88rem;">Specific exam labels like NMCLE, Loksewa Section Officer, JEE Main. Attach to quiz sets.</p>
+        </div>
+        <button class="btn btn-accent" id="exam-new">+ New exam type</button>
+      </div>
+      <div class="filter-bar">
+        <select id="exam-prof-filter"><option value="">All professions</option></select>
+      </div>
+      <div id="exam-table"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ============ SUBJECTS ============ -->
+    <div class="panel" id="panel-subjects">
+      <div class="panel-head">
+        <div>
+          <h2 class="display" style="font-size:1.4rem;">Subjects <span class="count-pill" id="subj-count">—</span></h2>
+          <p class="text-muted" style="font-size:0.88rem;">Subject areas like Anatomy, Mathematics, English — used to tag questions and sets.</p>
+        </div>
+        <button class="btn btn-accent" id="subj-new">+ New subject</button>
+      </div>
+      <div class="filter-bar">
+        <select id="subj-prof-filter"><option value="">All professions</option></select>
+      </div>
+      <div id="subj-table"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ============ TOPICS ============ -->
+    <div class="panel" id="panel-topics">
+      <div class="panel-head">
+        <div>
+          <h2 class="display" style="font-size:1.4rem;">Topics <span class="count-pill" id="topic-count">—</span></h2>
+          <p class="text-muted" style="font-size:0.88rem;">Drill-down topics within a subject — Cardiovascular System, Calculus, Verbal Reasoning, etc.</p>
+        </div>
+        <button class="btn btn-accent" id="topic-new">+ New topic</button>
+      </div>
+      <div class="filter-bar">
+        <select id="topic-subj-filter"><option value="">All subjects</option></select>
+      </div>
+      <div id="topic-table"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { mountHeader, mountAdminSidebar, mountFooter, escapeHtml, toast, requireRole, modal } from './assets/components.js';
+  import { admin } from './assets/api.js';
+
+  // Surface any error visibly — silent script crashes were biting us before
+  window.addEventListener('error', (e) => {
+    const msg = e.error?.stack || e.message || String(e);
+    console.error('[admin-taxonomy] error:', msg);
+    const bar = document.getElementById('err-banner');
+    if (bar) { bar.style.display = 'block'; bar.textContent = '⚠️ JS error: ' + msg.split('\n')[0]; }
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    const msg = e.reason?.stack || e.reason?.message || String(e.reason);
+    console.error('[admin-taxonomy] promise rejection:', msg);
+    const bar = document.getElementById('err-banner');
+    if (bar) { bar.style.display = 'block'; bar.textContent = '⚠️ Error: ' + msg.split('\n')[0]; }
+  });
+
+  await requireRole('ADMIN');
+  await mountHeader('admin');
+  mountAdminSidebar('taxonomy');
+  mountFooter();
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+      if (t.dataset.tab === 'exam-types') loadExamTypes();
+      if (t.dataset.tab === 'subjects') loadSubjects();
+      if (t.dataset.tab === 'topics') loadTopics();
+    });
+  });
+
+  // Cache professions + subjects for dropdowns + filter dropdowns
+  let professions = [];
+  let subjects = [];
+
+  async function refreshProfessions() {
+    const r = await admin.listProfessions();
+    professions = r.data;
+    return professions;
+  }
+  async function refreshSubjects() {
+    const r = await admin.listSubjects();
+    subjects = r.data;
+    return subjects;
+  }
+
+  function fillProfSelect(sel, includeNone = true, current = '') {
+    sel.innerHTML = (includeNone ? '<option value="">— None —</option>' : '')
+      + professions.map(p => `<option value="${escapeHtml(p.id)}" ${current === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+  }
+  function fillSubjSelect(sel, includeNone = true, current = '') {
+    sel.innerHTML = (includeNone ? '<option value="">— None —</option>' : '')
+      + subjects.map(s => `<option value="${escapeHtml(s.id)}" ${current === s.id ? 'selected' : ''}>${escapeHtml(s.name)}${s.profession_name ? ' (' + escapeHtml(s.profession_name) + ')' : ''}</option>`).join('');
+  }
+
+  /* ============ PROFESSIONS ============ */
+  async function loadProfessions() {
+    const table = document.getElementById('prof-table');
+    table.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      await refreshProfessions();
+      document.getElementById('prof-count').textContent = professions.length;
+      // refresh filter dropdowns elsewhere with a clean "All" + the new list
+      const profOpts = '<option value="">All professions</option>'
+        + professions.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('');
+      document.getElementById('exam-prof-filter').innerHTML = profOpts;
+      document.getElementById('subj-prof-filter').innerHTML = profOpts;
+
+      if (!professions.length) {
+        table.innerHTML = `<div class="empty"><p>No professions yet — create the first one.</p></div>`;
+        return;
+      }
+      table.innerHTML = `
+        <table>
+          <thead><tr><th>Name</th><th>Slug</th><th>Subjects</th><th>Quiz sets</th><th>Order</th><th></th></tr></thead>
+          <tbody>${professions.map(p => `
+            <tr data-id="${p.id}">
+              <td><strong>${escapeHtml(p.name)}</strong>${p.description ? `<div class="text-muted" style="font-size:0.82rem; margin-top:2px;">${escapeHtml(p.description.slice(0, 100))}${p.description.length > 100 ? '…' : ''}</div>` : ''}</td>
+              <td style="font-family:var(--font-mono); font-size:0.82rem; color:var(--ink-muted);">${escapeHtml(p.slug)}</td>
+              <td>${p.subjects_count}</td>
+              <td>${p.quiz_sets_count}</td>
+              <td>${p.order}</td>
+              <td class="row-actions">
+                <button class="btn btn-ghost btn-sm" data-edit>Edit</button>
+                <button class="btn btn-ghost btn-sm" data-del style="color:var(--error);">Delete</button>
+              </td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+      table.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () =>
+        profModal(professions.find(p => p.id === b.closest('tr').dataset.id))
+      ));
+      table.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.closest('tr').dataset.id;
+        const p = professions.find(x => x.id === id);
+        if (!confirm(`Delete "${p.name}"? This is permanent.`)) return;
+        try { await admin.deleteProfession(id); toast('Deleted', 'success'); loadProfessions(); }
+        catch (err) { toast(err.message, 'error'); }
+      }));
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function profModal(existing) {
+    const e = existing || {};
+    const { el, close } = modal(`
+      <h2>${existing ? 'Edit profession' : 'New profession'}</h2>
+      <form id="prof-form" class="stack" style="--stack:14px;">
+        <div class="field"><label>Name</label><input name="name" required value="${escapeHtml(e.name || '')}" placeholder="e.g. Medical"></div>
+        <div class="field"><label>Description</label><textarea name="description" rows="3">${escapeHtml(e.description || '')}</textarea></div>
+        <div class="field-row">
+          <div class="field"><label>Slug ${existing ? '' : '<span class="text-muted" style="font-weight:400;">(auto from name)</span>'}</label><input name="slug" value="${escapeHtml(e.slug || '')}"></div>
+          <div class="field"><label>Order</label><input name="order" type="number" value="${e.order ?? 0}"></div>
+        </div>
+        <div class="field"><label>Image URL <span class="text-muted" style="font-weight:400;">(optional)</span></label><input name="image" value="${escapeHtml(e.image || '')}"></div>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">${existing ? 'Save' : 'Create'}</button>
+        </div>
+      </form>`);
+    el.querySelector('#prof-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const body = {
+        name: fd.get('name').trim(),
+        description: fd.get('description').trim() || null,
+        slug: fd.get('slug').trim() || null,
+        image: fd.get('image').trim() || null,
+        order: parseInt(fd.get('order')) || 0,
+      };
+      try {
+        if (existing) { body.id = existing.id; await admin.updateProfession(body); }
+        else await admin.createProfession(body);
+        toast(existing ? 'Saved' : 'Created', 'success');
+        close();
+        loadProfessions();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+  document.getElementById('prof-new').addEventListener('click', () => profModal(null));
+
+  /* ============ EXAM TYPES ============ */
+  async function loadExamTypes() {
+    if (!professions.length) await refreshProfessions();
+    const table = document.getElementById('exam-table');
+    const profId = document.getElementById('exam-prof-filter').value;
+    table.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const r = await admin.listExamTypes(profId ? { profession_id: profId } : {});
+      document.getElementById('exam-count').textContent = r.data.length;
+      if (!r.data.length) {
+        table.innerHTML = `<div class="empty"><p>No exam types${profId ? ' for this profession' : ''} yet.</p></div>`;
+        return;
+      }
+      table.innerHTML = `
+        <table>
+          <thead><tr><th>Name</th><th>Profession</th><th>Quiz sets</th><th>Order</th><th></th></tr></thead>
+          <tbody>${r.data.map(e => `
+            <tr data-id="${e.id}">
+              <td><strong>${escapeHtml(e.name)}</strong>${e.description ? `<div class="text-muted" style="font-size:0.82rem; margin-top:2px;">${escapeHtml(e.description.slice(0, 100))}${e.description.length > 100 ? '…' : ''}</div>` : ''}</td>
+              <td class="text-muted">${e.profession_name ? escapeHtml(e.profession_name) : '—'}</td>
+              <td>${e.quiz_sets_count}</td>
+              <td>${e.order}</td>
+              <td class="row-actions">
+                <button class="btn btn-ghost btn-sm" data-edit>Edit</button>
+                <button class="btn btn-ghost btn-sm" data-del style="color:var(--error);">Delete</button>
+              </td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+      table.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () =>
+        examModal(r.data.find(x => x.id === b.closest('tr').dataset.id))
+      ));
+      table.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.closest('tr').dataset.id;
+        const ex = r.data.find(x => x.id === id);
+        if (!confirm(`Delete "${ex.name}"?`)) return;
+        try { await admin.deleteExamType(id); toast('Deleted', 'success'); loadExamTypes(); }
+        catch (err) { toast(err.message, 'error'); }
+      }));
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function examModal(existing) {
+    const e = existing || {};
+    const { el, close } = modal(`
+      <h2>${existing ? 'Edit exam type' : 'New exam type'}</h2>
+      <form id="exam-form" class="stack" style="--stack:14px;">
+        <div class="field"><label>Name</label><input name="name" required value="${escapeHtml(e.name || '')}" placeholder="e.g. NMCLE Mock"></div>
+        <div class="field"><label>Description</label><textarea name="description" rows="3">${escapeHtml(e.description || '')}</textarea></div>
+        <div class="field-row">
+          <div class="field"><label>Profession</label>
+            <select name="professionId">
+              <option value="">— None —</option>
+              ${professions.map(p => `<option value="${p.id}" ${e.profession_id === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Order</label><input name="order" type="number" value="${e.order ?? 0}"></div>
+        </div>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">${existing ? 'Save' : 'Create'}</button>
+        </div>
+      </form>`);
+    el.querySelector('#exam-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const body = {
+        name: fd.get('name').trim(),
+        description: fd.get('description').trim() || null,
+        professionId: fd.get('professionId') || null,
+        order: parseInt(fd.get('order')) || 0,
+      };
+      try {
+        if (existing) { body.id = existing.id; await admin.updateExamType(body); }
+        else await admin.createExamType(body);
+        toast(existing ? 'Saved' : 'Created', 'success');
+        close();
+        loadExamTypes();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+  document.getElementById('exam-new').addEventListener('click', () => examModal(null));
+  document.getElementById('exam-prof-filter').addEventListener('change', loadExamTypes);
+
+  /* ============ SUBJECTS ============ */
+  async function loadSubjects() {
+    if (!professions.length) await refreshProfessions();
+    const table = document.getElementById('subj-table');
+    const profId = document.getElementById('subj-prof-filter').value;
+    table.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const r = await admin.listSubjects(profId ? { profession_id: profId } : {});
+      subjects = r.data;
+      document.getElementById('subj-count').textContent = r.data.length;
+      // refresh topics dropdown source
+      const subjOpts = '<option value="">All subjects</option>'
+        + subjects.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}${s.profession_name ? ' (' + escapeHtml(s.profession_name) + ')' : ''}</option>`).join('');
+      document.getElementById('topic-subj-filter').innerHTML = subjOpts;
+
+      if (!r.data.length) {
+        table.innerHTML = `<div class="empty"><p>No subjects${profId ? ' for this profession' : ''} yet.</p></div>`;
+        return;
+      }
+      table.innerHTML = `
+        <table>
+          <thead><tr><th>Name</th><th>Profession</th><th>Topics</th><th>Quiz sets</th><th>Order</th><th></th></tr></thead>
+          <tbody>${r.data.map(s => `
+            <tr data-id="${s.id}">
+              <td><strong>${escapeHtml(s.name)}</strong></td>
+              <td class="text-muted">${s.profession_name ? escapeHtml(s.profession_name) : '—'}</td>
+              <td>${s.topics_count}</td>
+              <td>${s.quiz_sets_count}</td>
+              <td>${s.order}</td>
+              <td class="row-actions">
+                <button class="btn btn-ghost btn-sm" data-edit>Edit</button>
+                <button class="btn btn-ghost btn-sm" data-del style="color:var(--error);">Delete</button>
+              </td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+      table.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () =>
+        subjModal(r.data.find(x => x.id === b.closest('tr').dataset.id))
+      ));
+      table.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.closest('tr').dataset.id;
+        const s = r.data.find(x => x.id === id);
+        if (!confirm(`Delete "${s.name}"?`)) return;
+        try { await admin.deleteSubject(id); toast('Deleted', 'success'); loadSubjects(); }
+        catch (err) { toast(err.message, 'error'); }
+      }));
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function subjModal(existing) {
+    const e = existing || {};
+    const { el, close } = modal(`
+      <h2>${existing ? 'Edit subject' : 'New subject'}</h2>
+      <form id="subj-form" class="stack" style="--stack:14px;">
+        <div class="field"><label>Name</label><input name="name" required value="${escapeHtml(e.name || '')}" placeholder="e.g. Anatomy"></div>
+        <div class="field-row">
+          <div class="field"><label>Profession</label>
+            <select name="professionId">
+              <option value="">— None —</option>
+              ${professions.map(p => `<option value="${p.id}" ${e.profession_id === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Order</label><input name="order" type="number" value="${e.order ?? 0}"></div>
+        </div>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">${existing ? 'Save' : 'Create'}</button>
+        </div>
+      </form>`);
+    el.querySelector('#subj-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const body = {
+        name: fd.get('name').trim(),
+        professionId: fd.get('professionId') || null,
+        order: parseInt(fd.get('order')) || 0,
+      };
+      try {
+        if (existing) { body.id = existing.id; await admin.updateSubject(body); }
+        else await admin.createSubject(body);
+        toast(existing ? 'Saved' : 'Created', 'success');
+        close();
+        loadSubjects();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+  document.getElementById('subj-new').addEventListener('click', () => subjModal(null));
+  document.getElementById('subj-prof-filter').addEventListener('change', loadSubjects);
+
+  /* ============ TOPICS ============ */
+  async function loadTopics() {
+    if (!subjects.length) await refreshSubjects();
+    if (!professions.length) await refreshProfessions();
+    const table = document.getElementById('topic-table');
+    const subId = document.getElementById('topic-subj-filter').value;
+    table.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+    try {
+      const r = await admin.listTopics(subId ? { subject_id: subId } : {});
+      document.getElementById('topic-count').textContent = r.data.length;
+      if (!r.data.length) {
+        table.innerHTML = `<div class="empty"><p>No topics${subId ? ' for this subject' : ''} yet.</p></div>`;
+        return;
+      }
+      table.innerHTML = `
+        <table>
+          <thead><tr><th>Name</th><th>Subject</th><th>Quiz sets</th><th>Order</th><th></th></tr></thead>
+          <tbody>${r.data.map(t => `
+            <tr data-id="${t.id}">
+              <td><strong>${escapeHtml(t.name)}</strong></td>
+              <td class="text-muted">${t.subject_name ? escapeHtml(t.subject_name) : '—'}</td>
+              <td>${t.quiz_sets_count}</td>
+              <td>${t.order}</td>
+              <td class="row-actions">
+                <button class="btn btn-ghost btn-sm" data-edit>Edit</button>
+                <button class="btn btn-ghost btn-sm" data-del style="color:var(--error);">Delete</button>
+              </td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+      table.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () =>
+        topicModal(r.data.find(x => x.id === b.closest('tr').dataset.id))
+      ));
+      table.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.closest('tr').dataset.id;
+        const t = r.data.find(x => x.id === id);
+        if (!confirm(`Delete "${t.name}"?`)) return;
+        try { await admin.deleteTopic(id); toast('Deleted', 'success'); loadTopics(); }
+        catch (err) { toast(err.message, 'error'); }
+      }));
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function topicModal(existing) {
+    const e = existing || {};
+    if (!subjects.length) { toast('Create a subject first', 'error'); return; }
+    const { el, close } = modal(`
+      <h2>${existing ? 'Edit topic' : 'New topic'}</h2>
+      <form id="topic-form" class="stack" style="--stack:14px;">
+        <div class="field"><label>Name</label><input name="name" required value="${escapeHtml(e.name || '')}" placeholder="e.g. Cardiovascular System"></div>
+        <div class="field-row">
+          <div class="field"><label>Subject</label>
+            <select name="subjectId" required>
+              ${subjects.map(s => `<option value="${s.id}" ${e.subject_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Order</label><input name="order" type="number" value="${e.order ?? 0}"></div>
+        </div>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">${existing ? 'Save' : 'Create'}</button>
+        </div>
+      </form>`);
+    el.querySelector('#topic-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target);
+      const body = {
+        name: fd.get('name').trim(),
+        subjectId: fd.get('subjectId'),
+        order: parseInt(fd.get('order')) || 0,
+      };
+      try {
+        if (existing) { body.id = existing.id; await admin.updateTopic(body); }
+        else await admin.createTopic(body);
+        toast(existing ? 'Saved' : 'Created', 'success');
+        close();
+        loadTopics();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+  document.getElementById('topic-new').addEventListener('click', () => topicModal(null));
+  document.getElementById('topic-subj-filter').addEventListener('change', loadTopics);
+
+  /* boot */
+  await loadProfessions();
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

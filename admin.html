@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Admin · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  .metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin:24px 0; }
+  .filters-row { display:flex; gap:12px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+  .filters-row input, .filters-row select { width:auto; }
+  .filters-row input { flex:1; min-width:180px; }
+
+  /* ── Live activity feed ───────────────────────────── */
+  .activity-card {
+    background:var(--paper-soft); border:1.5px solid var(--paper-edge);
+    border-radius:var(--radius-lg); padding:20px;
+  }
+  .activity-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .activity-head h3 {
+    font-family:var(--font-display); font-size:1.05rem;
+    font-weight:400; display:flex; align-items:center; gap:8px;
+  }
+  .live-dot {
+    width:7px; height:7px; border-radius:50%; background:#4ade80;
+    animation:live-pulse 2s ease-in-out infinite;
+  }
+  @keyframes live-pulse{ 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .activity-list { display:flex; flex-direction:column; gap:2px; max-height:420px; overflow-y:auto; }
+  .act-item {
+    display:flex; align-items:flex-start; gap:10px;
+    padding:9px 10px; border-radius:8px;
+    transition:background .12s; cursor:default;
+  }
+  .act-item.act-new { animation:act-slide .35s ease both; }
+  @keyframes act-slide{ from{opacity:0;transform:translateX(8px)} to{opacity:1;transform:none} }
+  .act-item:hover { background:var(--paper); }
+  .act-ico { font-size:1.1rem; flex-shrink:0; width:22px; text-align:center; margin-top:1px; }
+  .act-body { flex:1; min-width:0; }
+  .act-title { font-size:0.82rem; font-weight:600; color:var(--ink); line-height:1.3; }
+  .act-sub { font-size:0.73rem; color:var(--ink-muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .act-time { font-size:0.67rem; color:var(--ink-muted); font-family:var(--font-mono); margin-top:2px; }
+  .act-badge {
+    font-size:0.62rem; font-weight:700; letter-spacing:.04em;
+    padding:2px 7px; border-radius:100px; flex-shrink:0; margin-top:2px;
+    align-self:flex-start;
+  }
+  .act-badge-new   { background:var(--accent-soft); color:var(--accent); }
+  .act-badge-pend  { background:#fef9c3; color:#854d0e; }
+  .act-badge-ok    { background:#dcfce7; color:#166534; }
+  .act-empty { text-align:center; padding:24px; color:var(--ink-muted); font-size:0.85rem; }
+  .act-refresh-btn {
+    background:none; border:none; cursor:pointer; padding:4px 6px;
+    color:var(--ink-muted); border-radius:6px; font-size:0.75rem;
+    display:flex; align-items:center; gap:4px; font-family:var(--font-body);
+    transition:color .12s, background .12s;
+  }
+  .act-refresh-btn:hover { color:var(--ink); background:var(--paper-edge); }
+  .act-refresh-btn svg { transition:transform .5s; }
+  .act-refresh-btn.spinning svg { transform:rotate(360deg); }
+
+  /* metric card pulse on update */
+  .card.updated { animation:metric-pulse .6s ease; }
+  @keyframes metric-pulse{ 0%{box-shadow:0 0 0 0 rgba(184,83,28,.4)} 100%{box-shadow:0 0 0 10px rgba(184,83,28,0)} }
+
+  /* new user row highlight */
+  tr.row-new td { background:rgba(74,222,128,.06) !important; }
+
+  /* ── Telegram Tab ───────────────────────────────── */
+  .tg-page { max-width:700px; display:flex; flex-direction:column; gap:20px; }
+
+  .tg-page-header {
+    display:flex; align-items:center; gap:16px;
+    background:linear-gradient(135deg,rgba(42,171,238,.08),rgba(34,158,217,.03));
+    border:1.5px solid rgba(42,171,238,.2);
+    border-radius:var(--radius-lg); padding:20px 24px;
+  }
+  .tg-icon-lg {
+    width:56px; height:56px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; overflow:hidden;
+  }
+  .tg-page-title { font-family:var(--font-display); font-size:1.3rem; font-weight:400; margin:0 0 4px; }
+  .tg-page-sub   { font-size:0.82rem; color:var(--ink-muted); margin:0; }
+  .tg-status-pill {
+    margin-left:auto; display:flex; align-items:center; gap:7px;
+    padding:6px 14px; border-radius:100px; font-size:0.78rem; font-weight:600;
+    background:var(--paper); border:1.5px solid var(--paper-edge);
+    white-space:nowrap; flex-shrink:0;
+  }
+  .tg-pill-dot { width:8px; height:8px; border-radius:50%; background:#94a3b8; flex-shrink:0; }
+  .tg-status-pill.pill-ok   { background:#dcfce7; border-color:#86efac; color:#166534; }
+  .tg-status-pill.pill-ok .tg-pill-dot { background:#22c55e; animation:live-pulse 2s ease-in-out infinite; }
+  .tg-status-pill.pill-off  { background:var(--paper); color:var(--ink-muted); }
+  .tg-status-pill.pill-warn { background:#fef9c3; border-color:#fde68a; color:#854d0e; }
+  .tg-status-pill.pill-warn .tg-pill-dot { background:#eab308; }
+
+  .tg-section {
+    background:var(--paper-soft); border:1.5px solid var(--paper-edge);
+    border-radius:var(--radius-lg); padding:20px 24px;
+  }
+  .tg-section-title {
+    font-size:0.75rem; font-weight:700; letter-spacing:.07em;
+    text-transform:uppercase; color:var(--ink-muted); margin-bottom:14px;
+  }
+
+  /* toggle switch */
+  .toggle { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .toggle-slider {
+    position:absolute; inset:0; background:var(--paper-edge);
+    border-radius:24px; cursor:pointer; transition:background .2s;
+  }
+  .toggle-slider:before {
+    content:''; position:absolute; height:18px; width:18px;
+    left:3px; bottom:3px; background:#fff; border-radius:50%;
+    transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2);
+  }
+  .toggle input:checked + .toggle-slider { background:var(--accent); }
+  .toggle input:checked + .toggle-slider:before { transform:translateX(20px); }
+  .tg-toggle-row {
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    padding:12px 0; border-bottom:1px solid var(--paper-edge); margin-bottom:0;
+  }
+  .tg-toggle-label { font-size:0.95rem; font-weight:600; }
+  .tg-toggle-sub   { font-size:0.8rem; color:var(--ink-muted); margin-top:3px; }
+
+  .tg-fields { display:grid; gap:16px; }
+  .tg-field label {
+    font-size:0.73rem; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-muted); margin-bottom:6px; display:block;
+  }
+  .tg-field input { width:100%; }
+  .tg-hint { font-size:0.76rem; color:var(--ink-muted); margin-top:6px; line-height:1.5; }
+  .tg-hint strong { color:var(--ink); }
+  .tg-hint code { background:var(--paper-edge); padding:1px 5px; border-radius:4px; font-size:0.78rem; }
+
+  .tg-events-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px;
+  }
+  .tg-event-item {
+    display:flex; align-items:flex-start; gap:10px;
+    padding:10px 12px; background:var(--paper); border-radius:10px;
+    border:1px solid var(--paper-edge);
+  }
+  .tg-event-item > span { font-size:1.2rem; flex-shrink:0; margin-top:1px; }
+  .tg-event-item strong { font-size:0.82rem; display:block; }
+  .tg-event-item p { font-size:0.74rem; color:var(--ink-muted); margin:2px 0 0; }
+
+  .tg-status { display:flex; align-items:center; gap:8px; font-size:0.84rem; padding:10px 14px; border-radius:10px; margin-top:4px; }
+  .tg-status-ok   { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .tg-status-err  { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+  .tg-status-info { background:var(--paper); color:var(--ink-muted); border:1px solid var(--paper-edge); }
+  .tg-notify-log  { font-size:0.78rem; color:var(--ink-muted); padding:0 2px; }
+
+  .tg-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .tg-actions .btn { display:flex; align-items:center; }
+
+  .tg-guide {
+    background:var(--paper-soft); border:1.5px solid var(--paper-edge);
+    border-radius:var(--radius-lg); padding:20px 24px;
+  }
+  .tg-guide-title { font-weight:700; font-size:0.88rem; margin-bottom:12px; }
+  .tg-guide-steps { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:8px; }
+  .tg-guide-steps li { font-size:0.82rem; color:var(--ink-muted); line-height:1.5; }
+  .tg-guide-steps li strong { color:var(--ink); }
+  .tg-guide-steps li code { background:var(--paper-edge); padding:1px 5px; border-radius:4px; font-size:0.78rem; color:var(--ink); }
+
+  @media(max-width:600px) {
+    .tg-page-header { flex-wrap:wrap; }
+    .tg-status-pill { margin-left:0; }
+    .tg-events-grid { grid-template-columns:1fr; }
+  }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main class="section">
+  <div class="container">
+    <div id="root"><div class="loading"><div class="spinner"></div><p>Loading admin…</p></div></div>
+  </div>
+</main>
+
+<script type="module">
+  import { mountHeader, mountAdminSidebar, mountFooter, escapeHtml, formatRelative, formatDate, toast, requireRole, modal } from './assets/components.js';
+  import { admin } from './assets/api.js';
+
+  await requireRole('ADMIN', 'dashboard.html');
+  await mountHeader('admin');
+  mountAdminSidebar('overview');
+  mountFooter();
+
+  const root = document.getElementById('root');
+  let metrics;
+  try {
+    metrics = await admin.metrics();
+  } catch (err) {
+    root.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    throw err;
+  }
+
+  root.innerHTML = `
+    <div class="flex-between">
+      <div>
+        <div class="eyebrow">Admin</div>
+        <h1 class="display mt-1" style="font-size:2.4rem;">Platform <span class="italic-em">overview</span></h1>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <a href="admin-content.html" class="btn btn-accent">Manage content →</a>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid" id="metrics-grid">
+      <div class="card" id="m-total"><div class="stat"><div class="stat-number" id="mv-total">${metrics.users.total}</div><div class="stat-label">Users total</div></div></div>
+      <div class="card" id="m-active"><div class="stat"><div class="stat-number" id="mv-active">${metrics.users.active}</div><div class="stat-label">Active</div></div></div>
+      <div class="card" id="m-new"><div class="stat"><div class="stat-number" id="mv-new">${metrics.users.new7d}</div><div class="stat-label">New (7d)</div></div></div>
+      <div class="card" id="m-quizzes"><div class="stat"><div class="stat-number" id="mv-quizzes">${metrics.content.quizzes}</div><div class="stat-label">Questions</div></div></div>
+      <div class="card" id="m-sets"><div class="stat"><div class="stat-number" id="mv-sets">${metrics.content.quizSets}</div><div class="stat-label">Quiz sets</div></div></div>
+      <div class="card" id="m-attempts"><div class="stat"><div class="stat-number" id="mv-attempts">${metrics.usage.attempts}</div><div class="stat-label">Attempts</div></div></div>
+      <div class="card" id="m-reports"><div class="stat"><div class="stat-number" id="mv-reports" style="${metrics.moderation.reportsPending > 0 ? 'color:var(--accent);' : ''}">${metrics.moderation.reportsPending}</div><div class="stat-label">Reports pending</div></div></div>
+    </div>
+
+    <!-- Main grid: tabs full width -->
+    <div>
+      <div>
+        <div class="tab-bar">
+          <button class="tab" data-tab="users">Users</button>
+          <button class="tab active" data-tab="live">Live Updates</button>
+          <button class="tab" data-tab="telegram">✈️ Telegram</button>
+        </div>
+
+        <div class="panel" id="panel-users">
+          <div class="filters-row">
+            <input id="user-q" placeholder="Search name or email…">
+            <select id="user-role">
+              <option value="">All roles</option>
+              <option value="STUDENT">Student</option>
+              <option value="INSTRUCTOR">Instructor</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+            <select id="user-status">
+              <option value="">All status</option>
+              <option value="PENDING">Pending</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+          </div>
+          <div id="users-table"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+
+        <div class="panel active" id="panel-live">
+          <div class="activity-card" style="position:static; max-width:100%;">
+            <div class="activity-head">
+              <h3><span class="live-dot"></span> Live Updates</h3>
+              <button class="act-refresh-btn" id="act-refresh-btn">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.34"/></svg>
+                Refresh
+              </button>
+            </div>
+            <div class="activity-list" id="activity-list" style="max-height:600px;">
+              <div class="act-empty">Loading activity…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Telegram Tab ───────────────────────────────────────── -->
+        <div class="panel" id="panel-telegram">
+          <div class="tg-page">
+
+            <!-- Header -->
+            <div class="tg-page-header">
+              <div class="tg-icon-lg">
+                <svg viewBox="0 0 240 240" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="120" cy="120" r="120" fill="url(#tg-grad)"/>
+                  <defs><linearGradient id="tg-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2AABEE"/><stop offset="100%" stop-color="#229ED9"/></linearGradient></defs>
+                  <path d="M81 128l-9 42c0 2 1 3 3 2l23-21 24 17c2 1 4 0 5-2l32-88c1-3-2-5-4-4L55 113c-2 1-2 4 0 5l26 10z" fill="#fff" opacity=".9"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="tg-page-title">Telegram Notifications</h2>
+                <p class="tg-page-sub">Get instant alerts on your Telegram when platform events happen</p>
+              </div>
+              <div class="tg-status-pill" id="tg-pill">
+                <span class="tg-pill-dot"></span>
+                <span id="tg-pill-label">Checking…</span>
+              </div>
+            </div>
+
+            <!-- Enable toggle row -->
+            <div class="tg-section">
+              <div class="tg-toggle-row" style="border:none; margin:0; padding:0;">
+                <div>
+                  <div class="tg-toggle-label">Enable Telegram Alerts</div>
+                  <div class="tg-toggle-sub">Receive real-time Telegram messages for new users, purchases, contacts & more</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="tg-enabled">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Credentials -->
+            <div class="tg-section">
+              <div class="tg-section-title">Bot Credentials</div>
+              <div class="tg-fields">
+                <div class="tg-field">
+                  <label>Bot Token</label>
+                  <div style="position:relative;">
+                    <input type="password" id="tg-token" placeholder="1234567890:ABCdef… (from @BotFather)" autocomplete="off" style="padding-right:40px;">
+                    <button id="tg-token-eye" title="Show/hide" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:1rem;padding:0;">👁</button>
+                  </div>
+                  <div class="tg-hint">1. Open Telegram → search <strong>@BotFather</strong> → send <code>/newbot</code> → follow steps → copy the token.</div>
+                </div>
+                <div class="tg-field">
+                  <label>Your Admin Chat ID</label>
+                  <input type="text" id="tg-chatid" placeholder="e.g. 123456789">
+                  <div class="tg-hint">Message <strong>@userinfobot</strong> on Telegram — it instantly replies with your numeric chat ID.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- What gets notified -->
+            <div class="tg-section">
+              <div class="tg-section-title">What You'll Be Notified About</div>
+              <div class="tg-events-grid">
+                <div class="tg-event-item"><span>👤</span><div><strong>New User</strong><p>Someone registers on the platform</p></div></div>
+                <div class="tg-event-item"><span>💳</span><div><strong>Purchase</strong><p>A payment is made or fails</p></div></div>
+                <div class="tg-event-item"><span>📬</span><div><strong>Contact Message</strong><p>A visitor sends a contact form</p></div></div>
+                <div class="tg-event-item"><span>🎓</span><div><strong>Enrollment</strong><p>Course access requested or approved</p></div></div>
+                <div class="tg-event-item"><span>📝</span><div><strong>Quiz Activity</strong><p>Notable quiz results or attempts</p></div></div>
+                <div class="tg-event-item"><span>🚩</span><div><strong>Reports</strong><p>New question reports flagged</p></div></div>
+              </div>
+            </div>
+
+            <!-- Status + actions -->
+            <div id="tg-status-box" style="margin-bottom:4px;"></div>
+            <div class="tg-notify-log" id="tg-notify-log" style="display:none;">
+              Last Telegram alert sent at <span id="tg-last-sent" style="color:var(--ink);font-weight:600;">—</span>
+            </div>
+
+            <div class="tg-actions" style="margin-top:20px;">
+              <button class="btn btn-primary" id="tg-save-btn">
+                <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor" style="margin-right:6px;"><path d="M16.707 5.293a1 1 0 010 1.414L8.414 15l-4.121-4.121a1 1 0 011.414-1.414L8.414 12.172l6.879-6.879a1 1 0 011.414 0z"/></svg>
+                Save Settings
+              </button>
+              <button class="btn btn-ghost" id="tg-test-btn">
+                <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" style="margin-right:6px;"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-9v4m0-7h.01" stroke-linecap="round"/></svg>
+                Send Test Message
+              </button>
+            </div>
+
+            <!-- Setup guide -->
+            <div class="tg-guide">
+              <div class="tg-guide-title">⚡ Quick Setup Guide</div>
+              <ol class="tg-guide-steps">
+                <li>Open Telegram, search for <strong>@BotFather</strong> and start a chat.</li>
+                <li>Send <code>/newbot</code>, choose a name and username for your bot.</li>
+                <li>BotFather will give you a <strong>Bot Token</strong> — paste it above.</li>
+                <li>Start a chat with your new bot (search its username).</li>
+                <li>Message <strong>@userinfobot</strong> to get your personal <strong>Chat ID</strong>.</li>
+                <li>Paste the Chat ID above, enable alerts, then click <strong>Save Settings</strong>.</li>
+                <li>Click <strong>Send Test Message</strong> to verify everything works. ✅</li>
+              </ol>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+    });
+  });
+
+  function statusBadge(s) {
+    const map = { ACTIVE: 'badge-success', PENDING: 'badge-warn', SUSPENDED: 'badge-error',
+                  RESOLVED: 'badge-success', UNDER_REVIEW: 'badge-warn', REJECTED: 'badge-error' };
+    return `<span class="badge ${map[s] || ''}">${escapeHtml(s)}</span>`;
+  }
+
+  // --- Users ---
+  async function loadUsers() {
+    const table = document.getElementById('users-table');
+    try {
+      const r = await admin.listUsers({
+        q: document.getElementById('user-q').value.trim(),
+        role: document.getElementById('user-role').value,
+        status: document.getElementById('user-status').value,
+        per_page: 40,
+      });
+      if (!r.data.length) { table.innerHTML = `<div class="empty"><p>No users match.</p></div>`; return; }
+      table.innerHTML = `
+        <table>
+          <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+          <tbody>
+            ${r.data.map(u => `
+              <tr data-id="${u.id}">
+                <td><strong>${escapeHtml(((u.first_name||'')+' '+(u.last_name||'')).trim() || '—')}</strong></td>
+                <td>${escapeHtml(u.email)}</td>
+                <td><span class="badge">${escapeHtml(u.role)}</span></td>
+                <td>${statusBadge(u.status)}</td>
+                <td>${formatDate(u.created_at)}</td>
+                <td><button class="btn btn-ghost btn-sm" data-edit>Edit</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+      table.querySelectorAll('[data-edit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.closest('tr').dataset.id;
+          editUser(r.data.find(x => x.id === id));
+        });
+      });
+    } catch (err) {
+      table.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function editUser(u) {
+    const { el, close } = modal(`
+      <h2>Edit user</h2>
+      <p class="text-soft mb-2">${escapeHtml(u.email)}</p>
+      <form id="edit-user" class="stack" style="--stack:14px;">
+        <div class="field">
+          <label>Role</label>
+          <select name="role">
+            ${['STUDENT','INSTRUCTOR','ADMIN'].map(r => `<option value="${r}" ${r === u.role ? 'selected' : ''}>${r}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select name="status">
+            ${['PENDING','ACTIVE','INACTIVE','SUSPENDED'].map(s => `<option value="${s}" ${s === u.status ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="flex" style="gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>`);
+    el.querySelector('#edit-user').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await admin.updateUser({ id: u.id, role: e.target.role.value, status: e.target.status.value });
+        toast('User updated', 'success');
+        close();
+        loadUsers();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+
+  document.getElementById('user-role').addEventListener('change', loadUsers);
+  document.getElementById('user-status').addEventListener('change', loadUsers);
+  let qTimer;
+  document.getElementById('user-q').addEventListener('input', () => {
+    clearTimeout(qTimer); qTimer = setTimeout(loadUsers, 300);
+  });
+  loadUsers();
+
+  // ── Live activity feed ─────────────────────────────────────
+  const ACTIVITY_ICONS = {
+    user:        '👤',
+    contact:     '📬',
+    purchase:    '💳',
+    report:      '🚩',
+    enrollment:  '🎓',
+    quiz:        '📝',
+  };
+
+  let _prevBadges   = { contact: 0, purchases: 0, reports: 0, enrollments: 0, new_users: 0 };
+  let _actItems     = [];
+  let _knownActIds  = new Set();
+
+  function actTimeAgo(dt) {
+    if (!dt) return '';
+    const diff = (Date.now() - new Date(dt).getTime()) / 1000;
+    if (diff < 60)    return 'just now';
+    if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  function renderActivity(items, isRefresh = false) {
+    const list = document.getElementById('activity-list');
+    if (!list) return;
+    if (!items.length) {
+      list.innerHTML = '<div class="act-empty">No recent activity.</div>';
+      return;
+    }
+
+    list.innerHTML = items.map((item, i) => {
+      const ico   = ACTIVITY_ICONS[item.type] || '🔔';
+      const isNew = isRefresh && !_knownActIds.has(item.id);
+      _knownActIds.add(item.id);
+
+      let badge = '';
+      if (item.badge === 'new')     badge = '<span class="act-badge act-badge-new">NEW</span>';
+      if (item.badge === 'pending') badge = '<span class="act-badge act-badge-pend">PENDING</span>';
+      if (item.badge === 'ok')      badge = '<span class="act-badge act-badge-ok">DONE</span>';
+
+      return `<div class="act-item${isNew ? ' act-new' : ''}" style="${isNew ? 'animation-delay:' + (i * 40) + 'ms' : ''}">
+        <span class="act-ico">${ico}</span>
+        <div class="act-body">
+          <div class="act-title">${escapeHtml(item.title)}</div>
+          <div class="act-sub">${escapeHtml(item.sub || '')}</div>
+          <div class="act-time">${actTimeAgo(item.time)}</div>
+        </div>
+        ${badge}
+      </div>`;
+    }).join('');
+  }
+
+  async function buildActivity() {
+    // Pull from notifications API — admin notifications = all site events
+    try {
+      const r = await admin.listUsers({ per_page: 5, sort: 'created_at', order: 'desc' });
+      const newUsers = (r?.data || []).map(u => ({
+        id:    'user_' + u.id,
+        type:  'user',
+        title: ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || u.email,
+        sub:   u.email,
+        time:  u.created_at,
+        badge: 'new',
+      }));
+      return newUsers;
+    } catch { return []; }
+  }
+
+  async function pollActivity(isRefresh = false) {
+    // 1. Fetch badges (counts)
+    try {
+      const res    = await fetch('api/admin/badges.php', { credentials: 'include' });
+      const data   = await res.json();
+      const counts = data?.data || {};
+
+      // Detect changes and pulse metrics
+      if (counts.new_users !== undefined && counts.new_users !== _prevBadges.new_users) {
+        const el = document.getElementById('mv-new');
+        if (el) {
+          el.textContent = counts.new_users;
+          document.getElementById('m-new')?.classList.add('updated');
+          setTimeout(() => document.getElementById('m-new')?.classList.remove('updated'), 700);
+        }
+      }
+      if (counts.reports !== undefined && counts.reports !== _prevBadges.reports) {
+        const el = document.getElementById('mv-reports');
+        if (el) {
+          el.textContent = counts.reports;
+          el.style.color = counts.reports > 0 ? 'var(--accent)' : '';
+          document.getElementById('m-reports')?.classList.add('updated');
+          setTimeout(() => document.getElementById('m-reports')?.classList.remove('updated'), 700);
+        }
+      }
+      _prevBadges = { ..._prevBadges, ...counts };
+    } catch { /* silent */ }
+
+    // 2. Build activity items from recent notifications (admin's own)
+    try {
+      const nr = await fetch('api/notifications.php?limit=20', { credentials: 'include' });
+      const nd = await nr.json();
+      const notifs = nd?.data || [];
+
+      const TYPE_MAP = {
+        ADMIN_NOTIFICATION:    (n) => {
+          const d = n.data || {};
+          if (d.contact_id)   return { type: 'contact',    badge: 'new',     title: n.title, sub: d.subject || '' };
+          if (d.user_id)      return { type: 'user',       badge: 'new',     title: n.title, sub: d.email || '' };
+          return                     { type: 'quiz',       badge: 'new',     title: n.title, sub: n.message || '' };
+        },
+        PURCHASE_COMPLETED:    (n) => ({ type: 'purchase',   badge: 'ok',      title: n.title, sub: n.message }),
+        PURCHASE_FAILED:       (n) => ({ type: 'purchase',   badge: 'pending', title: n.title, sub: n.message }),
+        COURSE_ACCESS_APPROVED:(n) => ({ type: 'enrollment', badge: 'ok',      title: n.title, sub: n.message }),
+        COURSE_ACCESS_REJECTED:(n) => ({ type: 'enrollment', badge: 'pending', title: n.title, sub: n.message }),
+        QUIZ_RESULTS:          (n) => ({ type: 'quiz',       badge: '',        title: n.title, sub: n.message }),
+        SYSTEM_ALERT:          (n) => ({ type: 'report',     badge: 'pending', title: n.title, sub: n.message }),
+      };
+
+      const items = notifs.map(n => {
+        const mapper = TYPE_MAP[n.type];
+        const mapped = mapper ? mapper(n) : { type: 'quiz', badge: '', title: n.title || n.type, sub: n.message || '' };
+        return { id: n.id, time: n.sent_at || n.created_at, ...mapped };
+      });
+
+      const newCount = isRefresh ? items.filter(i => !_knownActIds.has(i.id)).length : 0;
+      _actItems = items;
+      renderActivity(items, isRefresh);
+
+      // Show toast if new activity
+      if (newCount > 0) {
+        toast(`${newCount} new update${newCount > 1 ? 's' : ''} received`, 'success');
+        // Reload users table if new users appeared
+        if (_prevBadges.new_users > 0) loadUsers();
+      }
+
+      // Mark all as read silently
+      notifs.filter(n => !n.read_at).forEach(n => {
+        fetch('api/notifications.php', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: n.id, action: 'mark_read' }),
+        }).catch(() => {});
+      });
+
+    } catch { /* silent */ }
+  }
+
+  // Initial load + 30s polling
+  pollActivity(false);
+  setInterval(() => pollActivity(true), 30_000);
+
+  // Manual refresh button
+  document.getElementById('act-refresh-btn')?.addEventListener('click', async function() {
+    this.classList.add('spinning');
+    await pollActivity(true);
+    setTimeout(() => this.classList.remove('spinning'), 500);
+  });
+
+  // Also refresh metrics every 60s
+  setInterval(async () => {
+    try {
+      const m = await admin.metrics();
+      document.getElementById('mv-total').textContent   = m.users.total;
+      document.getElementById('mv-active').textContent  = m.users.active;
+      document.getElementById('mv-attempts').textContent= m.usage.attempts;
+    } catch {}
+  }, 60_000);
+
+  // ── Telegram Notification Settings ───────────────────────────────────────
+  const BASE = '/api/admin';
+
+  function tgStatus(msg, type = 'info') {
+    const box = document.getElementById('tg-status-box');
+    if (!box) return;
+    box.innerHTML = msg
+      ? `<div class="tg-status tg-status-${type}">${escapeHtml(msg)}</div>`
+      : '';
+  }
+
+  // ── Eye toggle for token field ───────────────────────────────────────────
+  document.getElementById('tg-token-eye')?.addEventListener('click', () => {
+    const inp = document.getElementById('tg-token');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  });
+
+  // ── Pill status helper ────────────────────────────────────────────────────
+  function updatePill(tokenSet, chatIdSet, enabled) {
+    const pill  = document.getElementById('tg-pill');
+    const label = document.getElementById('tg-pill-label');
+    if (!pill || !label) return;
+    pill.className = 'tg-status-pill';
+    if (tokenSet && chatIdSet && enabled) {
+      pill.classList.add('pill-ok');
+      label.textContent = 'Active';
+    } else if (tokenSet && chatIdSet && !enabled) {
+      pill.classList.add('pill-off');
+      label.textContent = 'Disabled';
+    } else if (tokenSet && !chatIdSet) {
+      pill.classList.add('pill-warn');
+      label.textContent = 'Needs Chat ID';
+    } else {
+      pill.classList.add('pill-off');
+      label.textContent = 'Not configured';
+    }
+  }
+
+  // Load current settings on page open
+  async function loadTgSettings() {
+    try {
+      const r = await fetch(`${BASE}/telegram-settings.php`, { credentials: 'include' });
+      const d = await r.json();
+      // Response::ok() returns {success:true, data:{...}} — there is NO d.ok field
+      if (!d.data && !d.success) return;
+      const s = d.data || {};
+      const enabledChk = document.getElementById('tg-enabled');
+      const tokenInput  = document.getElementById('tg-token');
+      const chatInput   = document.getElementById('tg-chatid');
+      if (enabledChk) enabledChk.checked = !!s.notify_enabled;
+      if (tokenInput) tokenInput.placeholder = s.bot_token_set
+        ? `Token saved (${s.bot_token_masked}) — paste new to replace`
+        : '1234567890:ABCdef… (from @BotFather)';
+      if (chatInput) chatInput.value = s.notify_chat_id || '';
+
+      updatePill(s.bot_token_set, !!s.notify_chat_id, !!s.notify_enabled);
+
+      if (s.bot_token_set && s.notify_chat_id && s.notify_enabled) {
+        tgStatus('✅ Telegram is active and ready to send alerts.', 'ok');
+      } else if (s.bot_token_set && s.notify_chat_id && !s.notify_enabled) {
+        tgStatus('ℹ️ Configured but alerts are disabled. Toggle to enable.', 'info');
+      } else if (s.bot_token_set && !s.notify_chat_id) {
+        tgStatus('⚠️ Bot token saved — enter your Chat ID to activate.', 'info');
+      } else {
+        tgStatus('ℹ️ Enter your Bot Token and Chat ID to get started.', 'info');
+      }
+    } catch (err) {
+      tgStatus('Could not load Telegram settings.', 'err');
+    }
+  }
+  loadTgSettings();
+
+  // Save settings
+  document.getElementById('tg-save-btn')?.addEventListener('click', async () => {
+    const btn     = document.getElementById('tg-save-btn');
+    const token   = document.getElementById('tg-token').value.trim();
+    const chatId  = document.getElementById('tg-chatid').value.trim();
+    const enabled = document.getElementById('tg-enabled').checked;
+
+    // Always send chat_id and enabled; only send token if user typed something new
+    const payload = { notify_chat_id: chatId, notify_enabled: enabled };
+    if (token !== '') payload.bot_token = token;
+
+    btn.disabled = true;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite;margin-right:6px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.34"/></svg>Saving…';
+    tgStatus('', 'info');
+    try {
+      const r = await fetch(`${BASE}/telegram-settings.php`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const d = await r.json();
+      if (d.error || !d.success) throw new Error(d.message || 'Save failed');
+      tgStatus('✅ Settings saved successfully!', 'ok');
+      toast('Telegram settings saved', 'success');
+      await loadTgSettings();
+    } catch (err) {
+      tgStatus('❌ ' + err.message, 'err');
+      toast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor" style="margin-right:6px;"><path d="M16.707 5.293a1 1 0 010 1.414L8.414 15l-4.121-4.121a1 1 0 011.414-1.414L8.414 12.172l6.879-6.879a1 1 0 011.414 0z"/></svg>Save Settings';
+    }
+  });
+
+  // Test button
+  document.getElementById('tg-test-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('tg-test-btn');
+    const btnOrigHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite;margin-right:6px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.34"/></svg>Sending…';
+    tgStatus('Sending test message to your Telegram…', 'info');
+    try {
+      const r = await fetch(`${BASE}/telegram-settings.php`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test' }),
+      });
+      const d = await r.json();
+      // Response::error() returns {error:true, message:"..."} — d.error is a boolean
+      // Response::ok()    returns {success:true, message:"..."}
+      if (d.error || !d.success) {
+        throw new Error(d.message || 'Test failed — check your bot token and chat ID.');
+      }
+      tgStatus('✅ ' + (d.message || 'Test message sent! Check your Telegram.'), 'ok');
+      toast('✅ Test message sent!', 'success');
+    } catch (err) {
+      tgStatus('❌ ' + err.message, 'err');
+      toast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = btnOrigHTML;
+    }
+  });
+
+  // ── Telegram dispatch: called from pollActivity on new events ────────────
+  let _tgLastSent = 0;
+
+  async function dispatchTelegramAlerts(newItems) {
+    if (!newItems.length) return;
+    // Check if enabled (read from checkbox state)
+    const enabled = document.getElementById('tg-enabled')?.checked;
+    if (!enabled) return;
+
+    // Throttle: don't dispatch more than once per 10s
+    if (Date.now() - _tgLastSent < 10_000) return;
+
+    const events = newItems.map(item => ({
+      id:    item.id,
+      type:  item.type,
+      title: item.title,
+      meta:  {
+        message: item.sub || '',
+      },
+    }));
+
+    try {
+      await fetch(`${BASE}/telegram-notify.php`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events }),
+      });
+      _tgLastSent = Date.now();
+      const logEl   = document.getElementById('tg-notify-log');
+      const lastEl  = document.getElementById('tg-last-sent');
+      if (logEl) logEl.style.display = 'block';
+      if (lastEl) lastEl.textContent = new Date().toLocaleTimeString();
+    } catch { /* silent */ }
+  }
+
+  // Hook into pollActivity: after new items are detected, fire Telegram
+  // We patch _actItems update: after renderActivity, pick up any act-new items
+  // The cleanest hook is to watch _actItems changes after each poll by wrapping
+  // the polling interval to call dispatchTelegramAlerts with newly seen items
+  let _lastTgItemIds = new Set();
+  setInterval(async () => {
+    // Get IDs that appeared since last TG check
+    const freshItems = _actItems.filter(i => !_lastTgItemIds.has(i.id));
+    if (freshItems.length) {
+      dispatchTelegramAlerts(freshItems);
+      freshItems.forEach(i => _lastTgItemIds.add(i.id));
+    }
+  }, 32_000); // slightly after the 30s poll so _actItems is already updated
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

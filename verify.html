@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Verify email · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<main class="section">
+  <div class="container-narrow text-center">
+    <div id="content"><div class="loading"><div class="spinner"></div><p>Verifying your email…</p></div></div>
+  </div>
+</main>
+
+<script type="module">
+  import { mountHeader, mountFooter, queryParam, escapeHtml } from './assets/components.js';
+  import { auth } from './assets/api.js';
+
+  await mountHeader('');
+  mountFooter();
+
+  const token = queryParam('token');
+  const email = queryParam('email');
+  const content = document.getElementById('content');
+
+  if (!token || !email) {
+    content.innerHTML = `
+      <h1 class="display">Invalid verification link</h1>
+      <p class="text-soft mt-2 mb-3">This link is missing required information.</p>
+      <a href="login.html" class="btn btn-primary">Go to sign in</a>`;
+  } else {
+    try {
+      await auth.verify({ token, email });
+      content.innerHTML = `
+        <div class="eyebrow">All set</div>
+        <h1 class="display mt-1">Email verified <span class="italic-em">successfully</span></h1>
+        <p class="text-soft mt-2 mb-3">Welcome aboard. Redirecting you to sign in…</p>
+        <a href="login.html?verified=1" class="btn btn-primary">Sign in now</a>`;
+      setTimeout(() => { window.location.href = 'login.html?verified=1'; }, 2400);
+    } catch (err) {
+      content.innerHTML = `
+        <h1 class="display">Verification failed</h1>
+        <p class="text-soft mt-2 mb-3">${escapeHtml(err.message)}</p>
+        <a href="forgot.html" class="btn btn-primary">Request a new link</a>`;
+    }
+  }
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+/* ============================================================
+   Quiznosis — PWA Mobile Enhancements (pwa.css)
+   Drop this AFTER styles.css on every page.
+   Adds: safe-area padding, bottom nav, standalone tweaks,
+   touch optimisations, and smooth scroll-restore.
+   ============================================================ */
+
+/* ── Safe area padding ────────────────────────────────────── */
+body {
+  /* Push content below notch / dynamic island */
+  padding-top: env(safe-area-inset-top);
+  /* Push content above home indicator on iPhone */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Fixed header needs to account for safe area too */
+.site-header {
+  padding-top: env(safe-area-inset-top) !important;
+  top: 0;
+}
+
+/* ── Standalone mode — hide browser chrome decorations ─────── */
+@media (display-mode: standalone) {
+  /* Tighten up header in standalone (status bar handled by OS) */
+  .site-header {
+    border-top: none;
+  }
+
+  /* Add bottom nav clearance so content isn't hidden under the tab bar */
+  main, .page-content, .container {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Bottom navigation bar (mobile PWA) ──────────────────── */
+#qz-bottom-nav {
+  display: none; /* hidden by default, shown on narrow screens */
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(58px + env(safe-area-inset-bottom, 0));
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  background: var(--paper-soft);
+  border-top: 1.5px solid var(--paper-edge);
+  z-index: 900;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] #qz-bottom-nav {
+  background: rgba(22,32,58,0.96);
+  border-top-color: var(--paper-edge);
+  box-shadow: 0 -2px 16px rgba(0,0,0,0.35);
+}
+
+.qz-bnav-inner {
+  display: flex;
+  align-items: stretch;
+  height: 58px;
+}
+
+.qz-bnav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-decoration: none;
+  color: var(--ink-muted);
+  font-size: 0.65rem;
+  font-weight: 500;
+  font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
+  letter-spacing: 0.01em;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .15s;
+  position: relative;
+}
+
+.qz-bnav-item:hover,
+.qz-bnav-item.active {
+  color: var(--accent);
+}
+
+.qz-bnav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 32px; height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--accent);
+}
+
+.qz-bnav-icon {
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+
+.qz-bnav-badge {
+  position: absolute;
+  top: -3px; right: -4px;
+  background: #e84b2b;
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 700;
+  min-width: 15px; height: 15px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 3px;
+  border: 1.5px solid var(--paper-soft);
+}
+
+/* Show bottom nav only on mobile */
+@media (max-width: 640px) {
+  #qz-bottom-nav { display: block; }
+
+  /* Make room for bottom nav */
+  body {
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 8px));
+  }
+
+  /* Also move floating elements (like quiz toolbar) above bottom nav */
+  .quiz-footer,
+  .qz-quiz-footer {
+    bottom: calc(58px + env(safe-area-inset-bottom, 0)) !important;
+  }
+}
+
+/* ── Touch optimisations ─────────────────────────────────── */
+
+/* Remove 300ms tap delay on mobile */
+html { touch-action: manipulation; }
+
+/* Buttons feel more responsive */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent text-size-adjust on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Smooth scrolling, with prefers-reduced-motion respect */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+/* ── Overscroll bounce prevention ────────────────────────── */
+/* Prevents pull-to-refresh on pages where it's not wanted */
+body.no-pull-refresh {
+  overscroll-behavior-y: contain;
+}
+
+/* Quiz attempt should never overscroll */
+body.quiz-body {
+  overscroll-behavior: none;
+}
+
+/* ── Pull-to-refresh indicator ───────────────────────────── */
+#qz-pull-indicator {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  z-index: 9000;
+  background: var(--paper);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: 100px;
+  padding: 8px 18px;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  font-family: var(--font-body, system-ui, sans-serif);
+  box-shadow: var(--shadow-md);
+  transition: transform .3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+#qz-pull-indicator .qz-pull-spin {
+  width: 14px; height: 14px;
+  border: 2px solid var(--paper-edge);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: qz-spin 0.7s linear infinite;
+}
+@keyframes qz-spin { to { transform: rotate(360deg); } }
+
+/* ── Better form inputs on mobile ───────────────────────── */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  textarea,
+  select {
+    /* Prevent iOS zoom on focus (font-size ≥ 16px) */
+    font-size: max(16px, 1rem) !important;
+  }
+}
+
+/* ── Responsive card/grid adjustments ───────────────────── */
+@media (max-width: 480px) {
+  .hero-inner {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+
+  .container {
+    padding: 0 16px;
+  }
+
+  .section {
+    padding: 36px 0;
+  }
+
+  .section-sm {
+    padding: 24px 0;
+  }
+
+  /* Cards in grids go full-width on very small screens */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Loading skeleton animation ─────────────────────────── */
+.qz-skeleton {
+  background: linear-gradient(90deg,
+    var(--paper-edge) 25%,
+    var(--paper-soft) 50%,
+    var(--paper-edge) 75%
+  );
+  background-size: 200% 100%;
+  animation: qz-shimmer 1.5s infinite;
+  border-radius: var(--radius);
+}
+@keyframes qz-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Page transition fade ────────────────────────────────── */
+/*
+  IMPORTANT: Never animate `transform` on <body> — it creates a new
+  containing block, breaking `position: fixed` for the install banner,
+  bottom nav, and all other fixed overlays. Animate a child wrapper instead.
+  Add class="qz-page-wrap" to your <main> or top-level content div.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  .qz-page-wrap {
+    animation: qz-page-in 0.2s ease-out both;
+  }
+  @keyframes qz-page-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}

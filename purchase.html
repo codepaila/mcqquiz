@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Purchase access · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  .pay-layout { display:grid; grid-template-columns:1fr 1.3fr; gap:32px; align-items:start; }
+  @media (max-width:860px) { .pay-layout { grid-template-columns:1fr; } }
+
+  /* Order summary */
+  .pay-summary { background:var(--paper-soft); border:1px solid var(--paper-edge); border-radius:var(--radius-lg); padding:24px; }
+  /* Sticky only on desktop during payment step */
+  .step-payment .pay-summary { position:sticky; top:80px; }
+  /* Mobile: show form first, summary below */
+  @media (max-width:860px) {
+    .step-payment .pay-layout { display:flex; flex-direction:column; }
+    .step-payment .pay-layout aside  { order:2; }
+    .step-payment .pay-layout section { order:1; }
+    .step-payment .pay-summary { position:static; }
+  }
+  .pay-price { font-family:var(--font-display); font-size:2.8rem; line-height:1; color:var(--accent); margin-top:8px; }
+  .pay-price-orig { font-size:1rem; color:var(--ink-muted); text-decoration:line-through; margin-left:8px; font-family:var(--font-mono); }
+
+  /* Plan switcher */
+  .plan-switcher { display:flex; flex-direction:column; gap:10px; margin:16px 0; }
+  .plan-opt {
+    border:2px solid var(--paper-edge); border-radius:var(--radius);
+    padding:14px 16px; cursor:pointer; transition:all .15s; position:relative;
+    background:var(--paper);
+  }
+  .plan-opt:hover { border-color:var(--accent); }
+  .plan-opt.selected { border-color:var(--accent); background:var(--accent-soft); }
+  .plan-opt.selected::after {
+    content:'✓'; position:absolute; top:12px; right:14px;
+    color:var(--accent); font-weight:700; font-size:1rem;
+  }
+  .plan-opt-name { font-weight:700; font-size:.95rem; display:flex; align-items:center; gap:8px; }
+  .plan-opt-price { font-family:var(--font-mono); margin-top:4px; }
+  .plan-opt-price .am { font-size:1.25rem; color:var(--accent); font-weight:700; }
+  .plan-opt-price .orig { font-size:.82rem; color:var(--ink-muted); text-decoration:line-through; margin-left:6px; }
+  .plan-opt-price .dur { font-size:.82rem; color:var(--ink-muted); }
+  .plan-opt-feats { margin-top:6px; font-size:.8rem; color:var(--ink-soft); display:flex; flex-wrap:wrap; gap:4px 12px; }
+  .plan-opt-feats span::before { content:'✓ '; color:var(--success); font-weight:700; }
+  .plan-popular { background:var(--accent); color:#fff; font-size:.62rem; font-weight:700; padding:2px 8px; border-radius:100px; letter-spacing:.06em; }
+
+  /* Payment methods */
+  .method { padding:14px 16px; border:1px solid var(--paper-edge); border-radius:var(--radius); background:var(--paper); margin-bottom:10px; }
+  .method-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .method-key { font-family:var(--font-mono); font-size:.82rem; color:var(--ink-soft); word-break:break-all; }
+  .copy-btn { margin-left:auto; padding:3px 10px; background:var(--paper-soft); border:1px solid var(--paper-edge); border-radius:4px; font-size:.78rem; cursor:pointer; color:var(--ink-soft); flex-shrink:0; }
+  .copy-btn:hover { background:var(--paper-edge); }
+  .qr-box { text-align:center; padding:16px; background:var(--paper); border:1px solid var(--paper-edge); border-radius:var(--radius); margin-bottom:16px; }
+  .qr-box img { max-width:220px; max-height:220px; border-radius:8px; }
+
+  /* Receipt upload */
+  .receipt-zone { border:2px dashed var(--paper-edge); border-radius:var(--radius); padding:24px; text-align:center; cursor:pointer; transition:all .15s; }
+  .receipt-zone:hover, .receipt-zone.drag { border-color:var(--accent); background:var(--paper-soft); }
+  .receipt-zone input { display:none; }
+  .receipt-zone.has-file { border-style:solid; border-color:var(--success); background:var(--success-soft); }
+
+  /* Steps indicator */
+  .steps { display:flex; gap:0; margin-bottom:28px; }
+  .step-item { flex:1; padding:10px 14px; font-size:.78rem; font-weight:600; color:var(--ink-muted); background:var(--paper-soft); border:1px solid var(--paper-edge); display:flex; align-items:center; gap:7px; }
+  .step-item:first-child { border-radius:var(--radius) 0 0 var(--radius); }
+  .step-item:last-child { border-radius:0 var(--radius) var(--radius) 0; border-left:none; }
+  .step-item.active { background:var(--accent-soft); color:var(--accent); border-color:var(--accent); z-index:1; }
+  .step-item.done { background:var(--success-soft); color:var(--success); border-color:var(--success); }
+  .step-num { width:20px; height:20px; border-radius:50%; background:currentColor; color:#fff; display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:800; flex-shrink:0; }
+  .step-item.active .step-num { background:var(--accent); }
+  .step-item.done .step-num { background:var(--success); }
+</style>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+</head>
+<body>
+<main class="section">
+  <div class="container" style="max-width:1000px;">
+    <a href="#" id="back-link" class="text-muted" style="font-size:.9rem;">← Back</a>
+    <div id="root" class="mt-2">
+      <div class="loading"><div class="spinner"></div><p>Loading…</p></div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { mountHeader, mountFooter, escapeHtml, queryParam, toast, requireAuth, formatDate } from './assets/components.js';
+import { quiz, purchases, paymentSettings, courses, coursePlans } from './assets/api.js';
+
+const me = await requireAuth('login.html');
+await mountHeader('');
+mountFooter();
+
+await (async () => {
+
+  const root    = document.getElementById('root');
+  const backLink = document.getElementById('back-link');
+
+  // ── Detect mode: course-plan purchase vs direct quiz purchase ──────────────
+  const courseId  = queryParam('courseId');
+  const planIdParam = queryParam('planId');
+  const setId     = queryParam('quizSetId') || queryParam('id');
+  const isCourse  = !!courseId;
+
+  // ── Load data ──────────────────────────────────────────────────────────────
+  let course   = null;
+  let allPlans = [];   // course plans
+  let selPlan  = null; // currently selected plan
+  let setData  = null; // quiz set (direct purchase mode)
+  let settings = {};
+  let mine     = [];
+
+  try {
+    settings = (await paymentSettings.get()).data || {};
+  } catch {}
+
+  if (isCourse) {
+    // Course plan purchase
+    backLink.href = `course-detail.html?id=${encodeURIComponent(courseId)}`;
+    try {
+      course   = (await courses.get(courseId)).data;
+      allPlans = (await coursePlans.list(courseId)).data || [];
+      selPlan  = allPlans.find(p => p.id === planIdParam) || allPlans[0] || null;
+    } catch (err) {
+      root.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      return;
+    }
+    // Check existing enrollment
+    try {
+      const { purchases: coursePurchases } = await import('./assets/api.js');
+      mine = (await purchases.mine()).data || [];
+    } catch {}
+
+  } else {
+    // Direct quiz set purchase
+    if (!setId) { root.innerHTML = `<div class="alert alert-error">Missing quiz set id.</div>`; return; }
+    backLink.href = `quiz-detail.html?id=${encodeURIComponent(setId)}`;
+    try {
+      const [a, c] = await Promise.all([quiz.getSet({ id: setId }), purchases.mine()]);
+      setData = a.data;
+      mine    = c.data || [];
+    } catch (err) {
+      root.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`; return;
+    }
+    // Already owned?
+    const owned = mine.find(p =>
+      p.quiz_set_id === setData.id &&
+      (p.status === 'COMPLETED' || p.status === 'ACTIVE') &&
+      parseInt(p.is_active) === 1
+    );
+    if (owned) {
+      root.innerHTML = `
+        <div class="card mt-3" style="padding:28px 24px;max-width:520px;">
+          <div style="font-size:2rem;margin-bottom:12px;">💳</div>
+          <h2 class="display" style="font-size:1.4rem;margin-bottom:8px;">Already purchased</h2>
+          <p class="text-soft" style="font-size:.92rem;margin-bottom:20px;">
+            You already have access to <strong>${escapeHtml(setData.name)}</strong>.
+          </p>
+          <a href="quiz-detail.html?id=${encodeURIComponent(setData.id)}" class="btn btn-accent">Open the quiz →</a>
+        </div>`; return;
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const methodCard = (logo, label, value) => value ? `
+    <div class="method">
+      <div class="method-head">
+        <span style="display:inline-flex;align-items:center;">${logo}</span>
+        <button class="copy-btn" data-copy="${escapeHtml(value)}">Copy</button>
+      </div>
+      <div class="method-key">${escapeHtml(value)}</div>
+    </div>` : '';
+
+  const pendingEntry = isCourse
+    ? mine.find(p => p.course_id === courseId && p.status === 'PENDING')
+    : mine.find(p => p.quiz_set_id === setId   && p.status === 'PENDING');
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function render() {
+    const title    = isCourse ? (course?.title || 'Course') : (setData?.name || 'Quiz Set');
+    const subtitle = isCourse
+      ? (selPlan ? `${selPlan.duration_days}-day access` : 'Course access')
+      : (setData?.mode === 'MODEL_TEST' ? 'Model test' : 'Practice set');
+    const price    = isCourse
+      ? (selPlan ? parseFloat(selPlan.price) : 0)
+      : parseFloat(setData?.price || 0);
+    const origPrice = isCourse
+      ? (selPlan?.original_price ? parseFloat(selPlan.original_price) : null)
+      : null;
+    const currency = isCourse
+      ? (selPlan?.currency || settings.currency || 'NPR')
+      : (setData?.currency || settings.currency || 'NPR');
+    const isPaid   = isCourse ? true : parseInt(setData?.is_paid || 0) === 1;
+
+    // Is this a pending-review state?
+    const hoursWaiting = pendingEntry
+      ? (Date.now() - new Date(pendingEntry.created_at).getTime()) / 36e5
+      : 0;
+    const over24h = hoursWaiting >= 24;
+
+    root.innerHTML = `
+      <div class="steps mb-3">
+        <div class="step-item done"><div class="step-num">✓</div> Select plan</div>
+        ${pendingEntry
+          ? `<div class="step-item done"><div class="step-num">✓</div> Make payment</div>
+             <div class="step-item active" style="background:rgba(239,68,68,.08);color:#dc2626;border-color:#dc2626;">
+               <div class="step-num" style="background:#dc2626;">3</div> Admin approval
+             </div>`
+          : `<div class="step-item active"><div class="step-num">2</div> Make payment</div>
+             <div class="step-item"><div class="step-num">3</div> Admin approval</div>`}
+      </div>
+
+      <div class="pay-layout ${pendingEntry ? '' : 'step-payment'}">
+
+        <!-- LEFT: summary (+ payment methods only when no pending) -->
+        <aside class="pay-summary">
+          <div class="eyebrow">Order summary</div>
+          <div class="mt-2" style="font-size:1.05rem;font-weight:700;">${escapeHtml(title)}</div>
+          <div class="pay-price">
+            ${currency} ${price.toFixed(0)}
+            ${origPrice ? `<span class="pay-price-orig">${origPrice.toFixed(0)}</span>` : ''}
+          </div>
+          ${isCourse && selPlan ? `
+            <div class="text-muted mt-1" style="font-size:.84rem;">
+              ${selPlan.duration_days} days access
+              ${selPlan.is_popular ? '<span class="plan-popular" style="margin-left:6px;">POPULAR</span>' : ''}
+            </div>` : ''}
+          ${pendingEntry ? `
+            <div class="mt-3" style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius);padding:12px 14px;">
+              <div style="font-size:.72rem;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:#dc2626;font-weight:700;margin-bottom:4px;">Pending review</div>
+              <div style="font-size:.84rem;color:var(--ink-soft);">Submitted ${formatDate(pendingEntry.created_at)}</div>
+            </div>` : ''}
+
+          ${/* Plan switcher — hide when pending */ !pendingEntry && isCourse && allPlans.length > 1 ? `
+            <div class="divider-ornate" style="margin:20px 0 14px;">Switch plan</div>
+            <div class="plan-switcher" id="plan-switcher">
+              ${allPlans.map(p => {
+                const feats = Array.isArray(p.features) ? p.features : [];
+                const isSel = selPlan && p.id === selPlan.id;
+                return `<div class="plan-opt ${isSel ? 'selected' : ''}" data-plan-id="${escapeHtml(p.id)}">
+                  <div class="plan-opt-name">
+                    ${escapeHtml(p.name)}
+                    ${p.is_popular ? '<span class="plan-popular">POPULAR</span>' : ''}
+                  </div>
+                  <div class="plan-opt-price">
+                    <span class="am">${escapeHtml(p.currency||'NPR')} ${parseFloat(p.price).toFixed(0)}</span>
+                    ${p.original_price ? `<span class="orig">${parseFloat(p.original_price).toFixed(0)}</span>` : ''}
+                    <span class="dur"> / ${p.duration_days} days</span>
+                  </div>
+                  ${feats.length ? `<div class="plan-opt-feats">${feats.map(f => `<span>${escapeHtml(f)}</span>`).join('')}</div>` : ''}
+                </div>`;
+              }).join('')}
+            </div>` : ''}
+
+          ${/* How to pay: only show when NOT pending */ isPaid && !pendingEntry ? `
+            <div class="divider-ornate" style="margin:20px 0 14px;">How to pay</div>
+            ${settings.qr_image_url ? `
+              <div class="qr-box">
+                <img src="${escapeHtml(settings.qr_image_url)}" alt="Payment QR">
+                <div class="text-muted mt-1" style="font-size:.8rem;">Scan with eSewa / Khalti / bank app</div>
+              </div>` : ''}
+            ${methodCard(`<svg width="52" height="20" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="40" rx="6" fill="#60BB46"/>
+  <text x="12" y="27" font-family="Arial,sans-serif" font-weight="800" font-size="22" fill="white" letter-spacing="-0.5">eSewa</text>
+</svg>`, "eSewa", settings.esewa_id)}
+            ${methodCard(`<svg width="52" height="20" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="40" rx="6" fill="#5C2D91"/>
+  <text x="10" y="27" font-family="Arial,sans-serif" font-weight="800" font-size="22" fill="white" letter-spacing="-0.5">Khalti</text>
+</svg>`, "Khalti", settings.khalti_id)}
+            ${settings.bank_account_number ? `
+              <div class="method">
+                <div class="method-head">
+                  <strong>🏦 ${escapeHtml(settings.bank_name || 'Bank')}</strong>
+                  <button class="copy-btn" data-copy="${escapeHtml(settings.bank_account_number)}">Copy</button>
+                </div>
+                <div class="method-key">${escapeHtml(settings.bank_account_number)}</div>
+                ${settings.bank_account_name ? `<div class="text-muted" style="font-size:.78rem;margin-top:4px;">A/C: ${escapeHtml(settings.bank_account_name)}</div>` : ''}
+              </div>` : ''}
+
+            ${settings.instructions ? `<div class="alert alert-info mt-2" style="font-size:.86rem;">${escapeHtml(settings.instructions)}</div>` : ''}
+          ` : ''}
+        </aside>
+
+        <!-- RIGHT: form or pending state -->
+        <section>
+          ${pendingEntry ? `
+            <!-- PENDING STATE — full approval screen inline -->
+            <div style="padding:12px 0 24px;">
+              <div style="font-size:2.8rem;margin-bottom:12px;text-align:center;">⏳</div>
+              <h2 class="display" style="font-size:1.5rem;margin-bottom:8px;text-align:center;">Purchase Request Pending</h2>
+              <p class="text-soft" style="text-align:center;max-width:420px;margin:0 auto 20px;">
+                Your payment is being reviewed. You'll receive access once an admin approves — usually within a few hours.
+              </p>
+              <div class="card" style="padding:18px 22px;margin-bottom:20px;">
+                <table style="width:100%;border-collapse:collapse;font-size:.9rem;">
+                  <tr style="border-bottom:1px solid var(--paper-edge);">
+                    <td style="padding:10px 0;color:var(--ink-muted);font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;">Item</td>
+                    <td style="padding:10px 0;font-weight:600;text-align:right;">${escapeHtml(title)}</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--paper-edge);">
+                    <td style="padding:10px 0;color:var(--ink-muted);font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;">Submitted</td>
+                    <td style="padding:10px 0;text-align:right;font-size:.88rem;">${formatDate(pendingEntry.created_at)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0;color:var(--ink-muted);font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;">Status</td>
+                    <td style="padding:10px 0;text-align:right;">
+                      <span style="background:rgba(245,158,11,.12);color:#d97706;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:.06em;">PENDING REVIEW</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+
+
+              <!-- 24h+ delayed contact notice -->
+              ${over24h ? `
+              <div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius);padding:16px 18px;margin-bottom:20px;">
+                <div style="font-weight:700;color:#dc2626;margin-bottom:6px;">⚠️ Taking longer than expected?</div>
+                <div style="font-size:.875rem;color:var(--ink-soft);line-height:1.6;">
+                  Your request has been waiting over 24 hours. Please contact the admin directly to follow up.
+                </div>
+                ${(() => {
+                  const wa = (settings.whatsapp_number || '').replace(/\D/g,'');
+                  const tg = (settings.telegram_username || '').replace(/^@/,'');
+                  const msg = `Follow-up: My purchase is pending for over 24 hours.\nItem: ${title}\nUser: ${me.email||''}`;
+                  return [
+                    wa ? `<a href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;margin-right:10px;color:#25D366;font-weight:700;font-size:.875rem;text-decoration:none;">📲 WhatsApp admin</a>` : '',
+                    tg ? `<a href="https://t.me/${tg.replace(/^@/,'')}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;color:#229ED9;font-weight:700;font-size:.875rem;text-decoration:none;">✈️ Telegram admin</a>` : ''
+                  ].join('');
+                })()}
+              </div>` : ''}
+
+              <!-- Notification message -->
+              <div style="background:var(--success-soft);border:1px solid rgba(34,197,94,.25);border-radius:var(--radius);padding:14px 18px;margin-bottom:24px;text-align:center;">
+                <div style="font-size:1.3rem;margin-bottom:6px;">🔔</div>
+                <div style="font-size:.92rem;color:var(--ink);line-height:1.6;">
+                  You will receive a <strong>notification</strong> once the admin approves your request.
+                </div>
+              </div>
+
+              <!-- Bottom nav tabs -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px;">
+                <a href="${isCourse ? 'my-courses.html' : 'my-quiz-sets.html'}"
+                  style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--paper-soft);border:1.5px solid var(--accent);border-radius:var(--radius);text-decoration:none;color:var(--accent);font-weight:700;font-size:.82rem;transition:all .15s;"
+                  onmouseover="this.style.background='var(--accent-soft)'" onmouseout="this.style.background='var(--paper-soft)'">
+                  <span style="font-size:1.4rem;">${isCourse ? '🎓' : '📝'}</span>
+                  ${isCourse ? 'My Courses' : 'My Quizzes'}
+                </a>
+                <a href="my-courses.html"
+                  style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--paper-soft);border:1.5px solid var(--paper-edge);border-radius:var(--radius);text-decoration:none;color:var(--ink);font-weight:700;font-size:.82rem;transition:all .15s;"
+                  onmouseover="this.style.borderColor='var(--ink-muted)'" onmouseout="this.style.borderColor='var(--paper-edge)'">
+                  <span style="font-size:1.4rem;">📚</span>
+                  My Courses
+                </a>
+                <a href="contact.html"
+                  style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--paper-soft);border:1.5px solid var(--paper-edge);border-radius:var(--radius);text-decoration:none;color:var(--ink);font-weight:700;font-size:.82rem;transition:all .15s;"
+                  onmouseover="this.style.borderColor='var(--ink-muted)'" onmouseout="this.style.borderColor='var(--paper-edge)'">
+                  <span style="font-size:1.4rem;">📞</span>
+                  Contact
+                </a>
+              </div>
+            </div>
+          ` : `
+          <!-- NORMAL PURCHASE FORM -->
+          <div class="eyebrow">${isCourse ? 'Course Purchase' : 'Purchase'}</div>
+          <h1 class="display mt-1" style="font-size:2rem;">${escapeHtml(title)}</h1>
+          <p class="text-soft mt-1 mb-3">${escapeHtml(subtitle)}</p>
+
+          ${!isPaid ? `<div class="alert alert-success">This is free — no payment needed.</div>` : ''}
+
+          ${(isPaid) ? `
+            <div class="card" style="padding:24px;">
+              <h2 class="display mb-3" style="font-size:1.25rem;">Submit your payment</h2>
+              <form id="purchase-form" class="stack" style="--stack:14px;">
+                <div id="alert-zone"></div>
+                <div class="field">
+                  <label>Transaction ID <span class="text-muted" style="font-weight:400;">(eSewa / Khalti / bank ref)</span></label>
+                  <input name="transactionId" placeholder="e.g. 0009JK123ABC">
+                </div>
+                <div class="field">
+                  <label>Note <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+                  <textarea name="note" rows="2" placeholder="Anything we should know"></textarea>
+                </div>
+                <div class="field">
+                  <label>Receipt screenshot or PDF <span style="color:var(--error);">*</span></label>
+                  <label class="receipt-zone" id="receipt-zone">
+                    <input type="file" name="receipt" accept="image/*,application/pdf" required>
+                    <div id="receipt-prompt">
+                      <div style="font-size:1.6rem;">📎</div>
+                      <div class="mt-1">Click to choose a file</div>
+                      <div class="text-muted mt-1" style="font-size:.82rem;">JPG · PNG · PDF · max 5 MB</div>
+                    </div>
+                  </label>
+                </div>
+                <button type="submit" class="btn btn-accent btn-lg" id="submit-btn">
+                  Submit payment request
+                </button>
+              </form>
+            </div>` : ''}
+          `}
+        </section>
+
+      </div>`;
+
+    wireEvents();
+  }
+
+  // ── Wire interactions ───────────────────────────────────────────────────────
+  function wireEvents() {
+    // Copy buttons
+    document.querySelectorAll('.copy-btn').forEach(b => {
+      b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied ✓'; setTimeout(() => b.textContent = 'Copy', 1500); }
+        catch { toast('Copy failed — please copy manually', 'error'); }
+      });
+    });
+
+    // Plan switcher
+    document.querySelectorAll('.plan-opt[data-plan-id]').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const pid = opt.dataset.planId;
+        selPlan = allPlans.find(p => p.id === pid) || selPlan;
+        // Update URL so a refresh keeps the selection
+        const u = new URL(location.href);
+        u.searchParams.set('planId', pid);
+        history.replaceState(null, '', u);
+        render(); // re-render with new plan
+      });
+    });
+
+    // File picker
+    const fileInput = document.querySelector('input[name="receipt"]');
+    if (fileInput) {
+      fileInput.addEventListener('change', () => {
+        const zone = document.getElementById('receipt-zone');
+        const prompt = document.getElementById('receipt-prompt');
+        if (fileInput.files[0]) {
+          zone.classList.add('has-file');
+          prompt.innerHTML = `<div style="font-size:1.6rem;">✓</div>
+            <div class="mt-1">${escapeHtml(fileInput.files[0].name)}</div>
+            <div class="text-muted mt-1" style="font-size:.82rem;">${(fileInput.files[0].size/1024).toFixed(0)} KB · click to change</div>`;
+        }
+      });
+
+      // Drag and drop
+      const zone = document.getElementById('receipt-zone');
+      zone?.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+      zone?.addEventListener('dragleave', () => zone.classList.remove('drag'));
+      zone?.addEventListener('drop', e => {
+        e.preventDefault(); zone.classList.remove('drag');
+        if (e.dataTransfer.files[0]) {
+          const dt = new DataTransfer();
+          dt.items.add(e.dataTransfer.files[0]);
+          fileInput.files = dt.files;
+          fileInput.dispatchEvent(new Event('change'));
+        }
+      });
+    }
+
+    // Submit
+    document.getElementById('purchase-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn  = document.getElementById('submit-btn');
+      const zone = document.getElementById('alert-zone');
+      const fi   = e.target.querySelector('input[name="receipt"]');
+      zone.innerHTML = '';
+      if (!fi?.files[0]) {
+        zone.innerHTML = `<div class="alert alert-error">Please attach a payment receipt.</div>`; return;
+      }
+      btn.disabled = true; btn.textContent = 'Submitting…';
+      try {
+        const fd = new FormData(e.target);
+        if (isCourse) {
+          fd.append('coursePlanId', selPlan.id);
+        } else {
+          fd.append('quizSetId', setData.id);
+        }
+        const r = await purchases.request(fd);
+        const orderId = r?.data?.id || '';
+        const itemName = isCourse
+          ? (selPlan?.name ? selPlan.name + ' — ' : '') + (course?.title || '')
+          : (setData?.name || '');
+        showApprovalScreen({ orderId, itemName });
+      } catch (err) {
+        zone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        btn.disabled = false; btn.textContent = 'Submit payment request';
+      }
+    });
+  }
+
+  // ── Step-3 approval screen (shown after successful submit) ──────────────
+  function showApprovalScreen({ orderId, itemName }) {
+    root.innerHTML = `
+      <div class="steps mb-3">
+        <div class="step-item done"><div class="step-num">✓</div> Select plan</div>
+        <div class="step-item done"><div class="step-num">✓</div> Make payment</div>
+        <div class="step-item active" style="background:rgba(239,68,68,.08);color:#dc2626;border-color:#dc2626;">
+          <div class="step-num" style="background:#dc2626;">3</div> Admin approval
+        </div>
+      </div>
+
+      <div class="pay-layout">
+        <!-- Summary (left) -->
+        <aside class="pay-summary">
+          <div class="eyebrow">Order summary</div>
+          <div class="mt-2" style="font-size:1.05rem;font-weight:700;">${escapeHtml(isCourse ? (course?.title||'') : (setData?.name||''))}</div>
+          ${isCourse && selPlan ? `<div class="pay-price">${escapeHtml(selPlan.currency||'NPR')} ${parseFloat(selPlan.price).toFixed(0)}</div>
+          <div class="text-muted mt-1" style="font-size:.84rem;">${selPlan.duration_days} days access</div>` : ''}
+        </aside>
+
+        <!-- Approval details (right) -->
+        <section>
+          <div style="text-align:center;padding:16px 0 28px;">
+            <div style="font-size:3rem;margin-bottom:12px;">⏳</div>
+            <h2 class="display" style="font-size:1.6rem;margin-bottom:8px;">Purchase Request Pending</h2>
+            <p class="text-soft" style="max-width:420px;margin:0 auto 24px;">
+              Your payment is being reviewed. You'll receive access once an admin approves it — usually within a few hours.
+            </p>
+          </div>
+
+          <div class="card" style="padding:20px 24px;margin-bottom:20px;">
+            <table style="width:100%;border-collapse:collapse;font-size:.9rem;">
+              <tr style="border-bottom:1px solid var(--paper-edge);">
+                <td style="padding:10px 0;color:var(--ink-muted);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;">Item</td>
+                <td style="padding:10px 0;font-weight:600;text-align:right;">${escapeHtml(itemName)}</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--paper-edge);">
+                <td style="padding:10px 0;color:var(--ink-muted);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;">Order ID</td>
+                <td style="padding:10px 0;font-family:var(--font-mono);font-size:.82rem;text-align:right;word-break:break-all;">${escapeHtml(orderId)}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;color:var(--ink-muted);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;">Status</td>
+                <td style="padding:10px 0;text-align:right;">
+                  <span style="background:rgba(245,158,11,.12);color:#d97706;font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:.06em;">PENDING REVIEW</span>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          ${/* WhatsApp + Telegram — directly below order table */ (() => {
+            const wa = (settings.whatsapp_number || '').replace(/\D/g,'');
+            const tg = (settings.telegram_username || '').replace(/^@/,'');
+            const msgText = `Hello, I made the payment.\n${isCourse ? 'Course' : 'Quiz Set'}: ${itemName}\nOrder ID: ${orderId}\nUser: ${me.email||''}`;
+            const waHref = wa ? `https://wa.me/${wa}?text=${encodeURIComponent(msgText)}` : '';
+            const tgHref = tg ? `https://t.me/${tg}?text=${encodeURIComponent(msgText)}` : '';
+            if (!waHref && !tgHref) return '';
+            return `
+            <div style="margin-bottom:20px;">
+              <div style="background:var(--success-soft);border:1px solid rgba(34,197,94,.2);border-radius:var(--radius);padding:12px 16px;text-align:center;margin-bottom:14px;">
+                <div style="font-size:1.1rem;margin-bottom:4px;">📸</div>
+                <div style="font-size:.88rem;color:var(--ink);line-height:1.5;">
+                  Send the <strong>payment screenshot</strong> to admin for faster approval
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                ${waHref ? `<a href="${waHref}" target="_blank" rel="noopener"
+                  style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:13px 20px;border-radius:var(--radius);font-weight:700;font-size:.9rem;text-decoration:none;flex:1;justify-content:center;min-width:140px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9s-.5-.1-.7.2-.7.9-.9 1.1-.3.2-.6.1c-.3-.1-1.2-.5-2.3-1.4-.8-.7-1.4-1.7-1.6-1.9-.2-.3 0-.4.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2.1-.3 0-.5-.1-.1-.7-1.5-.9-2.1-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4s-1 1-1 2.5 1.1 2.9 1.2 3.1 2.1 3.3 5.2 4.7c.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.3-1.4c1.4.8 3 1.2 4.7 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.3c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.2.8.9-3.1-.2-.3c-.9-1.4-1.3-3-1.3-4.6 0-4.6 3.7-8.3 8.3-8.3s8.3 3.7 8.3 8.3-3.7 8.6-8.2 8.6z"/></svg>
+                  Send on WhatsApp
+                </a>` : ''}
+                ${tgHref ? `<a href="${tgHref}" target="_blank" rel="noopener"
+                  style="display:inline-flex;align-items:center;gap:8px;background:#229ED9;color:#fff;padding:13px 20px;border-radius:var(--radius);font-weight:700;font-size:.9rem;text-decoration:none;flex:1;justify-content:center;min-width:140px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.5 8.2l-1.8 8.6c-.1.6-.5.8-1.1.5l-3-2.2-1.4 1.4c-.2.2-.3.3-.6.3l.2-3 5.4-4.9c.2-.2 0-.3-.3-.1L8.2 13l-2.9-.9c-.6-.2-.6-.6.1-.9l11.4-4.4c.5-.2 1 .1.8.9z"/></svg>
+                  Send on Telegram
+                </a>` : ''}
+              </div>
+            </div>`;
+          })()}
+
+          <!-- Bottom nav tabs — no Done button -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px;">
+            <a href="${isCourse ? 'my-courses.html' : 'my-quiz-sets.html'}"
+              style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--paper-soft);border:1.5px solid var(--accent);border-radius:var(--radius);text-decoration:none;color:var(--accent);font-weight:700;font-size:.82rem;">
+              <span style="font-size:1.4rem;">${isCourse ? '🎓' : '📝'}</span>
+              ${isCourse ? 'My Courses' : 'My Quizzes'}
+            </a>
+            <a href="my-courses.html"
+              style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--paper-soft);border:1.5px solid var(--paper-edge);border-radius:var(--radius);text-decoration:none;color:var(--ink);font-weight:700;font-size:.82rem;">
+              <span style="font-size:1.4rem;">📚</span>My Courses
+            </a>
+            <a href="contact.html"
+              style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--paper-soft);border:1.5px solid var(--paper-edge);border-radius:var(--radius);text-decoration:none;color:var(--ink);font-weight:700;font-size:.82rem;">
+              <span style="font-size:1.4rem;">📞</span>Contact
+            </a>
+          </div>
+        </section>
+      </div>`;
+  }
+
+  render();
+})();
+</script>
+
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

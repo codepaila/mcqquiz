@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Notifications · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+/* ── Page layout ──────────────────────────────────────────── */
+.notif-page { max-width: 680px; margin: 0 auto; padding: 32px 0 64px; }
+.notif-page-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+}
+.notif-page-head h1 {
+  font-family: var(--font-display);
+  font-size: 2rem; font-weight: 400; letter-spacing: -.02em;
+}
+.notif-page-head .head-right { display: flex; gap: 8px; align-items: center; }
+
+/* ── Filter tabs ──────────────────────────────────────────── */
+.notif-tabs-wrap {
+  position: relative; margin-bottom: 20px;
+}
+.notif-tabs-wrap::after {
+  content: '';
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, transparent, var(--paper));
+  pointer-events: none;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.notif-tabs {
+  display: flex; gap: 0;
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius);
+  overflow-x: auto; overflow-y: hidden;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.notif-tabs::-webkit-scrollbar { display: none; }
+.notif-tab {
+  padding: 7px 16px; font-size: 0.82rem; font-weight: 600;
+  font-family: var(--font-body); background: var(--paper-soft);
+  color: var(--ink-muted); border: none;
+  border-right: 1px solid var(--paper-edge);
+  cursor: pointer; transition: background .12s, color .12s;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.notif-tab:last-child { border-right: none; }
+.notif-tab:hover { background: var(--paper); color: var(--ink); }
+.notif-tab.active { background: var(--accent); color: #fff; }
+.notif-tab-count {
+  background: rgba(255,255,255,.25); color: inherit;
+  border-radius: 100px; font-size: 0.68rem; font-weight: 700;
+  padding: 1px 6px; min-width: 18px; text-align: center;
+}
+.notif-tab:not(.active) .notif-tab-count { background: var(--paper-edge); color: var(--ink-muted); }
+
+/* ── Notification items ───────────────────────────────────── */
+.notif-feed { display: flex; flex-direction: column; gap: 8px; }
+
+.notif-card {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 16px 18px;
+  background: var(--paper-soft); border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius-lg); cursor: pointer;
+  transition: border-color .14s, box-shadow .14s, background .14s;
+  position: relative;
+}
+.notif-card:hover { border-color: var(--ink-muted); box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.notif-card.unread { border-left: 3px solid var(--accent); background: var(--paper); }
+.notif-card.notif-new { animation: nc-slide .35s ease both; }
+@keyframes nc-slide { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* type icon bubble */
+.notif-ico-wrap {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+}
+.ico-purchase   { background: #dcfce7; }
+.ico-course     { background: #dbeafe; }
+.ico-quiz       { background: #fef9c3; }
+.ico-system     { background: var(--paper-edge); }
+.ico-admin      { background: var(--accent-soft); }
+.ico-sub        { background: #fce7f3; }
+
+.notif-content { flex: 1; min-width: 0; }
+.notif-card-title {
+  font-size: 0.92rem; font-weight: 600; color: var(--ink);
+  line-height: 1.35; margin-bottom: 3px;
+}
+.notif-card.unread .notif-card-title { color: var(--ink); }
+.notif-card-body {
+  font-size: 0.82rem; color: var(--ink-soft);
+  line-height: 1.6; margin-bottom: 6px;
+}
+.notif-card-meta {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.notif-card-time {
+  font-size: 0.72rem; color: var(--ink-muted);
+  font-family: var(--font-mono);
+}
+.notif-type-pill {
+  font-size: 0.65rem; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 100px;
+  background: var(--paper-edge); color: var(--ink-muted);
+}
+
+/* unread dot */
+.notif-unread-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0; margin-top: 6px;
+}
+.notif-card:not(.unread) .notif-unread-dot { opacity: 0; }
+
+/* ── Empty / Loading ──────────────────────────────────────── */
+.notif-empty {
+  text-align: center; padding: 52px 24px;
+  color: var(--ink-muted); font-size: 0.95rem;
+}
+.notif-empty svg { color: var(--paper-edge); margin: 0 auto 14px; display: block; }
+
+/* ── Load more ────────────────────────────────────────────── */
+.load-more-wrap { text-align: center; margin-top: 20px; }
+
+/* ── Unread count badge in head ───────────────────────────── */
+.unread-badge {
+  background: var(--accent); color: #fff;
+  border-radius: 100px; font-size: 0.72rem; font-weight: 700;
+  padding: 3px 10px; font-family: var(--font-mono);
+}
+
+/* ── Mobile responsive ───────────────────────────── */
+@media (max-width: 640px) {
+  .notif-page { padding: 20px 0 80px; }
+  .notif-page-head h1 { font-size: 1.6rem; }
+  .notif-tab { padding: 6px 11px; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0; }
+  .notif-tab-count { font-size: 0.62rem; padding: 1px 5px; }
+  .notif-card { padding: 12px 14px; gap: 10px; }
+  .notif-ico-wrap { width: 36px; height: 36px; font-size: 1.1rem; border-radius: 9px; }
+  .notif-card-title { font-size: 0.86rem; }
+  .notif-card-body { font-size: 0.78rem; }
+  .notif-page-head { margin-bottom: 16px; }
+  .notif-tabs { border-radius: 10px; }
+  .notif-tabs-wrap::after { width: 24px; }
+}
+</style>
+</head>
+<body>
+<main class="section">
+<div class="container">
+<div class="notif-page">
+
+  <div class="notif-page-head">
+    <div>
+      <div class="eyebrow">My Account</div>
+      <h1 class="mt-1">Notifications <span id="unread-badge" class="unread-badge" hidden></span></h1>
+    </div>
+    <div class="head-right">
+      <button class="btn btn-ghost btn-sm" id="mark-all-btn">Mark all read</button>
+    </div>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="notif-tabs-wrap"><div class="notif-tabs" id="notif-tabs">
+    <button class="notif-tab active" data-filter="all">
+      All <span class="notif-tab-count" id="tc-all">—</span>
+    </button>
+    <button class="notif-tab" data-filter="unread">
+      Unread <span class="notif-tab-count" id="tc-unread">—</span>
+    </button>
+    <button class="notif-tab" data-filter="PURCHASE_COMPLETED,PURCHASE_FAILED">
+      Purchases <span class="notif-tab-count" id="tc-purchase">—</span>
+    </button>
+    <button class="notif-tab" data-filter="COURSE_ACCESS_APPROVED,COURSE_ACCESS_REJECTED">
+      Courses <span class="notif-tab-count" id="tc-course">—</span>
+    </button>
+    <button class="notif-tab" data-filter="QUIZ_RESULTS">
+      Quizzes <span class="notif-tab-count" id="tc-quiz">—</span>
+    </button>
+    <button class="notif-tab" data-filter="SYSTEM_ALERT,ADMIN_NOTIFICATION">
+      System <span class="notif-tab-count" id="tc-system">—</span>
+    </button>
+  </div></div>
+
+  <!-- Feed -->
+  <div class="notif-feed" id="notif-feed">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+
+  <!-- Load more -->
+  <div class="load-more-wrap" id="load-more-wrap" style="display:none">
+    <button class="btn btn-ghost" id="load-more-btn">Load more</button>
+  </div>
+
+</div>
+</div>
+</main>
+
+<script type="module">
+import { mountHeader, mountFooter, escapeHtml, formatRelative, toast, requireAuth } from './assets/components.js';
+import { me } from './assets/api.js';
+
+await requireAuth('login.html');
+await mountHeader('notifications');
+mountFooter();
+
+/* ── Config ──────────────────────────────────────────────── */
+const ICONS = {
+  PURCHASE_COMPLETED:         { ico: '✅', cls: 'ico-purchase', label: 'Purchase' },
+  PURCHASE_FAILED:            { ico: '❌', cls: 'ico-purchase', label: 'Purchase' },
+  COURSE_ACCESS_APPROVED:     { ico: '🎓', cls: 'ico-course',   label: 'Course' },
+  COURSE_ACCESS_REJECTED:     { ico: '🚫', cls: 'ico-course',   label: 'Course' },
+  SUBSCRIPTION_EXPIRED:       { ico: '⏰', cls: 'ico-sub',      label: 'Subscription' },
+  SUBSCRIPTION_EXPIRING_SOON: { ico: '⚠️', cls: 'ico-sub',      label: 'Subscription' },
+  SUBSCRIPTION_EXTENDED:      { ico: '🔄', cls: 'ico-sub',      label: 'Subscription' },
+  QUIZ_RESULTS:               { ico: '📊', cls: 'ico-quiz',     label: 'Quiz' },
+  SYSTEM_ALERT:               { ico: '🔔', cls: 'ico-system',   label: 'System' },
+  ADMIN_NOTIFICATION:         { ico: '📣', cls: 'ico-admin',    label: 'Admin' },
+};
+const DEFAULT_ICO = { ico: '🔔', cls: 'ico-system', label: 'Notification' };
+
+/* ── State ───────────────────────────────────────────────── */
+let allNotifs  = [];
+let activeFilter = 'all';
+let page       = 1;
+const PER_PAGE = 20;
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function filterNotifs(items, filter) {
+  if (filter === 'all')    return items;
+  if (filter === 'unread') return items.filter(n => n.status === 'UNREAD');
+  const types = filter.split(',');
+  return items.filter(n => types.includes(n.type));
+}
+
+function renderFeed(items, append = false) {
+  const feed = document.getElementById('notif-feed');
+  if (!append) feed.innerHTML = '';
+
+  if (!items.length && !append) {
+    feed.innerHTML = `
+      <div class="notif-empty">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        No notifications here yet.
+      </div>`;
+    return;
+  }
+
+  const html = items.map((n, i) => {
+    const cfg  = ICONS[n.type] || DEFAULT_ICO;
+    const ago  = formatRelative(n.sent_at || n.created_at || '');
+    const body = n.body || n.message || '';
+    return `
+    <div class="notif-card${n.status !== 'UNREAD' ? '' : ' unread'}" data-id="${escapeHtml(String(n.id))}">
+      <span class="notif-unread-dot"></span>
+      <div class="notif-ico-wrap ${cfg.cls}">${cfg.ico}</div>
+      <div class="notif-content">
+        <div class="notif-card-title">${escapeHtml(n.title || n.type || 'Notification')}</div>
+        ${body ? `<div class="notif-card-body">${escapeHtml(body)}</div>` : ''}
+        <div class="notif-card-meta">
+          <span class="notif-card-time">${escapeHtml(ago)}</span>
+          <span class="notif-type-pill">${cfg.label}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (append) {
+    feed.insertAdjacentHTML('beforeend', html);
+  } else {
+    feed.innerHTML = html;
+  }
+
+  // Click to mark read
+  feed.querySelectorAll('.notif-card.unread').forEach(card => {
+    card.addEventListener('click', async () => {
+      if (!card.classList.contains('unread')) return;
+      card.classList.remove('unread');
+      const n = allNotifs.find(x => x.id == card.dataset.id);
+      if (n) n.status = 'READ';
+      updateCounts();
+      try { await me.notificationAction(card.dataset.id, 'mark_read'); } catch {}
+    });
+  });
+}
+
+function updateCounts() {
+  const unread   = allNotifs.filter(n => n.status === 'UNREAD');
+  const purchase = allNotifs.filter(n => ['PURCHASE_COMPLETED','PURCHASE_FAILED'].includes(n.type));
+  const course   = allNotifs.filter(n => ['COURSE_ACCESS_APPROVED','COURSE_ACCESS_REJECTED'].includes(n.type));
+  const quiz     = allNotifs.filter(n => n.type === 'QUIZ_RESULTS');
+  const system   = allNotifs.filter(n => ['SYSTEM_ALERT','ADMIN_NOTIFICATION'].includes(n.type));
+
+  document.getElementById('tc-all').textContent     = allNotifs.length;
+  document.getElementById('tc-unread').textContent  = unread.length;
+  document.getElementById('tc-purchase').textContent= purchase.length;
+  document.getElementById('tc-course').textContent  = course.length;
+  document.getElementById('tc-quiz').textContent    = quiz.length;
+  document.getElementById('tc-system').textContent  = system.length;
+
+  const badge = document.getElementById('unread-badge');
+  if (unread.length) { badge.textContent = unread.length + ' unread'; badge.hidden = false; }
+  else badge.hidden = true;
+}
+
+/* ── Load ────────────────────────────────────────────────── */
+async function load(reset = true) {
+  if (reset) { page = 1; document.getElementById('notif-feed').innerHTML = '<div class="loading"><div class="spinner"></div></div>'; }
+
+  try {
+    const r = await me.notifications({ limit: 100 });
+    allNotifs = r?.data || [];
+    updateCounts();
+    const filtered = filterNotifs(allNotifs, activeFilter);
+    const paged    = filtered.slice(0, page * PER_PAGE);
+    renderFeed(paged);
+
+    // Load more button
+    const lmw = document.getElementById('load-more-wrap');
+    if (filtered.length > paged.length) {
+      lmw.style.display = '';
+    } else {
+      lmw.style.display = 'none';
+    }
+  } catch (err) {
+    document.getElementById('notif-feed').innerHTML =
+      `<div class="notif-empty" style="color:var(--error,#9b2c2c)">
+        Failed to load: ${escapeHtml(err.message)}
+      </div>`;
+  }
+}
+
+/* ── Tabs ────────────────────────────────────────────────── */
+document.getElementById('notif-tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.notif-tab');
+  if (!tab) return;
+  document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  activeFilter = tab.dataset.filter;
+  renderFeed(filterNotifs(allNotifs, activeFilter).slice(0, page * PER_PAGE));
+  updateCounts();
+});
+
+/* ── Load more ───────────────────────────────────────────── */
+document.getElementById('load-more-btn').addEventListener('click', () => {
+  page++;
+  const filtered = filterNotifs(allNotifs, activeFilter);
+  const paged    = filtered.slice(0, page * PER_PAGE);
+  renderFeed(paged);
+  if (paged.length >= filtered.length) document.getElementById('load-more-wrap').style.display = 'none';
+});
+
+/* ── Mark all read ───────────────────────────────────────── */
+document.getElementById('mark-all-btn').addEventListener('click', async () => {
+  allNotifs.forEach(n => n.read_at = new Date().toISOString());
+  document.querySelectorAll('.notif-card.unread').forEach(c => c.classList.remove('unread'));
+  updateCounts();
+  try {
+    const unreadItems = allNotifs.filter(n => n.status === 'UNREAD');
+    await Promise.allSettled(unreadItems.map(n => me.notificationAction(n.id, 'mark_read')));
+    toast('All notifications marked as read', 'success');
+  } catch {}
+});
+
+/* ── Also fix "View all" link in dashboard to point here ─── */
+// Initial load
+load();
+
+// Auto-poll every 60s
+setInterval(() => load(true), 60_000);
+</script>
+</body>
+</html>

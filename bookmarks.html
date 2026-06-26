@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Saved Questions · Quiznosis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="pwa/pwa.css">
+<style>
+  :root {
+    --ink:#0d0f14; --paper:#f5f3ee; --white:#ffffff;
+    --accent:#e84b2b; --blue:#2b7de8; --green:#1a9c5b; --gold:#c9920a;
+    --muted:#7a7870; --border:#e2dfd8; --card:#ffffff;
+    --bm:#7c4dff; --bm-soft:rgba(124,77,255,0.10);
+  }
+  [data-theme="dark"] {
+    --ink:#e8ecf4; --paper:#0e1626; --white:#16203a;
+    --accent:#e0742f; --blue:#5b9bf0; --green:#4ade80; --gold:#e0a93e;
+    --muted:#6b7794; --border:#2a3a5c; --card:#16203a;
+    --bm:#a08cff; --bm-soft:rgba(160,140,255,0.14);
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink); min-height:100vh; }
+
+  /* ── Layout ── */
+  .bm-wrap { max-width:920px; margin:0 auto; padding:1.8rem 1.5rem 5rem; }
+  .bm-head { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1.2rem; }
+  .bm-title h1 { font-size:1.7rem; font-weight:800; }
+  .bm-title p { color:var(--muted); font-size:0.9rem; margin-top:3px; }
+  .bm-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .bm-pill {
+    font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:600;
+    color:var(--muted); background:var(--card); border:1px solid var(--border);
+    border-radius:100px; padding:0.25rem 0.7rem; white-space:nowrap;
+  }
+  .bm-practice {
+    background:var(--bm); color:#fff; border:none; border-radius:10px;
+    font-family:inherit; font-weight:700; font-size:0.86rem; padding:9px 16px;
+    cursor:pointer; text-decoration:none; white-space:nowrap;
+  }
+  .bm-practice:hover { filter:brightness(1.08); }
+  .bm-practice:disabled { opacity:0.5; cursor:not-allowed; }
+
+  /* ── Search + filter bar ── */
+  .bm-toolbar {
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .bm-search-wrap {
+    flex:1; min-width:180px; position:relative;
+  }
+  .bm-search-wrap svg {
+    position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    color:var(--muted); pointer-events:none;
+  }
+  .bm-search {
+    width:100%; padding:8px 10px 8px 32px;
+    border:1.5px solid var(--border); border-radius:10px;
+    background:var(--card); color:var(--ink);
+    font-family:inherit; font-size:0.87rem;
+    outline:none; transition:border-color .15s;
+  }
+  .bm-search:focus { border-color:var(--bm); }
+  .bm-search::placeholder { color:var(--muted); }
+  /* ── Filter button + dropdown panel ── */
+  .bm-filter-wrap { position:relative; }
+  .bm-filter-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 14px; border:1.5px solid var(--border); border-radius:10px;
+    background:var(--card); color:var(--ink);
+    font-family:inherit; font-size:0.85rem; font-weight:600;
+    cursor:pointer; outline:none; transition:border-color .15s, background .15s;
+    white-space:nowrap; user-select:none;
+  }
+  .bm-filter-btn:hover { border-color:var(--bm); color:var(--bm); }
+  .bm-filter-btn.active { border-color:var(--bm); background:var(--bm-soft); color:var(--bm); }
+  .bm-filter-badge {
+    background:var(--bm); color:#fff; border-radius:100px;
+    font-size:0.7rem; font-weight:700; padding:1px 6px; margin-left:2px;
+  }
+  .bm-filter-panel {
+    display:none; position:absolute; right:0; top:calc(100% + 6px); z-index:200;
+    background:var(--card); border:1.5px solid var(--border); border-radius:12px;
+    padding:14px; min-width:240px; box-shadow:0 8px 30px rgba(0,0,0,0.12);
+    flex-direction:column; gap:12px;
+  }
+  .bm-filter-panel.open { display:flex; }
+  .bm-filter-panel-head {
+    display:flex; align-items:center; justify-content:space-between;
+    font-weight:700; font-size:0.85rem; margin-bottom:2px;
+  }
+  .bm-filter-clear {
+    background:none; border:none; color:var(--muted); font-family:inherit;
+    font-size:0.78rem; cursor:pointer; padding:0; font-weight:600;
+  }
+  .bm-filter-clear:hover { color:var(--accent); }
+  .bm-filter-group { display:flex; flex-direction:column; gap:4px; }
+  .bm-filter-group-label {
+    font-size:0.72rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.05em; color:var(--muted);
+  }
+  .bm-filter-select {
+    padding:7px 10px; border:1.5px solid var(--border); border-radius:8px;
+    background:var(--card); color:var(--ink);
+    font-family:inherit; font-size:0.85rem; cursor:pointer;
+    outline:none; transition:border-color .15s; width:100%;
+  }
+  .bm-filter-select:focus { border-color:var(--bm); }
+  .bm-filter-apply {
+    margin-top:2px; padding:8px 12px; border:none; border-radius:8px;
+    background:var(--bm); color:#fff; font-family:inherit; font-size:0.85rem;
+    font-weight:700; cursor:pointer; transition:filter .15s;
+  }
+  .bm-filter-apply:hover { filter:brightness(1.08); }
+
+  /* ── Pagination ── */
+  .bm-pagination {
+    display:flex; align-items:center; justify-content:center;
+    gap:6px; margin-top:24px; flex-wrap:wrap;
+  }
+  .bm-page-btn {
+    min-width:36px; height:36px; padding:0 10px;
+    border:1.5px solid var(--border); border-radius:8px;
+    background:var(--card); color:var(--ink);
+    font-family:inherit; font-size:0.84rem; font-weight:600;
+    cursor:pointer; transition:all .15s; display:inline-flex;
+    align-items:center; justify-content:center;
+  }
+  .bm-page-btn:hover { border-color:var(--bm); color:var(--bm); }
+  .bm-page-btn.active { background:var(--bm); color:#fff; border-color:var(--bm); }
+  .bm-page-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .bm-page-info { font-size:0.8rem; color:var(--muted); padding:0 4px; }
+
+  /* ── Card list ── */
+  .bm-list { display:flex; flex-direction:column; gap:12px; }
+
+  /* ── Card ── */
+  .bm-card {
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    overflow:hidden;
+    -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+    transition:box-shadow .15s;
+  }
+  .bm-card:hover { box-shadow:0 4px 18px rgba(0,0,0,0.08); }
+
+  /* ── Card header (always visible, clickable) ── */
+  .bm-card-header {
+    display:flex; align-items:flex-start; gap:10px;
+    padding:1rem 1.2rem;
+    cursor:pointer;
+  }
+  .bm-card-header:hover .bm-q { color:var(--bm); }
+  .bm-chevron {
+    flex-shrink:0; margin-top:3px; color:var(--muted);
+    transition:transform .25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .bm-card.open .bm-chevron { transform:rotate(180deg); }
+  .bm-card-header-text { flex:1; min-width:0; }
+  .bm-q {
+    font-size:0.97rem; font-weight:600; line-height:1.5;
+    color:var(--ink); transition:color .15s;
+    /* Ensure long text wraps, doesn't push Remove button */
+    word-break:break-word; overflow-wrap:break-word;
+  }
+  .bm-meta { font-size:0.74rem; color:var(--muted); margin-top:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .bm-meta-tag {
+    display:inline-block; padding:1px 7px; border-radius:5px;
+    background:var(--bm-soft); color:var(--bm);
+    font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+  }
+
+  /* Remove button — sits to the right inside the header, never wraps into the question text */
+  .bm-remove {
+    flex-shrink:0;
+    background:none; border:none; color:var(--muted);
+    font-family:inherit; font-size:0.75rem; font-weight:600;
+    cursor:pointer; padding:5px 6px; border-radius:6px;
+    display:inline-flex; align-items:center; gap:3px;
+    transition:color .15s, background .15s;
+    margin-left:auto; /* push to far right */
+    align-self:flex-start;
+    margin-top:1px;
+  }
+  .bm-remove:hover { background:rgba(239,68,68,0.1); color:#e53e3e; }
+
+  /* ── Card body (collapsible) ── */
+  .bm-card-body {
+    max-height:0; overflow:hidden;
+    transition:max-height .35s cubic-bezier(0.4,0,0.2,1);
+  }
+  .bm-card.open .bm-card-body { max-height:2000px; }
+  .bm-card-body-inner {
+    padding:0 1.2rem 1.1rem;
+    border-top:1px solid var(--border);
+  }
+  .bm-opts { display:flex; flex-direction:column; gap:6px; padding-top:10px; }
+  .bm-opt {
+    display:flex; align-items:flex-start; gap:8px;
+    padding:8px 12px; border-radius:8px; border:1px solid var(--border);
+    font-size:0.88rem; line-height:1.5; word-break:break-word;
+  }
+  .bm-opt.correct { border-color:var(--green); background:rgba(26,156,91,0.08); }
+  .bm-opt .letter { font-weight:700; color:var(--muted); min-width:18px; flex-shrink:0; }
+  .bm-opt.correct .letter { color:var(--green); }
+
+  /* ── Explanation — matches results.html style ── */
+  .bm-explain {
+    margin-top:10px; padding:10px 14px 10px 16px; border-radius:8px;
+    background:rgba(43,125,232,0.07); border-left:3px solid var(--blue);
+    font-size:0.83rem; line-height:1.65;
+    overflow:visible; word-break:break-word; overflow-wrap:break-word;
+  }
+  .bm-explain-label {
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em;
+    font-weight:700; color:var(--blue); margin-bottom:6px;
+  }
+  /* Matches results.html .md-body — full renderMarkdown output support */
+  .bm-md { overflow-wrap:break-word; word-break:break-word; max-width:100%; color:var(--ink); line-height:1.65; }
+  .bm-md p { margin:0 0 8px; line-height:1.65; }
+  .bm-md p:last-child { margin-bottom:0; }
+  .bm-md strong, .bm-md b { font-weight:700; }
+  .bm-md em, .bm-md i { font-style:italic; }
+  .bm-md h1,.bm-md h2,.bm-md h3,.bm-md h4 { font-weight:700; margin:10px 0 4px; line-height:1.3; }
+  .bm-md h1 { font-size:1.1rem; } .bm-md h2 { font-size:1rem; } .bm-md h3 { font-size:0.95rem; }
+  .bm-md ul, .bm-md ol { padding-left:20px; margin:6px 0 8px; }
+  .bm-md li { margin-bottom:5px; line-height:1.55; }
+  .bm-md ul li { list-style-type:disc; }
+  .bm-md ol li { list-style-type:decimal; }
+  .bm-md code { background:rgba(0,0,0,0.06); border-radius:4px; padding:1px 5px; font-size:0.82em; font-family:'JetBrains Mono',monospace; }
+  .bm-md pre { background:rgba(0,0,0,0.06); border-radius:8px; padding:10px 12px; overflow-x:auto; margin:8px 0; }
+  .bm-md pre code { background:none; padding:0; }
+  .bm-md blockquote { border-left:3px solid var(--border); padding-left:12px; color:var(--muted); margin:8px 0; }
+  .bm-md hr { border:none; border-top:1px solid var(--border); margin:10px 0; }
+  .bm-md a { color:var(--blue); text-decoration:underline; }
+  [data-theme="dark"] .bm-md code { background:rgba(255,255,255,0.08); }
+  [data-theme="dark"] .bm-md pre  { background:rgba(255,255,255,0.06); }
+
+  /* ── Empty / loading ── */
+  .bm-empty {
+    background:var(--card); border:1.5px dashed var(--border); border-radius:14px;
+    padding:3rem 1.5rem; text-align:center;
+  }
+  .bm-empty .ico { font-size:2.4rem; color:var(--bm); margin-bottom:8px; }
+  .bm-empty h3 { font-size:1.1rem; font-weight:700; margin-bottom:6px; }
+  .bm-empty p { color:var(--muted); font-size:0.9rem; margin-bottom:14px; }
+  .bm-empty a { color:var(--bm); font-weight:700; }
+  .bm-loading { padding:3rem; text-align:center; color:var(--muted); }
+
+  /* ── Toast ── */
+  .qa-toast-host { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:9000; display:flex; flex-direction:column-reverse; gap:8px; pointer-events:none; }
+  .qa-toast { background:#222; color:#fff; padding:10px 18px; border-radius:8px; font-size:0.86rem; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,0.28); opacity:0; transform:translateY(8px); transition:opacity .22s, transform .22s; white-space:nowrap; }
+  .qa-toast.in { opacity:1; transform:translateY(0); }
+
+  /* ── No results ── */
+  .bm-no-results { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:0.9rem; }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens — covers iPhone SE → iPhone 15 Pro Max & iPad -->
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1170x2532.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1284x2778.png">
+<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1179x2556.png">
+<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1290x2796.png">
+<link rel="apple-touch-startup-image" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-1536x2048.png">
+<link rel="apple-touch-startup-image" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-1668x2388.png">
+<link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-2048x2732.png">
+<!-- Early PWA install-prompt capture (must be non-module, before other scripts) -->
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+<div id="header"></div>
+
+<div class="bm-wrap">
+
+  <!-- Page header -->
+  <div class="bm-head">
+    <div class="bm-title">
+      <h1>Saved Questions</h1>
+      <p>Questions you bookmarked while taking quizzes</p>
+    </div>
+    <div class="bm-actions">
+      <span class="bm-pill" id="bm-count">Loading…</span>
+      <button class="bm-practice" id="bm-practice" disabled>Practice Bookmark Questions</button>
+    </div>
+  </div>
+
+  <!-- Search + filter toolbar -->
+  <div class="bm-toolbar">
+    <div class="bm-search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="bm-search" id="bm-search" type="search" placeholder="Search questions…" autocomplete="off">
+    </div>
+    <!-- Single filter button -->
+    <div class="bm-filter-wrap" id="bm-filter-wrap">
+      <button class="bm-filter-btn" id="bm-filter-btn" title="Filter">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        Filter
+        <span class="bm-filter-badge" id="bm-filter-badge" style="display:none;">0</span>
+      </button>
+      <div class="bm-filter-panel" id="bm-filter-panel">
+        <div class="bm-filter-panel-head">
+          <span>Filters</span>
+          <button class="bm-filter-clear" id="bm-filter-clear">Clear all</button>
+        </div>
+        <div class="bm-filter-group">
+          <label class="bm-filter-group-label">Subject</label>
+          <select class="bm-filter-select" id="bm-filter-subject">
+            <option value="">All subjects</option>
+          </select>
+        </div>
+        <div class="bm-filter-group">
+          <label class="bm-filter-group-label">Topic</label>
+          <select class="bm-filter-select" id="bm-filter-topic">
+            <option value="">All topics</option>
+          </select>
+        </div>
+        <div class="bm-filter-group">
+          <label class="bm-filter-group-label">Difficulty</label>
+          <select class="bm-filter-select" id="bm-filter-difficulty">
+            <option value="">All difficulties</option>
+          </select>
+        </div>
+        <button class="bm-filter-apply" id="bm-filter-apply">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card list -->
+  <div id="bm-body" class="bm-loading">Loading saved questions…</div>
+
+  <!-- Pagination -->
+  <div class="bm-pagination" id="bm-pagination" style="display:none;"></div>
+</div>
+
+<script type="module">
+  const { mountHeader, escapeHtml, requireAuth, renderMarkdown } = await import('./assets/components.js');
+  const { bookmarks } = await import('./assets/api.js');
+  await requireAuth('login.html');
+  await mountHeader('');
+
+  const bodyEl      = document.getElementById('bm-body');
+  const pill        = document.getElementById('bm-count');
+  const practiceBtn = document.getElementById('bm-practice');
+  const searchEl    = document.getElementById('bm-search');
+  const selSubject  = document.getElementById('bm-filter-subject');
+  const selTopic    = document.getElementById('bm-filter-topic');
+  const selDiff     = document.getElementById('bm-filter-difficulty');
+  const paginEl     = document.getElementById('bm-pagination');
+
+  practiceBtn.addEventListener('click', () => { window.location.href = 'quiz-attempt.html?bookmarks=1'; });
+
+  const LETTERS     = ['A','B','C','D','E','F'];
+  const PAGE_SIZE   = 10;
+
+  /* ── State ── */
+  let allData   = [];   // full list from API
+  let filtered  = [];   // after search/filter
+  let currentPage = 1;
+
+  /* ── Toast ── */
+  function toast(msg) {
+    let host = document.getElementById('qa-toast-host');
+    if (!host) { host = document.createElement('div'); host.id='qa-toast-host'; host.className='qa-toast-host'; document.body.appendChild(host); }
+    const t = document.createElement('div'); t.className='qa-toast'; t.textContent = msg;
+    host.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('in'));
+    setTimeout(() => { t.classList.remove('in'); setTimeout(() => t.remove(), 250); }, 1700);
+  }
+
+  /* ── Load all bookmarks ── */
+  async function load() {
+    try {
+      const res = await bookmarks.list(1, 500);
+      allData   = res.data || [];
+      pill.textContent  = allData.length ? `${allData.length} saved` : 'None yet';
+      practiceBtn.disabled = !allData.length;
+      buildFilterOptions();
+      applyFilters();
+    } catch (e) {
+      bodyEl.className = '';
+      bodyEl.innerHTML = `<div class="bm-empty"><h3>Could not load saved questions</h3><p>${escapeHtml(e.message||'error')}</p></div>`;
+    }
+  }
+
+  /* ── Build subject / topic / difficulty dropdowns from data ── */
+  function buildFilterOptions() {
+    const subjects    = new Set();
+    const topics      = new Set();
+    const difficulties = new Set();
+
+    allData.forEach(item => {
+      const q = item.quiz;
+      // API returns subject_id / topic_id as IDs; use subject_name/topic_name if present
+      const subj = q.subject_name || q.subject || q.subject_id;
+      const top  = q.topic_name   || q.topic   || q.topic_id;
+      if (subj) subjects.add(subj);
+      if (top)  topics.add(top);
+      if (q.difficulty) difficulties.add(q.difficulty);
+    });
+
+    populateSelect(selSubject,    subjects,    'All subjects');
+    populateSelect(selTopic,      topics,      'All topics');
+    populateSelect(selDiff,       difficulties,'All difficulties');
+  }
+
+  function populateSelect(el, set, placeholder) {
+    const cur = el.value;
+    el.innerHTML = `<option value="">${placeholder}</option>`;
+    [...set].sort().forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      el.appendChild(o);
+    });
+    if (cur) el.value = cur;
+  }
+
+  /* ── Filter + search ── */
+  function applyFilters() {
+    const query    = searchEl.value.trim().toLowerCase();
+    const subject  = selSubject.value;
+    const topic    = selTopic.value;
+    const diff     = selDiff.value;
+
+    filtered = allData.filter(item => {
+      const q = item.quiz;
+      if (subject && q.subject  !== subject)  return false;
+      if (topic   && q.topic    !== topic)    return false;
+      if (diff    && q.difficulty !== diff)   return false;
+      if (query) {
+        const haystack = [
+          q.question || '', q.subject || '', q.topic || '',
+          q.difficulty || '', q.explanation || '',
+          ...(item.options || []).map(o => o.text || '')
+        ].join(' ').toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    });
+
+    currentPage = 1;
+    render();
+  }
+
+  /* ── Render current page ── */
+  function render() {
+    if (!allData.length) {
+      bodyEl.className = '';
+      bodyEl.innerHTML = `
+        <div class="bm-empty">
+          <div class="ico">☆</div>
+          <h3>No saved questions yet</h3>
+          <p>Tap the bookmark icon on any question while taking a quiz to save it here.</p>
+          <a href="quizzes.html">Browse quizzes →</a>
+        </div>`;
+      paginEl.style.display = 'none';
+      return;
+    }
+
+    if (!filtered.length) {
+      bodyEl.className = '';
+      bodyEl.innerHTML = `<div class="bm-no-results">No questions match your search.</div>`;
+      paginEl.style.display = 'none';
+      return;
+    }
+
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const start      = (currentPage - 1) * PAGE_SIZE;
+    const pageItems  = filtered.slice(start, start + PAGE_SIZE);
+
+    bodyEl.className = 'bm-list';
+    bodyEl.innerHTML = pageItems.map((item, localIdx) => cardHtml(item, start + localIdx)).join('');
+
+    /* Wire up expand/collapse + remove buttons */
+    pageItems.forEach((item, localIdx) => {
+      const globalIdx = start + localIdx;
+      const card = bodyEl.querySelector(`[data-qid="${item.quiz.id}"]`);
+      if (!card) return;
+
+      /* Click on header → toggle open/close */
+      card.querySelector('.bm-card-header').addEventListener('click', (e) => {
+        /* Don't toggle when clicking Remove */
+        if (e.target.closest('.bm-remove')) return;
+        card.classList.toggle('open');
+      });
+
+      /* Remove button */
+      card.querySelector('.bm-remove').addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeOne(item.quiz.id, card);
+      });
+    });
+
+    renderPagination(totalPages);
+    pill.textContent = `${filtered.length} of ${allData.length} saved`;
+  }
+
+  /* ── Card HTML ── */
+  function cardHtml(item, globalIdx) {
+    const q    = item.quiz;
+    const opts = item.options || [];
+
+    const subjectTag = q.subject
+      ? `<span class="bm-meta-tag">${escapeHtml(q.subject)}</span>`  : '';
+    const topicTag   = q.topic
+      ? `<span class="bm-meta-tag" style="background:rgba(43,125,232,.10);color:var(--blue)">${escapeHtml(q.topic)}</span>` : '';
+    const diffTag    = q.difficulty
+      ? `<span>${escapeHtml(q.difficulty)}</span>` : '';
+    const dateStr    = formatDate(item.bookmarked_at);
+
+    return `
+      <div class="bm-card" data-qid="${escapeHtml(String(q.id))}">
+
+        <!-- Always-visible header: question stem + remove -->
+        <div class="bm-card-header">
+          <!-- chevron -->
+          <svg class="bm-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+
+          <!-- question text + meta -->
+          <div class="bm-card-header-text">
+            <div class="bm-q">${escapeHtml(q.question || '')}</div>
+            <div class="bm-meta">
+              ${subjectTag}${topicTag}${diffTag}
+              ${dateStr ? `<span>Saved ${dateStr}</span>` : ''}
+            </div>
+          </div>
+
+          <!-- remove — separate from question text so text wraps freely -->
+          <button class="bm-remove" title="Remove from saved">✕ Remove</button>
+        </div>
+
+        <!-- Collapsible body: options + explanation -->
+        <div class="bm-card-body">
+          <div class="bm-card-body-inner">
+            <div class="bm-opts">
+              ${opts.map((o, i) => `
+                <div class="bm-opt ${+o.is_correct === 1 ? 'correct' : ''}">
+                  <span class="letter">${LETTERS[i] || ''}.</span>
+                  <span>${escapeHtml(o.text || '')}</span>
+                </div>`).join('')}
+            </div>
+            ${q.explanation ? `
+              <div class="bm-explain">
+                <div class="bm-explain-label">Explanation</div>
+                <div class="bm-md">${renderMarkdown(q.explanation)}</div>
+              </div>` : ''}
+          </div>
+        </div>
+
+      </div>`;
+  }
+
+
+
+  /* ── Pagination ── */
+  function renderPagination(totalPages) {
+    if (totalPages <= 1) { paginEl.style.display = 'none'; return; }
+    paginEl.style.display = 'flex';
+
+    const pages = [];
+    // Prev
+    pages.push(`<button class="bm-page-btn" id="pg-prev" ${currentPage===1?'disabled':''}>‹</button>`);
+
+    // Page numbers — show first, last, and window around current
+    for (let p = 1; p <= totalPages; p++) {
+      if (p === 1 || p === totalPages || (p >= currentPage-2 && p <= currentPage+2)) {
+        pages.push(`<button class="bm-page-btn ${p===currentPage?'active':''}" data-page="${p}">${p}</button>`);
+      } else if (p === currentPage-3 || p === currentPage+3) {
+        pages.push(`<span class="bm-page-info">…</span>`);
+      }
+    }
+
+    // Next
+    pages.push(`<button class="bm-page-btn" id="pg-next" ${currentPage===totalPages?'disabled':''}>›</button>`);
+    pages.push(`<span class="bm-page-info">Page ${currentPage} of ${totalPages}</span>`);
+
+    paginEl.innerHTML = pages.join('');
+
+    paginEl.querySelectorAll('[data-page]').forEach(btn =>
+      btn.addEventListener('click', () => { currentPage = +btn.dataset.page; render(); scrollToTop(); })
+    );
+    paginEl.querySelector('#pg-prev')?.addEventListener('click', () => { currentPage--; render(); scrollToTop(); });
+    paginEl.querySelector('#pg-next')?.addEventListener('click', () => { currentPage++; render(); scrollToTop(); });
+  }
+
+  function scrollToTop() {
+    document.querySelector('.bm-wrap')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  /* ── Date formatter ── */
+  function formatDate(d) {
+    if (!d) return '';
+    const dt = new Date(d.replace(' ', 'T') + 'Z');
+    if (isNaN(dt)) return '';
+    return dt.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  /* ── Remove one bookmark ── */
+  async function removeOne(quizId, cardEl) {
+    cardEl.style.opacity = '0.4'; cardEl.style.pointerEvents = 'none';
+    try {
+      const res = await bookmarks.toggle(quizId);
+      // Remove from local state
+      allData  = allData.filter(i => String(i.quiz.id) !== String(quizId));
+      filtered = filtered.filter(i => String(i.quiz.id) !== String(quizId));
+      // Animate out
+      cardEl.style.transition = 'opacity .2s, transform .2s';
+      cardEl.style.transform  = 'translateX(40px)';
+      setTimeout(() => { cardEl.remove(); }, 200);
+      toast('Removed from saved');
+      practiceBtn.disabled = !allData.length;
+      // Rebuild filters in case subject/topic no longer exists
+      buildFilterOptions();
+      // If page is now empty, go back one
+      const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+      if (currentPage > totalPages && currentPage > 1) currentPage = totalPages || 1;
+      render();
+    } catch (e) {
+      cardEl.style.opacity = ''; cardEl.style.pointerEvents = '';
+      toast('Could not remove: ' + (e.message || 'error'));
+    }
+  }
+
+  /* ── Filter button panel toggle ── */
+  const filterBtn   = document.getElementById('bm-filter-btn');
+  const filterPanel = document.getElementById('bm-filter-panel');
+  const filterBadge = document.getElementById('bm-filter-badge');
+  const filterClear = document.getElementById('bm-filter-clear');
+  const filterApply = document.getElementById('bm-filter-apply');
+
+  function updateFilterBadge() {
+    const count = [selSubject.value, selTopic.value, selDiff.value].filter(Boolean).length;
+    filterBadge.textContent = count;
+    filterBadge.style.display = count ? 'inline' : 'none';
+    filterBtn.classList.toggle('active', count > 0);
+  }
+
+  filterBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    filterPanel.classList.toggle('open');
+    filterBtn.classList.toggle('active', filterPanel.classList.contains('open') || [selSubject.value, selTopic.value, selDiff.value].some(Boolean));
+  });
+
+  // Close panel when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('bm-filter-wrap').contains(e.target)) {
+      filterPanel.classList.remove('open');
+      updateFilterBadge();
+    }
+  });
+
+  filterApply.addEventListener('click', () => {
+    filterPanel.classList.remove('open');
+    updateFilterBadge();
+    applyFilters();
+  });
+
+  filterClear.addEventListener('click', () => {
+    selSubject.value = ''; selTopic.value = ''; selDiff.value = '';
+    updateFilterBadge();
+    applyFilters();
+  });
+
+  /* ── Live search & filter listeners ── */
+  let searchTimer;
+  searchEl.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(applyFilters, 220);
+  });
+  // selects inside panel apply on Apply button click, not on change
+
+  /* ── Bootstrap ── */
+  load();
+</script>
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('dashboard', u);
+})();
+</script>
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>

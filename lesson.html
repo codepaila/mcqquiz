@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lesson · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Lesson reader — themed via CSS variables so dark mode works automatically.
+     The body, ink, paper, accent vars are redefined by [data-theme="dark"] in
+     styles.css so we just bind to them here. */
+  body { background:var(--paper-soft); color:var(--ink); }
+  .read-progress { position:fixed; top:0; left:0; right:0; height:3px; z-index:200; background:transparent; pointer-events:none; }
+  .read-progress-fill { height:100%; width:0%; background:linear-gradient(90deg, var(--accent), #d97d3f); transition:width 0.08s linear; }
+
+  /* ===== Top navigation bar — Contents (left) + Tools (right) =====
+     Mirrors quiz-attempt.html's .topbar: a real sticky bar rather than
+     floating pills, so the lesson reader matches the rest of the app. */
+  .lr-topbar {
+    position:sticky; top:0; left:0; right:0; z-index:95;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:10px 18px;
+    background:var(--surface, #ffffff);
+    border-bottom:1px solid var(--paper-edge);
+  }
+  [data-theme="dark"] .lr-topbar { background:var(--paper-soft); }
+
+  /* Center: current topic name, synced with scroll — plain bold text
+     (no pill/background), matching the reference design's section label.
+     Truncates on narrow screens but always stays visible. */
+  .lr-topic-track {
+    flex:1 1 auto; min-width:0; max-width:320px;
+    display:flex; justify-content:center;
+    padding:0 6px;
+  }
+  .lr-topic-track-name {
+    display:inline-block;
+    font-family:'Inter', sans-serif; font-size:0.88rem; font-weight:700;
+    color:var(--ink);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    max-width:100%;
+  }
+  [data-theme="dark"] .lr-topic-track-name { color:var(--ink); }
+  @media (max-width: 700px) {
+    .lr-topic-track-name { font-size:0.82rem; }
+  }
+  @media (max-width: 600px) {
+    .lr-topic-track { max-width:none; }
+  }
+  @media (max-width: 460px) {
+    /* Very tight — shrink font further but keep it on screen */
+    .lr-topic-track { padding:0 4px; }
+    .lr-topic-track-name { font-size:0.76rem; max-width:160px; }
+  }
+  @media (max-width: 360px) {
+    .lr-topic-track-name { max-width:120px; font-size:0.72rem; }
+  }
+
+  /* Top-right tool cluster — timer, theme, fullscreen (desktop, inline) */
+  .lr-tools {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px;
+    background:var(--paper-soft, #f5f3ee);
+    border:1px solid var(--paper-edge);
+    border-radius:100px;
+  }
+  [data-theme="dark"] .lr-tools { background:var(--paper); border-color:var(--paper-edge); }
+  .lr-tool {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:6px 10px; border-radius:100px;
+    font-family:'Inter', sans-serif; font-size:0.8rem; font-weight:500;
+    color:var(--ink); background:transparent; border:none;
+    user-select:none;
+  }
+  .lr-tool svg { width:14px; height:14px; flex-shrink:0; color:var(--ink-muted); }
+  .lr-timer {
+    color:var(--ink-soft);
+    font-family:'IBM Plex Mono', monospace; font-size:0.78rem;
+    cursor:pointer;
+    transition:background .12s;
+  }
+  .lr-timer:hover { background:var(--accent-soft); }
+  .lr-timer.is-paused svg { color:var(--ink-muted); opacity:0.5; }
+  .lr-timer.is-paused #lr-timer-text { color:var(--ink-muted); }
+  .lr-tool-btn {
+    width:30px; height:30px; padding:0; cursor:pointer;
+    justify-content:center;
+    transition:background .12s, color .12s;
+  }
+  .lr-tool-btn:hover { background:var(--accent-soft); }
+  .lr-tool-btn:hover svg { color:var(--accent); }
+  .lr-tool-btn:disabled { opacity:0.35; cursor:not-allowed; }
+  .lr-tool-btn:disabled:hover { background:transparent; color:var(--ink); }
+  .lr-tool-btn:disabled:hover svg { color:var(--ink-muted); }
+  #lr-theme-ico svg { width:15px; height:15px; }
+
+  /* A+ / A- font controls */
+  .lr-font-btn {
+    font-family:'Inter', sans-serif; font-weight:600; font-size:0.8rem;
+    color:var(--ink); gap:0;
+  }
+  .lr-font-btn .lr-font-sign { font-size:0.65rem; margin-left:1px; vertical-align:super; }
+  .lr-font-btn:hover { color:var(--accent); }
+  .lr-tool-divider {
+    width:1px; height:18px; background:var(--paper-edge); flex-shrink:0; margin:0 2px;
+  }
+  @media (max-width: 600px) {
+    /* On mobile the inline tools cluster is replaced by a single hamburger
+       button that opens a slide-in drawer (same pattern as quiz-attempt.html) */
+    .lr-tools { display:none; }
+    .lr-topbar-mobile-right { display:flex !important; }
+    .lr-topbar { padding:8px 12px; }
+    .lr-toc-show { padding:6px 11px; font-size:0.74rem; }
+  }
+  @media (max-width: 360px) {
+    .lr-toc-show { padding:6px 9px; font-size:0.7rem; }
+  }
+
+  .lr-wrap {
+    max-width:1100px; margin:0 auto;
+    padding:32px 32px 110px;
+  }
+  @media (max-width: 1000px) {
+    .lr-wrap { padding:18px 18px 110px; }
+  }
+
+  /* "Contents" / outline button — now sits inside the top bar (left side),
+     matching the "View Outline" link position from the reference design.
+     Compact size, outlined in the system accent color. */
+  .lr-toc-show {
+    display:inline-flex;
+    align-items:center; gap:6px;
+    padding:6px 12px;
+    background:transparent;
+    color:var(--accent); border:1.5px solid var(--accent);
+    border-radius:8px;
+    font-family:'Inter', sans-serif; font-size:0.78rem; font-weight:600;
+    cursor:pointer;
+    transition:background .12s, transform .12s, color .12s;
+    flex-shrink:0;
+  }
+  .lr-toc-show:hover { background:var(--accent); color:#fff; transform:translateY(-1px); }
+  [data-theme="dark"] .lr-toc-show { background:transparent; }
+
+  /* Mobile-only hamburger — opens the tools drawer (timer/font/theme/fullscreen) */
+  .lr-topbar-mobile-right { display:none; align-items:center; gap:8px; flex-shrink:0; }
+  .lr-menu-btn {
+    display:flex; align-items:center; justify-content:center;
+    width:36px; height:36px;
+    border-radius:8px; border:1px solid var(--paper-edge);
+    background:var(--paper-soft); color:var(--ink);
+    font-family:inherit; font-size:1.1rem; font-weight:600; cursor:pointer;
+  }
+  .lr-menu-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* Tools slide-in drawer (mobile) — mirrors quiz-attempt.html's exam-menu-drawer */
+  .lr-tools-overlay {
+    display:none; position:fixed; inset:0; z-index:299;
+    background:rgba(0,0,0,0.4); opacity:0; transition:opacity .25s;
+  }
+  .lr-tools-overlay.open { display:block; opacity:1; }
+  .lr-tools-drawer {
+    position:fixed; top:0; right:0; bottom:0; z-index:300;
+    width:min(280px, 85vw);
+    background:var(--surface, #ffffff); border-left:1px solid var(--paper-edge);
+    box-shadow:-8px 0 32px rgba(0,0,0,0.18);
+    transform:translateX(100%); transition:transform .28s cubic-bezier(0.32,0.72,0,1);
+    display:flex; flex-direction:column;
+  }
+  [data-theme="dark"] .lr-tools-drawer { background:var(--paper-soft); }
+  .lr-tools-drawer.open { transform:translateX(0); }
+  .lr-tools-drawer-head {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px; border-bottom:1px solid var(--paper-edge);
+  }
+  .lr-tools-drawer-title { font-weight:700; font-size:0.95rem; font-family:'Inter', sans-serif; color:var(--ink); }
+  .lr-tools-drawer-close {
+    width:32px; height:32px; border-radius:8px; border:1px solid var(--paper-edge);
+    background:var(--paper-soft); color:var(--ink); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:1rem;
+  }
+  .lr-tools-drawer-close:hover { border-color:var(--accent); color:var(--accent); }
+  .lr-tools-drawer-body { flex:1; overflow-y:auto; padding:10px 8px; }
+  .lr-tools-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:13px 14px; border-radius:10px; margin-bottom:4px;
+    font-size:0.9rem; font-weight:600; font-family:'Inter', sans-serif;
+    color:var(--ink);
+  }
+  .lr-tools-item.is-clickable { cursor:pointer; transition:background .13s; }
+  .lr-tools-item.is-clickable:hover { background:var(--accent-soft); color:var(--accent); }
+  .lr-tools-item-left { display:flex; align-items:center; gap:10px; }
+  .lr-tools-item svg { width:17px; height:17px; color:var(--ink-muted); flex-shrink:0; }
+  .lr-tools-item.is-clickable:hover svg { color:var(--accent); }
+  .lr-tools-item-ctrl { display:flex; align-items:center; gap:8px; }
+  .lr-tools-item-ctrl .qa-step {
+    width:30px; height:30px; border:1.5px solid var(--paper-edge); border-radius:7px;
+    background:var(--paper-soft); color:var(--ink); font-family:inherit; font-weight:700;
+    font-size:0.82rem; cursor:pointer;
+  }
+  .lr-tools-item-ctrl .qa-step:hover { border-color:var(--accent); color:var(--accent); }
+  .lr-tools-item-ctrl .qa-step:disabled { opacity:0.35; cursor:not-allowed; }
+  .lr-tools-item-val { font-family:'IBM Plex Mono', monospace; font-size:0.8rem; min-width:42px; text-align:center; }
+
+  /* Backdrop dim — clicking it closes the TOC overlay */
+  .lr-backdrop {
+    position:fixed; inset:0; z-index:100;
+    background:rgba(0,0,0,0.32);
+    opacity:0; pointer-events:none;
+    transition:opacity .22s ease;
+  }
+  body.lr-toc-open .lr-backdrop { opacity:1; pointer-events:auto; }
+  [data-theme="dark"] .lr-backdrop { background:rgba(0,0,0,0.55); }
+
+  /* TOC drawer — slides in from the left as an overlay */
+  .lr-side {
+    position:fixed; top:0; left:0; bottom:0; z-index:110;
+    width:320px; max-width:88vw;
+    background:var(--paper-soft);
+    border-right:1px solid var(--paper-edge);
+    box-shadow:6px 0 20px rgba(0,0,0,0.08);
+    padding:24px 18px 24px 20px;
+    overflow-y:auto; overflow-x:hidden;
+    font-family:'Inter', system-ui, sans-serif;
+    transform:translateX(-100%);
+    transition:transform .26s cubic-bezier(0.4, 0, 0.2, 1);
+    scrollbar-width:thin;
+    scrollbar-color:var(--paper-edge) transparent;
+  }
+  body.lr-toc-open .lr-side { transform:translateX(0); }
+  .lr-side::-webkit-scrollbar { width:5px; }
+  .lr-side::-webkit-scrollbar-track { background:transparent; }
+  .lr-side::-webkit-scrollbar-thumb { background:var(--paper-edge); border-radius:3px; }
+  .lr-side::-webkit-scrollbar-thumb:hover { background:var(--ink-muted); }
+  [data-theme="dark"] .lr-side { background:var(--paper); border-right-color:var(--paper-edge); box-shadow:6px 0 20px rgba(0,0,0,0.4); }
+
+  /* Header row at the top of the sidebar with Back + Hide buttons */
+  .lr-side-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px; gap:6px;
+  }
+  .lr-side-back {
+    display:inline-flex; align-items:center; gap:6px;
+    color:var(--ink-muted); font-size:0.78rem; text-decoration:none;
+    padding:6px 8px; border-radius:6px; flex:1; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    transition:background .12s, color .12s;
+  }
+  .lr-side-back:hover { background:var(--accent-soft); color:var(--accent); }
+  .lr-side-hide {
+    flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;
+    width:28px; height:28px; padding:0;
+    background:transparent; border:1px solid var(--paper-edge); border-radius:6px;
+    color:var(--ink-muted); cursor:pointer;
+    transition:background .12s, color .12s, border-color .12s;
+  }
+  .lr-side-hide:hover { background:var(--accent-soft); color:var(--accent); border-color:var(--accent); }
+  .lr-side-hide svg { width:13px; height:13px; }
+  .lr-side-title {
+    font-size:0.66rem; font-weight:700; letter-spacing:0.10em; text-transform:uppercase;
+    color:var(--ink-muted); margin-bottom:10px; padding:0 10px;
+  }
+
+  .lr-search { position:relative; margin-bottom:14px; }
+  .lr-search input {
+    width:100%; padding:8px 12px 8px 32px;
+    border:1px solid var(--paper-edge); border-radius:8px;
+    background:var(--paper-soft); font-family:inherit; font-size:0.85rem;
+    color:var(--ink); outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .lr-search input:focus {
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(184,83,28,0.10);
+  }
+  .lr-search-ico { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--ink-muted); width:16px; height:16px; }
+  .lr-search input::-webkit-search-cancel-button { -webkit-appearance:none; }
+
+  /* TOC — collapsed by default; only the active section expands.
+     Top-level (h2) items render as rounded-rectangle pills (same corner
+     radius as the bottom Back/Next toggle cards) in the system accent
+     color. Nested (h3) sub-topics are plain text links, no pill/border. */
+  .lr-toc { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+  .lr-toc li { margin:0; }
+  .lr-toc-item {
+    display:flex; align-items:center; gap:6px;
+    padding:9px 14px; border-radius:8px;
+    color:var(--ink); text-decoration:none;
+    font-size:0.86rem; line-height:1.3; cursor:pointer;
+    border:1.5px solid var(--paper-edge);
+    background:transparent;
+    transition:background .12s, color .12s, border-color .12s;
+  }
+  .lr-toc-item:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+  .lr-toc-item.active { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  .lr-toc-item.active .lr-toc-bullet { color:#fff; }
+  .lr-toc-item.hidden { display:none; }
+  /* h3 sub-topics: plain text, no pill — just an indented link like a
+     normal outline entry (matches the reference "Incubation period" style) */
+  .lr-toc .h3 {
+    margin-left:22px; padding:5px 6px; border:none; background:none !important;
+    font-size:0.82rem; color:var(--ink-soft); border-radius:4px;
+  }
+  .lr-toc .h3:hover { color:var(--accent); background:transparent !important; }
+  .lr-toc .h3.active { color:var(--accent); font-weight:600; background:transparent !important; }
+  .lr-toc-bullet { display:inline-block; width:14px; flex-shrink:0; text-align:center; color:var(--ink-muted); font-size:0.7rem; user-select:none; }
+  .lr-toc-bullet.expand { cursor:pointer; transition:transform .18s ease; }
+  .lr-toc-bullet.expand.open { transform:rotate(90deg); }
+  .lr-toc-children {
+    list-style:none; padding:0; margin:2px 0 0;
+    display:flex; flex-direction:column; gap:2px;
+    max-height:0; overflow:hidden; opacity:0;
+    transition:max-height .24s ease, opacity .2s ease;
+  }
+  .lr-toc-children.open { max-height:1400px; opacity:1; }
+  .lr-toc-empty { color:var(--ink-muted); font-size:0.82rem; padding:8px 10px; font-style:italic; }
+  .lr-toc-label { flex:1; min-width:0; }
+
+  .lr-main { min-width:0; }
+  .lr-eyebrow { font-family:'Inter', sans-serif; font-size:0.68rem; font-weight:700; letter-spacing:0.10em; text-transform:uppercase; color:var(--ink-muted); margin-bottom:8px; }
+  .lr-title { font-family:'Source Serif Pro', Georgia, serif; font-size:2.3rem; font-weight:700; line-height:1.18; letter-spacing:-0.01em; color:var(--ink); margin-bottom:14px; }
+  .lr-meta { font-family:'Inter', sans-serif; font-size:0.85rem; color:var(--ink-muted); padding-bottom:18px; border-bottom:1px solid var(--paper-edge); margin-bottom:28px; }
+
+  /* Reader content — uses CSS vars throughout for proper dark mode */
+  .lr-content {
+    font-family:'Source Serif Pro', Georgia, serif;
+    font-size:17px; line-height:1.78; color:var(--ink-soft);
+    max-width:none;
+    /* Content protection — block text selection + drag */
+    -webkit-user-select:none;
+    -moz-user-select:none;
+    -ms-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;     /* iOS long-press menu */
+    -webkit-tap-highlight-color:transparent;
+  }
+  .lr-content img {
+    -webkit-user-drag:none;
+    user-drag:none;
+    pointer-events:none;             /* blocks "Save image as" via drag */
+  }
+  /* Anti-screenshot overlay — blurs content when the window loses focus
+     so a quick Alt+Tab to a screenshot tool catches a blurred frame. */
+  body.lr-blurred .lr-content {
+    filter:blur(8px);
+    transition:filter .15s ease;
+  }
+  body.lr-blurred .lr-content::after {
+    content:"Content hidden while window is inactive";
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink); font-family:'Inter', sans-serif; font-size:0.95rem;
+    pointer-events:none;
+  }
+  /* Print protection — Ctrl+P / Print to PDF shows the warning, not the content */
+  @media print {
+    body * { visibility:hidden !important; }
+    body::before {
+      content:"This lesson content is protected and cannot be printed.";
+      visibility:visible !important;
+      display:block; padding:80px 40px;
+      font-family:Arial, sans-serif; font-size:18px;
+      text-align:center;
+    }
+  }
+  .lr-content > h1, .lr-content > h2 { font-family:'Inter', sans-serif; font-size:1.45rem; font-weight:700; color:var(--ink); margin:42px 0 16px; padding-bottom:9px; border-bottom:2px solid var(--accent); scroll-margin-top:32px; }
+  .lr-content > h2:first-child { margin-top:0; }
+  .lr-content > h3 { font-family:'Inter', sans-serif; font-size:1.15rem; font-weight:700; color:var(--ink); margin:28px 0 12px; scroll-margin-top:32px; }
+  .lr-content > h4 { font-family:'Inter', sans-serif; font-size:1rem; font-weight:700; color:var(--ink-soft); margin:22px 0 10px; text-transform:uppercase; letter-spacing:0.04em; }
+  .lr-content p { margin:0 0 16px; }
+  .lr-content ul, .lr-content ol { margin:10px 0 18px 28px; padding:0; }
+  .lr-content li { margin:6px 0; }
+  .lr-content li > p { margin:4px 0; }
+  .lr-content a { color:var(--accent); text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; }
+  .lr-content a:hover { color:var(--accent-hover); }
+  .lr-content strong { color:var(--ink); font-weight:600; }
+  .lr-content em { font-style:italic; color:var(--ink-soft); }
+  .lr-content blockquote { margin:20px 0; padding:14px 20px; background:var(--accent-soft); border-left:3px solid var(--accent); color:var(--ink-soft); font-style:italic; border-radius:0 6px 6px 0; }
+  .lr-content code { background:var(--paper); padding:2px 6px; border-radius:3px; font-family:'JetBrains Mono', monospace; font-size:0.86em; color:var(--ink); border:1px solid var(--paper-edge); }
+  .lr-content pre { background:#1a1814; color:#f7f3ec; padding:16px 18px; border-radius:8px; overflow-x:auto; font-family:'JetBrains Mono', monospace; font-size:0.86em; line-height:1.5; margin:18px 0; }
+  [data-theme="dark"] .lr-content pre { background:#000814; }
+  .lr-content pre code { background:transparent; color:inherit; padding:0; border:none; }
+  .lr-content table { width:100%; border-collapse:collapse; margin:20px 0; font-family:'Inter', sans-serif; font-size:0.92rem; }
+  .lr-content th { background:var(--paper); text-align:left; padding:11px 15px; border-bottom:2px solid var(--accent); font-weight:600; color:var(--ink); }
+  .lr-content td { padding:10px 15px; border-bottom:1px solid var(--paper-edge); color:var(--ink-soft); }
+  .lr-content img { max-width:100%; height:auto; border-radius:6px; margin:20px 0; border:1px solid var(--paper-edge); }
+  .lr-content hr { border:none; border-top:1px solid var(--paper-edge); margin:36px 0; }
+  .lr-content mark { background:#fff39a; color:#1a1814; padding:0 2px; border-radius:2px; }
+  [data-theme="dark"] .lr-content mark { background:#7a6210; color:#fffbe8; }
+
+  /* Pinned prev/next pager — sticks to the bottom of the viewport */
+  .lr-pager {
+    position:fixed; left:0; right:0; bottom:0; z-index:80;
+    padding:12px 24px;
+    background:var(--paper-soft);
+    border-top:1px solid var(--paper-edge);
+    backdrop-filter:saturate(180%) blur(6px);
+    -webkit-backdrop-filter:saturate(180%) blur(6px);
+  }
+  [data-theme="dark"] .lr-pager { background:rgba(14,22,38,0.92); }
+  .lr-pager-inner {
+    max-width:1280px; margin:0 auto;
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+  }
+  .lr-pager-inner.has-middle { grid-template-columns:1fr 1.2fr 1fr; }
+  /* "Back to Note/Course" middle slot — solid accent button, matches the
+     reference design (filled orange, white text, rounded corners, chevron). */
+  .lr-pager-card.is-middle {
+    text-align:center; align-items:center; justify-content:center;
+    background:var(--accent); border-color:var(--accent);
+    box-shadow:0 2px 8px rgba(184,83,28,0.25);
+  }
+  .lr-pager-card.is-middle .lr-pager-label { justify-content:center; color:#fff; }
+  .lr-pager-card.is-middle .lr-pager-title { color:#fff; }
+  .lr-pager-card.is-middle .lr-pager-arrow { color:#fff; }
+  .lr-pager-card.is-middle:hover {
+    background:var(--accent-hover, var(--accent)); border-color:var(--accent-hover, var(--accent));
+    box-shadow:0 4px 14px rgba(184,83,28,0.35);
+  }
+  .lr-pager-card {
+    display:flex; flex-direction:column; gap:2px;
+    padding:8px 14px;
+    border:1px solid var(--paper-edge); border-radius:8px;
+    background:var(--surface, #ffffff);
+    text-decoration:none;
+    transition:border-color .15s, transform .15s, box-shadow .15s, background .15s;
+    font-family:'Inter', sans-serif;
+    min-height:50px; max-height:60px;
+    overflow:hidden;
+  }
+  [data-theme="dark"] .lr-pager-card { background:var(--paper); }
+  .lr-pager-card:hover {
+    border-color:var(--accent); transform:translateY(-1px);
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  }
+  .lr-pager-card.is-next { text-align:right; }
+  .lr-pager-label { font-size:0.66rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-muted); display:flex; align-items:center; gap:4px; }
+  .lr-pager-card.is-next .lr-pager-label { justify-content:flex-end; }
+  .lr-pager-title {
+    font-size:0.88rem; color:var(--ink); font-weight:600; line-height:1.3;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .lr-pager-disabled { opacity:0.45; pointer-events:none; }
+  .lr-pager-arrow { width:12px; height:12px; }
+  @media (max-width: 700px) {
+    .lr-pager { padding:8px 10px; }
+    .lr-pager-card {
+      padding:6px 8px; min-height:38px; max-height:46px;
+      gap:0; justify-content:center;
+    }
+    /* On narrow screens we drop the bottom title row and keep only the
+       arrow+word label, so all 3 cards sit on one line. */
+    .lr-pager-title { display:none; }
+    .lr-pager-label { font-size:0.7rem; letter-spacing:0.04em; }
+    .lr-pager-inner.has-middle { grid-template-columns:1fr 1.2fr 1fr; gap:6px; }
+  }
+  @media (max-width: 400px) {
+    .lr-pager-label span { display:none; }   /* arrows only on the tightest screens */
+    .lr-pager-card.is-middle .lr-pager-label::before { content:"\2630"; font-size:0.9rem; }
+  }
+
+  .lr-state { text-align:center; padding:60px 20px; color:var(--ink-muted); }
+  .lr-state h3 { font-size:1.2rem; color:var(--ink); margin-bottom:8px; }
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
+</head>
+<body>
+
+<div class="read-progress"><div class="read-progress-fill" id="read-progress-fill"></div></div>
+
+<!-- Top navigation bar: Contents/Outline (left) + current topic (center) + Tools (right) -->
+<div class="lr-topbar">
+  <button class="lr-toc-show" id="lr-show" type="button" aria-label="Show table of contents">
+    <span>Contents</span>
+  </button>
+
+  <!-- Center: current topic name, synced with scroll position + reading progress -->
+  <div class="lr-topic-track" id="lr-topic-track">
+    <span class="lr-topic-track-name" id="lr-topic-track-name">&nbsp;</span>
+  </div>
+
+  <!-- Desktop: inline tools cluster (time, font size, theme, fullscreen) -->
+  <div class="lr-tools" id="lr-tools">
+    <div class="lr-tool lr-timer" id="lr-timer" title="Time spent on this lesson">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+      <span id="lr-timer-text">0:00</span>
+    </div>
+    <div class="lr-tool-divider"></div>
+    <button class="lr-tool lr-tool-btn lr-font-btn" id="lr-font-dec" type="button" title="Decrease text size" aria-label="Decrease text size">A<span class="lr-font-sign">-</span></button>
+    <button class="lr-tool lr-tool-btn lr-font-btn" id="lr-font-inc" type="button" title="Increase text size" aria-label="Increase text size">A<span class="lr-font-sign">+</span></button>
+    <div class="lr-tool-divider"></div>
+    <button class="lr-tool lr-tool-btn" id="lr-theme" type="button" title="Toggle dark / light mode" aria-label="Toggle theme">
+      <span id="lr-theme-ico"></span>
+    </button>
+    <button class="lr-tool lr-tool-btn" id="lr-fs" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen">
+      <svg id="lr-fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+    </button>
+  </div>
+
+  <!-- Mobile: single hamburger button opens the tools drawer -->
+  <div class="lr-topbar-mobile-right">
+    <button class="lr-menu-btn" id="lr-tools-open-btn" title="Lesson Tools" aria-label="Lesson Tools">&#9776;</button>
+  </div>
+</div>
+
+<!-- Tools drawer (mobile) — slides in from the right, same pattern as the exam menu -->
+<div class="lr-tools-overlay" id="lr-tools-overlay"></div>
+<div class="lr-tools-drawer" id="lr-tools-drawer">
+  <div class="lr-tools-drawer-head">
+    <span class="lr-tools-drawer-title">Lesson Tools</span>
+    <button class="lr-tools-drawer-close" id="lr-tools-close">&#10005;</button>
+  </div>
+  <div class="lr-tools-drawer-body">
+    <div class="lr-tools-item is-clickable" id="lr-timer-mob">
+      <div class="lr-tools-item-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+        <span>Time on lesson</span>
+      </div>
+      <span class="lr-tools-item-val" id="lr-timer-text-mob">0:00</span>
+    </div>
+    <div class="lr-tools-item">
+      <span>Text Size</span>
+      <div class="lr-tools-item-ctrl">
+        <button class="qa-step" id="lr-font-dec-mob">A&minus;</button>
+        <span class="lr-tools-item-val" id="lr-font-val-mob"></span>
+        <button class="qa-step" id="lr-font-inc-mob">A+</button>
+      </div>
+    </div>
+    <div class="lr-tools-item is-clickable" id="lr-theme-mob">
+      <div class="lr-tools-item-left">
+        <span id="lr-theme-ico-mob"></span>
+        <span>Toggle Theme</span>
+      </div>
+    </div>
+    <div class="lr-tools-item is-clickable" id="lr-fs-mob">
+      <div class="lr-tools-item-left">
+        <svg id="lr-fs-ico-mob" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+        <span>Fullscreen</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOC drawer (overlay) — slides in from the left -->
+<div class="lr-backdrop" id="lr-backdrop"></div>
+<aside class="lr-side" id="lr-side">
+  <div class="lr-side-head">
+    <a href="javascript:history.back()" class="lr-side-back" id="lr-back">\u2190 Back</a>
+    <button class="lr-side-hide" id="lr-hide" title="Close" aria-label="Close table of contents">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="lr-side-title">View Content</div>
+  <div class="lr-search">
+    <svg class="lr-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/>
+    </svg>
+    <input type="search" id="lr-search-input" placeholder="Search within note..." autocomplete="off">
+  </div>
+  <ul class="lr-toc" id="lr-toc"><li class="lr-toc-empty">Loading\u2026</li></ul>
+</aside>
+
+<main>
+  <div class="lr-wrap" id="lr-wrap">
+    <article class="lr-main" id="lr-main">
+      <div class="lr-state"><div class="spinner"></div><p>Loading\u2026</p></div>
+    </article>
+  </div>
+</main>
+
+<script type="module">
+  import { mountFooter, escapeHtml, queryParam, requireAuth, getTheme, applyTheme, renderRichText } from './assets/components.js';
+  import { courses } from './assets/api.js';
+
+  await requireAuth('login.html');
+  // No mountHeader on this page — full-bleed reading view per design spec.
+  // No mountFooter either; the bottom prev/next nav serves that role.
+
+  const id   = queryParam('id');
+  const main = document.getElementById('lr-main');
+  const toc  = document.getElementById('lr-toc');
+
+  if (!id) {
+    main.innerHTML = `<div class="lr-state"><h3>No lesson specified.</h3></div>`;
+    toc.innerHTML = '';
+    throw new Error('no id');
+  }
+
+  let lesson;
+  try {
+    lesson = (await courses.lesson(id)).data;
+  } catch (err) {
+    if (err.data?.code === 'ENROLLMENT_REQUIRED') {
+      main.innerHTML = `
+        <div class="lr-state">
+          <h3>Enrollment required</h3>
+          <p>You need an active course enrollment to read this lesson.</p>
+          <a href="courses.html" class="btn btn-primary" style="margin-top:14px; display:inline-block;">Browse courses</a>
+        </div>`;
+    } else {
+      main.innerHTML = `<div class="lr-state"><h3>Could not load this lesson</h3><p>${escapeHtml(err.message)}</p></div>`;
+    }
+    toc.innerHTML = '';
+    throw err;
+  }
+
+  function formatDate(s) {
+    if (!s) return '';
+    const d = new Date(String(s).replace(' ', 'T'));
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+  }
+
+  const noteTitle = lesson.note?.title || lesson.note_title || lesson.parent_title || '';
+  const meta = [
+    noteTitle ? `From <strong>${escapeHtml(noteTitle)}</strong>` : null,
+    lesson.updated_at ? `Updated ${formatDate(lesson.updated_at)}` : null,
+  ].filter(Boolean).join(' \u00b7 ');
+
+  // Wire the Back link to the parent note when we know it
+  if (lesson.note?.id) {
+    const back = document.getElementById('lr-back');
+    if (back) {
+      back.setAttribute('href', 'note.html?id=' + encodeURIComponent(lesson.note.id));
+      back.innerHTML = '\u2190 Back to ' + escapeHtml(lesson.note.title || 'note');
+    }
+  }
+
+  // Build prev/next nav from the siblings list (lessons in the same note, ordered)
+  const sibs = Array.isArray(lesson.siblings) ? lesson.siblings : [];
+  const myIdx = sibs.findIndex(l => l.id === lesson.id);
+  const prev = (myIdx > 0) ? sibs[myIdx - 1] : null;
+  const next = (myIdx >= 0 && myIdx < sibs.length - 1) ? sibs[myIdx + 1] : null;
+
+  function pagerCard(item, dir) {
+    if (!item) {
+      return `<div class="lr-pager-card lr-pager-disabled is-${dir}">
+        <span class="lr-pager-label">${dir === 'prev' ? '\u2190 Previous' : 'Next \u2192'}</span>
+        <span class="lr-pager-title">\u2014</span>
+      </div>`;
+    }
+    const arrow = dir === 'prev'
+      ? '<svg class="lr-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>'
+      : '<svg class="lr-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+    const label = dir === 'prev'
+      ? `${arrow}<span>Previous</span>`
+      : `<span>Next</span>${arrow}`;
+    return `<a href="lesson.html?id=${encodeURIComponent(item.id)}" class="lr-pager-card is-${dir}">
+      <span class="lr-pager-label">${label}</span>
+      <span class="lr-pager-title">${escapeHtml(item.title || '(untitled)')}</span>
+    </a>`;
+  }
+  function backToNoteCard() {
+    if (!lesson.note?.id) return '';
+    return `<a href="note.html?id=${encodeURIComponent(lesson.note.id)}" class="lr-pager-card is-prev">
+      <span class="lr-pager-label"><svg class="lr-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg><span>Back to note</span></span>
+      <span class="lr-pager-title">${escapeHtml(lesson.note.title || 'Note')}</span>
+    </a>`;
+  }
+
+  // When there's no previous lesson but we know the parent note, show a
+  // "Back to note" card in the prev slot instead of a disabled card.
+  // When the backend hasn't been updated and siblings/note are missing, fall
+  // back to a "Browse courses" card so the pager still appears.
+  let prevHtml;
+  if (prev) {
+    prevHtml = pagerCard(prev, 'prev');
+  } else if (lesson.note?.id) {
+    prevHtml = backToNoteCard();
+  } else {
+    prevHtml = `<a href="courses.html" class="lr-pager-card is-prev">
+      <span class="lr-pager-label"><svg class="lr-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg><span>Back</span></span>
+      <span class="lr-pager-title">Browse courses</span>
+    </a>`;
+  }
+
+  // Middle slot: "Back to Note" — the note this lesson belongs to.
+  // If we somehow don't have the note (orphaned lesson), fall back to the
+  // course detail page so the slot still does something useful.
+  // Styled as a solid accent button (chevron + label), matching the
+  // reference "Back to Course" pill design.
+  let middleHtml = '';
+  if (lesson.note?.id) {
+    middleHtml = `<a href="note.html?id=${encodeURIComponent(lesson.note.id)}" class="lr-pager-card is-middle">
+      <span class="lr-pager-label">
+        <svg class="lr-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        <span>Back to Note</span>
+      </span>
+      <span class="lr-pager-title">${escapeHtml(lesson.note.title || 'Note')}</span>
+    </a>`;
+  } else if (lesson.course?.id) {
+    middleHtml = `<a href="course-detail.html?id=${encodeURIComponent(lesson.course.id)}#notes" class="lr-pager-card is-middle">
+      <span class="lr-pager-label">
+        <svg class="lr-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        <span>Back to Course</span>
+      </span>
+      <span class="lr-pager-title">${escapeHtml(lesson.course.title || 'Course')}</span>
+    </a>`;
+  }
+
+  // Next slot: last lesson falls back to "Back to note" so the slot is never empty
+  let nextHtml;
+  if (next) {
+    nextHtml = pagerCard(next, 'next');
+  } else if (lesson.note?.id) {
+    nextHtml = `<a href="note.html?id=${encodeURIComponent(lesson.note.id)}" class="lr-pager-card is-next">
+      <span class="lr-pager-label">
+        <span>Back to note</span>
+        <svg class="lr-pager-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </span>
+      <span class="lr-pager-title">${escapeHtml(lesson.note.title || 'Note')}</span>
+    </a>`;
+  } else {
+    nextHtml = pagerCard(null, 'next');  // disabled placeholder
+  }
+
+  // Three-slot pager. If middle is empty, the row falls back to a 2-column layout.
+  const pagerHtml = `<nav class="lr-pager" aria-label="Lesson navigation">
+    <div class="lr-pager-inner ${middleHtml ? 'has-middle' : ''}">
+      ${prevHtml}${middleHtml}${nextHtml}
+    </div>
+  </nav>`;
+
+  main.innerHTML = `
+    <div class="lr-eyebrow">Lesson${(myIdx >= 0 && sibs.length > 1) ? ` ${myIdx + 1} of ${sibs.length}` : ''}</div>
+    <h1 class="lr-title">${escapeHtml(lesson.title || '')}</h1>
+    ${meta ? `<div class="lr-meta">${meta}</div>` : ''}
+    <div class="lr-content" id="lr-content">${lesson.content ? renderRichText(lesson.content) : '<p class="text-muted">This lesson has no content.</p>'}</div>
+  `;
+  // Mount the pager as a body-level element so it's never affected by parent
+  // layouts (transforms, contains, etc.) and position:fixed always anchors
+  // to the viewport.
+  const existingPager = document.getElementById('lr-pager-mount');
+  if (existingPager) existingPager.remove();
+  const pagerWrap = document.createElement('div');
+  pagerWrap.id = 'lr-pager-mount';
+  pagerWrap.innerHTML = pagerHtml;
+  document.body.appendChild(pagerWrap);
+
+  /* Build TOC from rendered headings */
+  const content  = document.getElementById('lr-content');
+  const headings = Array.from(content.querySelectorAll('h1, h2, h3'));
+  const tocTree  = [];
+  let currentH2 = null;
+
+  headings.forEach((el, idx) => {
+    const level = (el.tagName === 'H3') ? 3 : 2;
+    if (!el.id) {
+      const slug = (el.textContent || ('section-' + idx))
+        .toLowerCase().trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .slice(0, 60) || ('section-' + idx);
+      el.id = 'sec-' + slug + '-' + idx;
+    }
+    const node = { id: el.id, text: el.textContent.trim(), level, children: [] };
+    if (level === 2) { currentH2 = node; tocTree.push(node); }
+    else if (currentH2) currentH2.children.push(node);
+    else tocTree.push(node);
+  });
+
+  function renderToc() {
+    if (!tocTree.length) {
+      toc.innerHTML = `<li class="lr-toc-empty">No sections in this lesson.</li>`;
+      return;
+    }
+    toc.innerHTML = tocTree.map((n, i) => {
+      const hasKids = n.children.length > 0;
+      const childList = hasKids
+        ? `<ul class="lr-toc-children" id="tc-kids-${i}">${
+            n.children.map(c => `
+              <li>
+                <a class="lr-toc-item h3" data-sec="${escapeHtml(c.id)}" href="#${escapeHtml(c.id)}">
+                  <span class="lr-toc-bullet"></span>
+                  <span class="lr-toc-label">${escapeHtml(c.text)}</span>
+                </a>
+              </li>`).join('')
+          }</ul>`
+        : '';
+      return `
+        <li>
+          <a class="lr-toc-item h2" data-sec="${escapeHtml(n.id)}" href="#${escapeHtml(n.id)}">
+            <span class="lr-toc-bullet ${hasKids ? 'expand' : ''}" ${hasKids ? `data-toggle="${i}"` : ''}>${hasKids ? '\u203a' : '\u00b7'}</span>
+            <span class="lr-toc-label">${escapeHtml(n.text)}</span>
+          </a>
+          ${childList}
+        </li>`;
+    }).join('');
+
+    toc.querySelectorAll('[data-toggle]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const kids = document.getElementById('tc-kids-' + btn.dataset.toggle);
+        if (!kids) return;
+        kids.classList.toggle('open');
+        btn.classList.toggle('open');
+      });
+    });
+    toc.querySelectorAll('.lr-toc-item').forEach(a => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.getElementById(a.dataset.sec);
+        if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+        history.replaceState(null, '', '#' + a.dataset.sec);
+        // Auto-close the TOC drawer once a section is picked
+        closeToc();
+      });
+    });
+  }
+  renderToc();
+
+  const topicTrackName = document.getElementById('lr-topic-track-name');
+  // Prime the top-bar topic label before the first scroll/spy tick fires.
+  if (topicTrackName) {
+    topicTrackName.textContent = tocTree[0]?.text || lesson.title || '';
+  }
+
+  /* Scroll spy + reading progress */
+  const tocLinks = Array.from(toc.querySelectorAll('.lr-toc-item'));
+  function setActive(id) {
+    tocLinks.forEach(a => a.classList.toggle('active', a.dataset.sec === id));
+    // Auto-expand the H2 group that contains the active heading; collapse the rest.
+    // Find which top-level tocTree node owns this id, then sync .open on its children.
+    let activeGroupIdx = -1;
+    tocTree.forEach((n, i) => {
+      if (n.id === id) activeGroupIdx = i;
+      if (n.children.some(c => c.id === id)) activeGroupIdx = i;
+    });
+    // Top bar label always shows the *topic* (h2) name, never a subtopic —
+    // even when the active heading is a nested h3.
+    if (topicTrackName && activeGroupIdx > -1) {
+      topicTrackName.textContent = tocTree[activeGroupIdx].text;
+    }
+    tocTree.forEach((n, i) => {
+      if (!n.children.length) return;
+      const kids = document.getElementById('tc-kids-' + i);
+      const bullet = toc.querySelector(`[data-toggle="${i}"]`);
+      const open = (i === activeGroupIdx);
+      if (kids)   kids.classList.toggle('open', open);
+      if (bullet) bullet.classList.toggle('open', open);
+    });
+    const active = tocLinks.find(a => a.dataset.sec === id);
+    if (active) {
+      const sideEl = document.getElementById('lr-side');
+      if (sideEl) {
+        const sideRect = sideEl.getBoundingClientRect();
+        const linkRect = active.getBoundingClientRect();
+        if (linkRect.bottom > sideRect.bottom - 8 || linkRect.top < sideRect.top + 8) {
+          active.scrollIntoView({ block:'nearest', behavior:'smooth' });
+        }
+      }
+    }
+  }
+  let spyTimer = null;
+  function updateSpy() {
+    if (spyTimer) return;
+    spyTimer = requestAnimationFrame(() => {
+      spyTimer = null;
+      const offset = 90;
+      let activeId = headings[0]?.id || '';
+      for (const h of headings) {
+        const top = h.getBoundingClientRect().top;
+        if (top <= offset) activeId = h.id;
+        else break;
+      }
+      if (activeId) setActive(activeId);
+      const docH = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = docH > 0 ? Math.min(100, Math.max(0, (window.scrollY / docH) * 100)) : 0;
+      document.getElementById('read-progress-fill').style.width = pct + '%';
+    });
+  }
+  window.addEventListener('scroll', updateSpy, { passive:true });
+  window.addEventListener('resize', updateSpy);
+  updateSpy();
+
+  /* Search-within-note */
+  const searchInput = document.getElementById('lr-search-input');
+  let searchTimer = null;
+  function clearHighlights() {
+    content.querySelectorAll('mark[data-lrh]').forEach(m => {
+      const parent = m.parentNode;
+      while (m.firstChild) parent.insertBefore(m.firstChild, m);
+      parent.removeChild(m);
+      parent.normalize();
+    });
+  }
+  function highlightInNode(node, regex) {
+    if (node.nodeType === 3) {
+      const text = node.nodeValue;
+      const matches = [...text.matchAll(regex)];
+      if (!matches.length) return;
+      const frag = document.createDocumentFragment();
+      let cursor = 0;
+      matches.forEach(m => {
+        if (m.index > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, m.index)));
+        const mark = document.createElement('mark');
+        mark.setAttribute('data-lrh', '1');
+        mark.textContent = m[0];
+        frag.appendChild(mark);
+        cursor = m.index + m[0].length;
+      });
+      if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
+      node.parentNode.replaceChild(frag, node);
+    } else if (node.nodeType === 1 && !['SCRIPT','STYLE','MARK'].includes(node.tagName)) {
+      Array.from(node.childNodes).forEach(c => highlightInNode(c, regex));
+    }
+  }
+  function runSearch() {
+    const q = searchInput.value.trim();
+    clearHighlights();
+    if (!q) {
+      tocLinks.forEach(a => a.classList.remove('hidden'));
+      return;
+    }
+    const qLower = q.toLowerCase();
+    tocTree.forEach((n) => {
+      const parentLink = toc.querySelector(`.lr-toc-item[data-sec="${CSS.escape(n.id)}"]`);
+      let anyMatch = n.text.toLowerCase().includes(qLower);
+      n.children.forEach(c => {
+        const childLink = toc.querySelector(`.lr-toc-item[data-sec="${CSS.escape(c.id)}"]`);
+        const match = c.text.toLowerCase().includes(qLower);
+        if (childLink) childLink.classList.toggle('hidden', !match);
+        if (match) anyMatch = true;
+      });
+      if (parentLink) parentLink.classList.toggle('hidden', !anyMatch);
+    });
+    const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    highlightInNode(content, new RegExp(safe, 'gi'));
+  }
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 140);
+  });
+
+  // TOC drawer — slides in from the left as an overlay.
+  // Closed by default. Opens via the floating "Contents" pill, and auto-closes
+  // when the user picks a section, clicks the backdrop, or hits Escape.
+  const hideBtn = document.getElementById('lr-hide');
+  const showBtn = document.getElementById('lr-show');
+  const backdrop = document.getElementById('lr-backdrop');
+  function openToc()  { document.body.classList.add('lr-toc-open'); }
+  function closeToc() { document.body.classList.remove('lr-toc-open'); }
+  hideBtn?.addEventListener('click', closeToc);
+  showBtn?.addEventListener('click', openToc);
+  backdrop?.addEventListener('click', closeToc);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('lr-toc-open')) closeToc();
+  });
+
+  // Font size controls — step .lr-content base font size between 14 and 22 px.
+  // Persisted across reloads in localStorage so the user's preference sticks.
+  const FONT_KEY = 'lr-font-size';
+  const FONT_MIN = 14, FONT_MAX = 22, FONT_DEFAULT = 17, FONT_STEP = 1;
+  let fontPx = FONT_DEFAULT;
+  try {
+    const stored = parseInt(localStorage.getItem(FONT_KEY) || '', 10);
+    if (stored >= FONT_MIN && stored <= FONT_MAX) fontPx = stored;
+  } catch {}
+  function applyFontSize() {
+    const c = document.getElementById('lr-content');
+    if (c) c.style.fontSize = fontPx + 'px';
+    try { localStorage.setItem(FONT_KEY, String(fontPx)); } catch {}
+    // Disable buttons at extremes (desktop + mobile drawer)
+    const dec = document.getElementById('lr-font-dec');
+    const inc = document.getElementById('lr-font-inc');
+    const decMob = document.getElementById('lr-font-dec-mob');
+    const incMob = document.getElementById('lr-font-inc-mob');
+    const valMob = document.getElementById('lr-font-val-mob');
+    if (dec) dec.disabled = fontPx <= FONT_MIN;
+    if (inc) inc.disabled = fontPx >= FONT_MAX;
+    if (decMob) decMob.disabled = fontPx <= FONT_MIN;
+    if (incMob) incMob.disabled = fontPx >= FONT_MAX;
+    if (valMob) valMob.textContent = fontPx + 'px';
+  }
+  applyFontSize();
+  document.getElementById('lr-font-dec')?.addEventListener('click', () => {
+    fontPx = Math.max(FONT_MIN, fontPx - FONT_STEP); applyFontSize();
+  });
+  document.getElementById('lr-font-inc')?.addEventListener('click', () => {
+    fontPx = Math.min(FONT_MAX, fontPx + FONT_STEP); applyFontSize();
+  });
+  document.getElementById('lr-font-dec-mob')?.addEventListener('click', () => {
+    fontPx = Math.max(FONT_MIN, fontPx - FONT_STEP); applyFontSize();
+  });
+  document.getElementById('lr-font-inc-mob')?.addEventListener('click', () => {
+    fontPx = Math.min(FONT_MAX, fontPx + FONT_STEP); applyFontSize();
+  });
+
+  // ====== Content protection ======
+  // NOTE: browser-level protection is inherently weak. These measures stop
+  // casual copying / saving / printing but cannot stop a determined user
+  // (DevTools, view-source, OS screenshots, screen recording).
+
+  // Block right-click on the lesson body
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.closest && e.target.closest('.lr-content')) {
+      e.preventDefault();
+    }
+  });
+
+  // Block copy / cut / select-all / save / print / view-source hotkeys.
+  // Allow normal typing in the TOC search input.
+  document.addEventListener('keydown', (e) => {
+    const inSearch = e.target?.id === 'lr-search-input';
+    if (inSearch) return;
+
+    const key = (e.key || '').toLowerCase();
+    const ctrl = e.ctrlKey || e.metaKey;
+
+    // Ctrl+C / Ctrl+X / Ctrl+A / Ctrl+S / Ctrl+P / Ctrl+U
+    if (ctrl && ['c','x','a','s','p','u'].includes(key)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+    // F12 / Ctrl+Shift+I / Ctrl+Shift+J / Ctrl+Shift+C — open DevTools
+    if (key === 'f12' ||
+        (ctrl && e.shiftKey && ['i','j','c'].includes(key))) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }, true);
+
+  // Block the copy + cut events themselves (catches edge cases like
+  // selection via DevTools that bypassed the keydown handler).
+  ['copy','cut'].forEach(ev => {
+    document.addEventListener(ev, (e) => {
+      if (e.target?.closest && e.target.closest('.lr-content')) {
+        e.preventDefault();
+      }
+    });
+  });
+
+  // Block image dragging on lesson images (already pointer-events:none in
+  // CSS, but this guards if the CSS gets overridden).
+  document.addEventListener('dragstart', (e) => {
+    if (e.target?.closest && e.target.closest('.lr-content')) {
+      e.preventDefault();
+    }
+  });
+
+  // Blur content when window loses focus — catches Alt+Tab to a screenshot
+  // tool. The user sees a blurred frame instead of the article. Not foolproof
+  // (any OS screenshot taken before the blur applies still captures content)
+  // but raises the bar a notch.
+  function onBlur()  { document.body.classList.add('lr-blurred'); }
+  function onFocus() { document.body.classList.remove('lr-blurred'); }
+  window.addEventListener('blur', onBlur);
+  window.addEventListener('focus', onFocus);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) onBlur(); else onFocus();
+  });
+
+  // ====== Top-right toolbar wiring ======
+
+  // Theme toggle — sun icon when dark, moon icon when light (clicking switches)
+  const themeIcoEl    = document.getElementById('lr-theme-ico');
+  const themeIcoElMob = document.getElementById('lr-theme-ico-mob');
+  function paintThemeIcon() {
+    const svg = getTheme() === 'dark'
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    themeIcoEl.innerHTML = svg;
+    if (themeIcoElMob) themeIcoElMob.innerHTML = svg;
+  }
+  paintThemeIcon();
+  function toggleTheme() {
+    applyTheme(getTheme() === 'dark' ? 'light' : 'dark');
+    paintThemeIcon();
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: getTheme() } }));
+  }
+  document.getElementById('lr-theme')?.addEventListener('click', toggleTheme);
+  document.getElementById('lr-theme-mob')?.addEventListener('click', toggleTheme);
+
+  // Fullscreen toggle — uses the Fullscreen API; falls back gracefully
+  const fsBtn = document.getElementById('lr-fs');
+  function paintFsIcon(isFs) {
+    const inner = isFs
+      // exit-fullscreen icon (inward arrows)
+      ? '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>'
+      // enter-fullscreen icon (outward arrows)
+      : '<path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/>';
+    const ico = document.getElementById('lr-fs-ico');
+    const icoMob = document.getElementById('lr-fs-ico-mob');
+    if (ico) ico.innerHTML = inner;
+    if (icoMob) icoMob.innerHTML = inner;
+  }
+  async function toggleFullscreen() {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch (e) { /* user denied or unsupported */ }
+  }
+  fsBtn?.addEventListener('click', toggleFullscreen);
+  document.getElementById('lr-fs-mob')?.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', () => paintFsIcon(!!document.fullscreenElement));
+
+  // Time spent — counts seconds while the tab is visible. Click to pause/resume.
+  // Tracked per-lesson in sessionStorage so a reload keeps the count.
+  const timerEl       = document.getElementById('lr-timer');
+  const timerTextEl   = document.getElementById('lr-timer-text');
+  const timerTextElMob = document.getElementById('lr-timer-text-mob');
+  const timerElMob    = document.getElementById('lr-timer-mob');
+  const TIMER_KEY = 'lr-timer:' + id;
+  let elapsed = (() => {
+    try { return parseInt(sessionStorage.getItem(TIMER_KEY) || '0', 10) || 0; } catch { return 0; }
+  })();
+  let paused = false;
+  let lastTick = Date.now();
+  function fmtSec(s) {
+    const m = Math.floor(s / 60), r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+  function paintTimer() {
+    timerTextEl.textContent = fmtSec(elapsed);
+    timerEl.classList.toggle('is-paused', paused);
+    if (timerTextElMob) timerTextElMob.textContent = fmtSec(elapsed);
+    if (timerElMob) timerElMob.classList.toggle('is-paused', paused);
+  }
+  paintTimer();
+  function tick() {
+    const now = Date.now();
+    if (!paused && document.visibilityState === 'visible') {
+      const dt = Math.floor((now - lastTick) / 1000);
+      if (dt > 0) {
+        elapsed += dt;
+        try { sessionStorage.setItem(TIMER_KEY, String(elapsed)); } catch {}
+        paintTimer();
+      }
+    }
+    lastTick = now;
+  }
+  setInterval(tick, 1000);
+  document.addEventListener('visibilitychange', () => { lastTick = Date.now(); });
+  function togglePause() { paused = !paused; lastTick = Date.now(); paintTimer(); }
+  timerEl?.addEventListener('click', togglePause);
+  timerElMob?.addEventListener('click', togglePause);
+
+  // ====== Mobile tools drawer (hamburger → slide-in panel) ======
+  // Mirrors the exam-menu-drawer pattern used in quiz-attempt.html.
+  const toolsOpenBtn  = document.getElementById('lr-tools-open-btn');
+  const toolsCloseBtn = document.getElementById('lr-tools-close');
+  const toolsOverlay  = document.getElementById('lr-tools-overlay');
+  const toolsDrawer   = document.getElementById('lr-tools-drawer');
+  function openToolsDrawer()  { toolsOverlay?.classList.add('open'); toolsDrawer?.classList.add('open'); }
+  function closeToolsDrawer() { toolsOverlay?.classList.remove('open'); toolsDrawer?.classList.remove('open'); }
+  toolsOpenBtn?.addEventListener('click', openToolsDrawer);
+  toolsCloseBtn?.addEventListener('click', closeToolsDrawer);
+  toolsOverlay?.addEventListener('click', closeToolsDrawer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && toolsDrawer?.classList.contains('open')) closeToolsDrawer();
+  });
+
+  if (location.hash) {
+    const el = document.getElementById(location.hash.slice(1));
+    if (el) setTimeout(() => el.scrollIntoView({ behavior:'instant', block:'start' }), 50);
+  }
+</script>
+
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
+</body>
+</html>
