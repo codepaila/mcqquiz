@@ -22,7 +22,6 @@ return [
         'charset' => 'utf8mb4',
         'ssl' => filter_var(getenv('DB_SSL') ?: 'false', FILTER_VALIDATE_BOOLEAN),
         'ssl_ca' => getenv('DB_SSL_CA') ?: __DIR__ . '/ca.pem',
-        'ssl_ca'  => dirname(__DIR__) . '/ssl/ca.pem',
     ],
     'auth' => [
         'session_name' => 'qz_session',
