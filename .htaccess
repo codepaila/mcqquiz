@@ -1,10 +1,8 @@
-```apache
 # =========================================================
 # Quiznosis Apache Configuration
 # Production Optimized
 # =========================================================
 
-Options -Indexes
 
 <IfModule mod_rewrite.c>
 
@@ -176,4 +174,3 @@ Options -Indexes
     ExpiresByType font/woff2 "access plus 1 year"
 
 </IfModule>
-
