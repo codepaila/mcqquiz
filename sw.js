@@ -199,7 +199,7 @@ self.addEventListener('push', event => {
       icon:    'assets/icons/icon-192x192.png',
       badge:   'assets/icons/icon-72x72.png',
       vibrate: [200, 100, 200],
-      data:    { url: data.url || '/quiznosis/frontend/dashboard.html' },
+      data:    { url: data.url || '/dashboard.html' },
       actions: [
         { action: 'open',    title: 'Open',    icon: 'assets/icons/icon-96x96.png' },
         { action: 'dismiss', title: 'Dismiss' },
@@ -211,7 +211,7 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   if (event.action === 'dismiss') return;
-  const url = event.notification.data?.url || '/quiznosis/frontend/dashboard.html';
+  const url = event.notification.data?.url || '/dashboard.html';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(windowClients => {
