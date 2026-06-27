@@ -43,9 +43,14 @@ return [
         'bot_token' => getenv('TELEGRAM_BOT_TOKEN') ?: '',
         'bot_username' => getenv('TELEGRAM_BOT_USERNAME') ?: 'QuiznosisBot',
     ],
+    'google' => [
+        'client_id' => getenv('GOOGLE_CLIENT_ID') ?: '',
+        'client_secret' => getenv('GOOGLE_CLIENT_SECRET') ?: '',
+        'redirect_uri' => getenv('GOOGLE_REDIRECT_URI') ?: '',
+    ],
     'mail' => [
         'driver' => getenv('MAIL_DRIVER') ?: 'log',  // 'log' or 'smtp'
-        'from' => getenv('MAIL_FROM') ?: 'no-reply@quiznosis.local',
+        'from' => getenv('MAIL_FROM') ?: 'noreply@quiznosis.com',
         'from_name' => 'Quiznosis',
         'smtp' => [
             'host' => getenv('SMTP_HOST') ?: '',
