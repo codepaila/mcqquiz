@@ -46,7 +46,7 @@ class Database
             PDO::ATTR_EMULATE_PREPARES   => false,
             PDO::ATTR_STRINGIFY_FETCHES  => false,
             PDO::ATTR_TIMEOUT            => 10,
-            PDO::ATTR_PERSISTENT         => true,
+            PDO::ATTR_PERSISTENT         => false,
         ];
 
         // SSL (Aiven)

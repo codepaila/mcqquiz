@@ -1,7 +1,9 @@
-
 # =========================================================
 # Quiznosis Apache Configuration
+# Production Ready
 # =========================================================
+
+Options -Indexes
 
 <IfModule mod_rewrite.c>
 
@@ -9,7 +11,7 @@
     RewriteBase /
 
     # -----------------------------------------------------
-    # Serve real files and folders directly
+    # Serve existing files and directories directly
     # -----------------------------------------------------
 
     RewriteCond %{REQUEST_FILENAME} -f [OR]
@@ -17,15 +19,16 @@
     RewriteRule ^ - [L]
 
     # -----------------------------------------------------
-    # Extensionless PHP routes
-    # Example:
-    # /api/auth/login -> /api/auth/login.php
+    # Extensionless PHP
+    # /login -> login.php
+    # /api/auth/login -> api/auth/login.php
     # -----------------------------------------------------
 
     RewriteCond %{REQUEST_FILENAME}.php -f
     RewriteRule ^(.+?)/?$ $1.php [L]
 
     # API root
+
     RewriteRule ^api/?$ api/index.php [L]
 
 </IfModule>
@@ -34,13 +37,18 @@
 # Security
 # =========================================================
 
-# Block sensitive files
-<FilesMatch "\.(sql|md|log|sh|env|ini)$">
+# Disable directory listing
+Options -Indexes
+
+# Block hidden files
+<FilesMatch "^\.">
     Require all denied
 </FilesMatch>
 
-# Disable directory browsing
-Options -Indexes
+# Block sensitive files
+<FilesMatch "\.(env|ini|sql|md|log|sh|pem|crt|key)$">
+    Require all denied
+</FilesMatch>
 
 # =========================================================
 # Security Headers
@@ -48,9 +56,20 @@ Options -Indexes
 
 <IfModule mod_headers.c>
 
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Permitted-Cross-Domain-Policies "none"
+
+    # -----------------------------------------------------
+    # Never cache API responses
+    # -----------------------------------------------------
+
+    <If "%{REQUEST_URI} =~ m#^/api/#">
+        Header always set Cache-Control "no-store, no-cache, must-revalidate"
+        Header always set Pragma "no-cache"
+        Header always set Expires "0"
+    </If>
 
     # -----------------------------------------------------
     # Service Worker
@@ -59,8 +78,6 @@ Options -Indexes
     <Files "sw.js">
         Header set Service-Worker-Allowed "/"
         Header set Cache-Control "no-cache, no-store, must-revalidate"
-        Header set Pragma "no-cache"
-        Header set Expires "0"
     </Files>
 
     # -----------------------------------------------------
@@ -68,32 +85,79 @@ Options -Indexes
     # -----------------------------------------------------
 
     <Files "manifest.json">
-        Header set Cache-Control "max-age=86400"
+        Header set Cache-Control "public, max-age=86400"
     </Files>
 
     # -----------------------------------------------------
-    # Offline Page
+    # Offline page
     # -----------------------------------------------------
 
     <Files "offline.html">
-        Header set Cache-Control "max-age=3600"
+        Header set Cache-Control "public, max-age=3600"
     </Files>
 
     # -----------------------------------------------------
-    # Icons
+    # Images
     # -----------------------------------------------------
 
-    <FilesMatch "\.(png|ico)$">
-        Header set Cache-Control "max-age=31536000, immutable"
+    <FilesMatch "\.(png|jpg|jpeg|gif|svg|webp|ico)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
 
     # -----------------------------------------------------
-    # CSS & JavaScripts
+    # CSS & JavaScript
     # -----------------------------------------------------
 
     <FilesMatch "\.(css|js)$">
-        Header set Cache-Control "max-age=604800, stale-while-revalidate=86400"
+        Header set Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
+    </FilesMatch>
+
+    # -----------------------------------------------------
+    # Fonts
+    # -----------------------------------------------------
+
+    <FilesMatch "\.(woff|woff2|ttf|otf)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
 
 </IfModule>
 
+# =========================================================
+# Compression
+# =========================================================
+
+<IfModule mod_deflate.c>
+
+    AddOutputFilterByType DEFLATE \
+        text/plain \
+        text/html \
+        text/css \
+        application/javascript \
+        application/json \
+        application/xml \
+        image/svg+xml
+
+</IfModule>
+
+# =========================================================
+# Browser Cache
+# =========================================================
+
+<IfModule mod_expires.c>
+
+    ExpiresActive On
+
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+
+</IfModule>
