@@ -88,6 +88,25 @@
   cursor: not-allowed;
 }
 .telegram-btn svg { flex-shrink: 0; }
+
+.telegram-error {
+  color: #dc3545;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 8px;
+  background: rgba(220, 53, 69, 0.1);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.alert-warning {
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
 </style>
 
 <!-- ── PWA ─────────────────────────────────────────────── -->
@@ -142,6 +161,7 @@
         <div id="telegram-widget-wrap" style="display:flex;justify-content:center;margin-bottom:4px;">
           <!-- Widget injected by JS below after bot username is known -->
         </div>
+        <div id="telegram-error" style="display:none;" class="telegram-error"></div>
 
         <div class="divider-or">or</div>
 
@@ -182,40 +202,51 @@
   const alertZone  = document.getElementById('alert-zone');
   const submitBtn  = document.getElementById('submit-btn');
   const googleBtn  = document.getElementById('google-btn');
-// -----------------------------------------------------
-// Public configuration (loaded once)
-// -----------------------------------------------------
+  const telegramWrap = document.getElementById('telegram-widget-wrap');
+  const telegramError = document.getElementById('telegram-error');
 
-let APP_CONFIG = null;
+  // -----------------------------------------------------
+  // Public configuration (loaded once)
+  // -----------------------------------------------------
+  let APP_CONFIG = null;
 
-async function loadPublicConfig() {
+  async function loadPublicConfig() {
+    if (APP_CONFIG) return APP_CONFIG;
 
-  if (APP_CONFIG) {
-    return APP_CONFIG;
+    try {
+      const response = await fetch('/api/config.php', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Handle both response formats
+      if (result.success) {
+        APP_CONFIG = {
+          google_client_id: result.google_client_id,
+          telegram_bot_username: result.telegram_bot_username,
+        };
+      } else if (result.ok && result.data) {
+        APP_CONFIG = {
+          google_client_id: result.data.google_client_id,
+          telegram_bot_username: result.data.telegram_bot_username,
+        };
+      } else {
+        throw new Error(result.error || 'Invalid configuration response.');
+      }
+
+      return APP_CONFIG;
+    } catch (err) {
+      console.error('Config load error:', err);
+      throw err;
+    }
   }
 
-  const response = await fetch('/api/config.php', {
-    credentials: 'same-origin',
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error('Unable to load application configuration.');
-  }
-
-  const result = await response.json();
-
- if (!result.success) {
-    throw new Error(result.error || 'Unable to load configuration.');
-}
-
-APP_CONFIG = {
-    google_client_id: result.google_client_id,
-    telegram_bot_username: result.telegram_bot_username,
-};
-
-return APP_CONFIG;
-}
   // --- URL param alerts -----------------------------------------------
   if (queryParam('registered') === '1')
     alertZone.innerHTML = `<div class="alert alert-success">Account created! Verify your email, then sign in.</div>`;
@@ -242,132 +273,162 @@ return APP_CONFIG;
       });
   }
 
-  // Wait for GSI to load, then initialise
-window.addEventListener('load', async () => {
-
-  if (!window.google?.accounts?.id) {
-    googleBtn.style.display = 'none';
-
-    document.querySelector('.divider-or').style.display = 'none';
-
-    return;
-  }
-
-  try {
-
-    const config = await loadPublicConfig();
-
-    google.accounts.id.initialize({
-      client_id: config.google_client_id,
-      callback: handleGoogleCredential,
-      cancel_on_tap_outside: false,
-    });
-
-    googleBtn.addEventListener('click', () => {
-
-      alertZone.innerHTML = '';
-
-      google.accounts.id.prompt();
-
-    });
-
-  } catch (err) {
-
-    console.error(err);
-
-    googleBtn.style.display = 'none';
-
-  }
-
-});
-
-  // --- Telegram Login Widget (official script approach) ---------------
- (async () => {
-
-  try {
-
-    const config = await loadPublicConfig();
-
-    const botUsername = config.telegram_bot_username;
-
-    const isLocalhost =
-      ['localhost', '127.0.0.1'].includes(location.hostname);
-
-    if (!botUsername || isLocalhost) {
-
-      document.getElementById('telegram-widget-wrap').style.display = 'none';
-
-      return;
-
-    }
-
-    window.onTelegramAuth = async function (user) {
-
-      alertZone.innerHTML = '';
-
-      try {
-
-        const response = await fetch('/api/auth/telegram.php', {
-
-          method: 'POST',
-
-          credentials: 'include',
-
-          headers: {
-            'Content-Type': 'application/json'
-          },
-
-          body: JSON.stringify(user)
-
+  // --- Initialize Google OAuth ---
+  async function initGoogleOAuth() {
+    try {
+      // Wait for Google library to load
+      if (!window.google?.accounts?.id) {
+        // Try waiting a bit for the library to load
+        await new Promise((resolve, reject) => {
+          let attempts = 0;
+          const checkInterval = setInterval(() => {
+            attempts++;
+            if (window.google?.accounts?.id) {
+              clearInterval(checkInterval);
+              resolve();
+            } else if (attempts > 20) {
+              clearInterval(checkInterval);
+              reject(new Error('Google Identity Services did not load in time'));
+            }
+          }, 200);
         });
-
-        const data = await response.json();
-
-        if (!response.ok || (!data.ok && !data.success)) {
-
-          throw new Error(data.error || 'Telegram login failed.');
-
-        }
-
-        clearUserCache();
-
-        window.location.href =
-          queryParam('next') || 'dashboard.html';
-
-      } catch (err) {
-
-        alertZone.innerHTML =
-          `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
-
       }
 
-    };
+      const config = await loadPublicConfig();
 
-    const script = document.createElement('script');
+      if (!config.google_client_id) {
+        throw new Error('Google Client ID not configured');
+      }
 
-    script.async = true;
+      google.accounts.id.initialize({
+        client_id: config.google_client_id,
+        callback: handleGoogleCredential,
+        cancel_on_tap_outside: false,
+        context: 'signin',
+      });
 
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      googleBtn.addEventListener('click', () => {
+        alertZone.innerHTML = '';
+        // For signin, use prompt with notification handling
+        google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // Fallback: open the popup directly
+            google.accounts.id.prompt();
+          }
+        });
+      });
 
-    script.setAttribute('data-telegram-login', botUsername);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-radius', '8');
-    script.setAttribute('data-request-access', 'write');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+      console.log('Google OAuth initialized successfully');
 
-    document
-      .getElementById('telegram-widget-wrap')
-      .appendChild(script);
-
-  } catch (err) {
-
-    console.error(err);
-
-    document.getElementById('telegram-widget-wrap').style.display = 'none';
-
+    } catch (err) {
+      console.error('Google OAuth init error:', err);
+      googleBtn.style.display = 'none';
+      const divider = document.querySelector('.divider-or');
+      if (divider) {
+        divider.style.display = 'none';
+      }
+      // Show error in alert zone
+      alertZone.innerHTML = `<div class="alert alert-warning">Google Sign-In is currently unavailable. Please use email or Telegram login.</div>`;
+    }
   }
 
-})();
+  // --- Initialize Telegram Widget ---
+  async function initTelegramWidget() {
+    try {
+      const config = await loadPublicConfig();
+      const botUsername = config.telegram_bot_username;
+
+      const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+
+      // Check if we're on a valid domain for Telegram
+      const isValidDomain = !isLocalhost && location.protocol === 'https:';
+
+      if (!botUsername || botUsername === 'QuiznosisBot') {
+        console.warn('Telegram bot username not configured');
+        telegramWrap.style.display = 'none';
+        telegramError.style.display = 'block';
+        telegramError.textContent = 'Telegram login is not configured. Please use email or Google sign-in.';
+        return;
+      }
+
+      if (!isValidDomain) {
+        console.warn('Telegram widget requires HTTPS and non-localhost domain');
+        telegramWrap.style.display = 'none';
+        telegramError.style.display = 'block';
+        telegramError.textContent = '⚠️ Telegram login requires HTTPS. Please use email or Google sign-in.';
+        return;
+      }
+
+      // Define the auth callback before loading the widget
+      window.onTelegramAuth = async function (user) {
+        alertZone.innerHTML = '';
+
+        try {
+          const response = await fetch('/api/auth/telegram.php', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(user)
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || (!data.ok && !data.success)) {
+            throw new Error(data.error || 'Telegram login failed.');
+          }
+
+          clearUserCache();
+          window.location.href = queryParam('next') || 'dashboard.html';
+
+        } catch (err) {
+          alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        }
+      };
+
+      // Load the Telegram widget script
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.setAttribute('data-telegram-login', botUsername);
+      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-radius', '8');
+      script.setAttribute('data-request-access', 'write');
+      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+
+      // Clear any existing content and append the script
+      telegramWrap.innerHTML = '';
+      telegramWrap.appendChild(script);
+
+      // Hide error if visible
+      telegramError.style.display = 'none';
+
+      console.log('Telegram widget initialized for bot:', botUsername);
+
+    } catch (err) {
+      console.error('Telegram init error:', err);
+      telegramWrap.style.display = 'none';
+      telegramError.style.display = 'block';
+      telegramError.textContent = '⚠️ Could not load Telegram login: ' + err.message;
+    }
+  }
+
+  // --- Initialize everything ---
+  try {
+    // Load config first
+    await loadPublicConfig();
+
+    // Initialize Google OAuth
+    await initGoogleOAuth();
+
+    // Initialize Telegram
+    await initTelegramWidget();
+
+  } catch (err) {
+    console.error('Initialization error:', err);
+    alertZone.innerHTML = `<div class="alert alert-warning">Some features may be unavailable. Please try refreshing the page.</div>`;
+  }
 
   // --- Email/password form --------------------------------------------
   let lastEmail = '';
@@ -402,10 +463,10 @@ window.addEventListener('load', async () => {
     }
   });
 </script>
+
 <style>
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
-
 
 <!-- Bottom navigation (mobile PWA) -->
 <script type="module">
