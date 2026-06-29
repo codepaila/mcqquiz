@@ -205,13 +205,16 @@ async function loadPublicConfig() {
 
   const result = await response.json();
 
-  if (!result.ok || !result.data) {
-    throw new Error(result.error || 'Invalid configuration response.');
-  }
+ if (!result.success) {
+    throw new Error(result.error || 'Unable to load configuration.');
+}
 
-  APP_CONFIG = result.data;
+APP_CONFIG = {
+    google_client_id: result.google_client_id,
+    telegram_bot_username: result.telegram_bot_username,
+};
 
-  return APP_CONFIG;
+return APP_CONFIG;
 }
   // --- URL param alerts -----------------------------------------------
   if (queryParam('registered') === '1')
