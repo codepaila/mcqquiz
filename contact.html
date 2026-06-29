@@ -530,7 +530,7 @@ const DEFAULTS = {
 };
 
 try {
-  const res  = await fetch('/quiznosis/api/admin/contact-settings.php');
+  const res  = await fetch('/api/admin/contact-settings.php');
   const data = await res.json();
   const s    = { ...DEFAULTS, ...(data.data || {}) };
 
@@ -631,7 +631,7 @@ form.addEventListener('submit', async (e) => {
   btnIcon.innerHTML = `<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" stroke-dasharray="30 56" stroke-linecap="round" fill="none" style="animation:spin .8s linear infinite;transform-origin:center"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></circle>`;
 
   try {
-    const res  = await fetch('/quiznosis/api/contact.php', {
+    const res  = await fetch('/api/contact.php', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
