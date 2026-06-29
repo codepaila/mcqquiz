@@ -987,10 +987,19 @@
                   </select>
                 </div>
                 <div class="field"><label>Subject</label>
-                  <select name="subjectId"><option value="">\u2014</option>
+                  <select name="subjectId" id="qe-subject-select"><option value="">\u2014</option>
                     ${subjects.map(s => `<option value="${s.id}" ${e.subject_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('')}
                   </select>
                 </div>
+              </div>
+              <div class="field">
+                <label>Topic</label>
+                <select name="topicId" id="qe-topic-select">
+                  <option value="">\u2014</option>
+                  ${topics
+                    .filter(t => !e.subject_id || !t.subject_id || t.subject_id === e.subject_id)
+                    .map(t => `<option value="${t.id}" ${e.topic_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}
+                </select>
               </div>
               <div class="field">
                 <label>Options (mark the correct one)</label>
@@ -1038,6 +1047,25 @@
       if (previewOpen()) renderPreview();
     });
 
+    // Re-filter the Topic dropdown whenever Subject changes, so only
+    // topics belonging to the chosen subject are selectable. If a topic
+    // is already selected and still belongs to the new subject it stays
+    // selected; otherwise the selection resets to "—".
+    function refreshTopicOptions(preserveTopicId) {
+      const subjSel  = el.querySelector('#qe-subject-select');
+      const topicSel = el.querySelector('#qe-topic-select');
+      if (!subjSel || !topicSel) return;
+      const subjId = subjSel.value;
+      const filtered = topics.filter(t => !subjId || !t.subject_id || t.subject_id === subjId);
+      const keep = preserveTopicId && filtered.some(t => t.id === preserveTopicId) ? preserveTopicId : '';
+      topicSel.innerHTML = `<option value="">\u2014</option>` +
+        filtered.map(t => `<option value="${t.id}" ${t.id === keep ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+    }
+    el.querySelector('#qe-subject-select')?.addEventListener('change', () => {
+      refreshTopicOptions(el.querySelector('#qe-topic-select')?.value || '');
+      if (previewOpen()) renderPreview();
+    });
+
     // ---- Preview pane — OFF by default; Preview button toggles it on/off.
     // Rendering only runs while the pane is visible, so typing while the
     // preview is closed costs nothing.
@@ -1062,6 +1090,8 @@
       const diff     = form.querySelector('select[name="difficulty"]')?.value || 'MEDIUM';
       const subjId   = form.querySelector('select[name="subjectId"]')?.value || '';
       const subjName = subjects.find(s => s.id === subjId)?.name || null;
+      const topicId   = form.querySelector('select[name="topicId"]')?.value || '';
+      const topicName = topics.find(t => t.id === topicId)?.name || null;
       const correctIdx = parseInt(form.querySelector('input[name="correctIdx"]:checked')?.value);
       const optInputs  = [...form.querySelectorAll('input[name="optText"]')];
 
@@ -1088,6 +1118,7 @@
       el.querySelector('#qe-pv-meta').innerHTML = `
         <span>Difficulty: <strong style="color:var(--ink);">${escapeHtml(diff)}</strong></span>
         ${subjName ? `<span>Subject: <strong style="color:var(--ink);">${escapeHtml(subjName)}</strong></span>` : ''}
+        ${topicName ? `<span>Topic: <strong style="color:var(--ink);">${escapeHtml(topicName)}</strong></span>` : ''}
         <span>Options: <strong style="color:var(--ink);">${optInputs.filter(i => i.value.trim()).length}</strong></span>
       `;
     }
@@ -1110,6 +1141,7 @@
         explanation: fd.get('explanation') || null,
         difficulty: fd.get('difficulty'),
         subjectId: fd.get('subjectId') || null,
+        topicId: fd.get('topicId') || null,
         options,
       };
       try {
