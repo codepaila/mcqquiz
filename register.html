@@ -24,11 +24,14 @@
   color: var(--ink);
   cursor: pointer;
   transition: all 0.15s ease;
+  text-decoration: none;
 }
 .google-btn:hover {
   border-color: var(--ink-muted);
   background: var(--paper-soft);
   box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: var(--ink);
 }
 .google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .google-btn svg { flex-shrink: 0; }
@@ -54,15 +57,29 @@
 
 /* Telegram button */
 .telegram-btn {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  width: 100%; padding: 11px 20px;
-  background: #2AABEE; border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 20px;
+  background: #2AABEE;
+  border: none;
   border-radius: var(--radius);
-  font-family: var(--font-body); font-size: 0.96rem; font-weight: 600;
-  color: #fff; cursor: pointer;
-  transition: all 0.15s ease; text-decoration: none;
+  font-family: var(--font-body);
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
 }
-.telegram-btn:hover { background: #1e96d3; box-shadow: 0 4px 16px rgba(42,171,238,.35); color: #fff; }
+.telegram-btn:hover {
+  background: #1e96d3;
+  box-shadow: 0 4px 16px rgba(42,171,238,.35);
+  text-decoration: none;
+  color: #fff;
+}
 .telegram-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
 
@@ -116,7 +133,7 @@
         </button>
 
         <!-- Telegram Login Widget -->
-        <div id="telegram-widget-wrap" style="display:flex;justify-content:center;"></div>
+        <div id="telegram-widget-wrap" style="display:flex;justify-content:center;margin-bottom:4px;"></div>
 
         <div class="divider-or">or sign up with email</div>
 
@@ -171,6 +188,33 @@
   const alertZone = document.getElementById('alert-zone');
   const googleBtn = document.getElementById('google-btn');
 
+  // -----------------------------------------------------
+  // Public configuration (loaded once)
+  // -----------------------------------------------------
+  let APP_CONFIG = null;
+
+  async function loadPublicConfig() {
+    if (APP_CONFIG) return APP_CONFIG;
+
+    const response = await fetch('/api/config.php', {
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error('Unable to load application configuration.');
+    }
+
+    const result = await response.json();
+
+    if (!result.ok || !result.data) {
+      throw new Error(result.error || 'Invalid configuration response.');
+    }
+
+    APP_CONFIG = result.data;
+    return APP_CONFIG;
+  }
+
   // Load professions dropdown
   try {
     const { data: profs } = await taxonomy.professions();
@@ -200,46 +244,117 @@
       });
   }
 
-  window.addEventListener('load', () => {
+  // Wait for GSI to load, then initialise
+  window.addEventListener('load', async () => {
     if (!window.google?.accounts?.id) {
       googleBtn.style.display = 'none';
-      document.querySelector('.divider-or').textContent = 'Sign up with email';
-      document.querySelector('.divider-or').style.marginTop = '0';
+      document.querySelector('.divider-or').style.display = 'none';
       return;
     }
-    const clientId = document.querySelector('meta[name="google-client-id"]')?.content
-                   || 'YOUR_GOOGLE_CLIENT_ID';
-    google.accounts.id.initialize({
-      client_id: clientId,
-      callback: handleGoogleCredential,
-      cancel_on_tap_outside: false,
-    });
-    googleBtn.addEventListener('click', () => {
-      alertZone.innerHTML = '';
-      google.accounts.id.prompt();
-    });
+
+    try {
+      const config = await loadPublicConfig();
+
+      google.accounts.id.initialize({
+        client_id: config.google_client_id,
+        callback: handleGoogleCredential,
+        cancel_on_tap_outside: false,
+      });
+
+      googleBtn.addEventListener('click', () => {
+        alertZone.innerHTML = '';
+        google.accounts.id.prompt();
+      });
+
+    } catch (err) {
+      console.error(err);
+      googleBtn.style.display = 'none';
+    }
   });
 
+  // --- Telegram Login Widget (official script approach) ---------------
+  (async () => {
+    try {
+      const config = await loadPublicConfig();
+      const botUsername = config.telegram_bot_username;
+
+      const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
+
+      if (!botUsername || isLocalhost) {
+        document.getElementById('telegram-widget-wrap').style.display = 'none';
+        return;
+      }
+
+      window.onTelegramAuth = async function (user) {
+        alertZone.innerHTML = '';
+
+        try {
+          const response = await fetch('/api/auth/telegram.php', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(user)
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || (!data.ok && !data.success)) {
+            throw new Error(data.error || 'Telegram login failed.');
+          }
+
+          clearUserCache();
+          window.location.href = queryParam('next') || 'dashboard.html';
+
+        } catch (err) {
+          alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        }
+      };
+
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.setAttribute('data-telegram-login', botUsername);
+      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-radius', '8');
+      script.setAttribute('data-request-access', 'write');
+      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+
+      document.getElementById('telegram-widget-wrap').appendChild(script);
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById('telegram-widget-wrap').style.display = 'none';
+    }
+  })();
+
   // --- Email registration form ----------------------------------------
-  const form    = document.getElementById('register-form');
-  const btn     = document.getElementById('submit-btn');
+  const form = document.getElementById('register-form');
+  const btn = document.getElementById('submit-btn');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     alertZone.innerHTML = '';
     btn.disabled = true;
     btn.textContent = 'Creating account…';
+
     try {
       const r = await auth.register({
-        firstName:    form.firstName.value.trim(),
-        lastName:     form.lastName.value.trim() || null,
-        email:        form.email.value.trim(),
-        password:     form.password.value,
+        firstName: form.firstName.value.trim(),
+        lastName: form.lastName.value.trim() || null,
+        email: form.email.value.trim(),
+        password: form.password.value,
         professionId: form.professionId.value || null,
       });
+
       alertZone.innerHTML = `<div class="alert alert-success">${escapeHtml(r.message || 'Account created.')} Check your email to verify.</div>`;
       form.reset();
-      setTimeout(() => { window.location.href = 'login.html?registered=1'; }, 2400);
+
+      setTimeout(() => {
+        window.location.href = 'login.html?registered=1';
+      }, 2400);
+
     } catch (err) {
       alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
       btn.disabled = false;
@@ -247,10 +362,10 @@
     }
   });
 </script>
+
 <style>
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
-
 
 <!-- Bottom navigation (mobile PWA) -->
 <script type="module">
@@ -258,45 +373,12 @@ import { mountBottomNav } from '/pwa/pwa-nav.js';
 import { getUser } from '/assets/components.js';
 (async () => {
   const u = await getUser();
-  mountBottomNav('login', u);
+  mountBottomNav('register', u);
 })();
 </script>
+
 <!-- PWA install & service worker -->
-<script type="module" src="/pwa/pwa.js">
-  // --- Telegram Login Widget ---
-  (function () {
-    const botUsername = document.querySelector('meta[name="telegram-bot-username"]')?.content;
-    const isLocalhost  = ['localhost', '127.0.0.1'].includes(location.hostname);
-    if (!botUsername || botUsername === 'QuiznosisBot' || isLocalhost) {
-      document.getElementById('telegram-widget-wrap').style.display = 'none';
-      return;
-    }
-    window.onTelegramAuth = async function (user) {
-      try {
-        const res  = await fetch('/api/auth/telegram.php', {
-          method: 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(user),
-        });
-        const raw  = await res.text();
-        let data;
-        try { data = JSON.parse(raw); } catch { throw new Error('Server error: ' + raw.slice(0,150)); }
-        if (!data.ok && !data.success) throw new Error(data.error || 'Telegram login failed.');
-        window.location.href = 'dashboard.html';
-      } catch (err) {
-        alert(err.message);
-      }
-    };
-    const script = document.createElement('script');
-    script.async = true;
-    script.src   = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login',   botUsername);
-    script.setAttribute('data-size',             'large');
-    script.setAttribute('data-radius',           '8');
-    script.setAttribute('data-onauth',           'onTelegramAuth(user)');
-    script.setAttribute('data-request-access',   'write');
-    document.getElementById('telegram-widget-wrap').appendChild(script);
-  })();
-</script>
+<script type="module" src="/pwa/pwa.js"></script>
+
 </body>
 </html>

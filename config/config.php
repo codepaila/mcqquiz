@@ -41,7 +41,7 @@ return [
         // Get this from @BotFather on Telegram after creating your bot.
         // Set via environment variable in production: TELEGRAM_BOT_TOKEN
         'bot_token' => getenv('TELEGRAM_BOT_TOKEN') ?: '',
-        'bot_username' => getenv('TELEGRAM_BOT_USERNAME') ?: 'QuiznosisBot',
+        'bot_username' => getenv('TELEGRAM_BOT_USERNAME') ?: 'quiznosisqot',
     ],
     'google' => [
         'client_id' => getenv('GOOGLE_CLIENT_ID') ?: '',
@@ -49,7 +49,7 @@ return [
         'redirect_uri' => getenv('GOOGLE_REDIRECT_URI') ?: '',
     ],
     'mail' => [
-        'driver' => getenv('MAIL_DRIVER') ?: 'log',  // 'log' or 'smtp'
+        'driver' => getenv('MAIL_DRIVER') ?: 'smtp',  // 'log' or 'smtp'
         'from' => getenv('MAIL_FROM') ?: 'noreply@quiznosis.com',
         'from_name' => 'Quiznosis',
         'smtp' => [
