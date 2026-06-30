@@ -8,7 +8,7 @@
   <title>Register · Quiznosis</title>
   <link rel="stylesheet" href="assets/styles.css">
   <link rel="stylesheet" href="pwa/pwa.css">
-  
+
   <style>
     /* ── Social Login Buttons ──────────────────────────── */
     .social-btn {
@@ -30,6 +30,7 @@
       text-decoration: none;
       min-height: 48px;
     }
+
     .social-btn:hover {
       border-color: var(--ink-muted);
       background: var(--paper-soft);
@@ -37,17 +38,22 @@
       text-decoration: none;
       color: var(--ink);
     }
+
     .social-btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
-    .social-btn svg { flex-shrink: 0; }
+
+    .social-btn svg {
+      flex-shrink: 0;
+    }
 
     /* Google specific */
     .google-btn {
       background: #fff;
       border-color: #dadce0;
     }
+
     .google-btn:hover {
       background: #f8f9fa;
       border-color: #c5c7c9;
@@ -60,26 +66,31 @@
       color: #fff;
       font-weight: 600;
     }
+
     .telegram-btn:hover {
       background: #1e96d3;
-      box-shadow: 0 4px 16px rgba(42,171,238,.35);
+      box-shadow: 0 4px 16px rgba(42, 171, 238, .35);
       color: #fff;
     }
 
     /* Telegram Widget Wrapper - Full Width Fix */
+    /* ── Telegram Widget - Full Width Fix ── */
     #telegram-widget-wrap {
       width: 100%;
       display: flex;
       justify-content: center;
       margin: 0;
       padding: 0;
+      min-height: 48px;
     }
+
     #telegram-widget-wrap iframe {
       width: 100% !important;
       max-width: 100% !important;
       min-width: 100% !important;
       height: 48px !important;
       border-radius: var(--radius) !important;
+      display: block !important;
     }
 
     .divider-or {
@@ -93,6 +104,7 @@
       text-transform: uppercase;
       margin: 4px 0;
     }
+
     .divider-or::before,
     .divider-or::after {
       content: '';
@@ -118,10 +130,12 @@
       flex-direction: column;
       gap: 6px;
     }
+
     .password-strength .bars {
       display: flex;
       gap: 4px;
     }
+
     .password-strength .bar {
       flex: 1;
       height: 4px;
@@ -129,23 +143,53 @@
       background: var(--paper-edge);
       transition: all 0.3s ease;
     }
-    .password-strength .bar.active.weak { background: #dc3545; }
-    .password-strength .bar.active.fair { background: #ffc107; }
-    .password-strength .bar.active.good { background: #17a2b8; }
-    .password-strength .bar.active.strong { background: #28a745; }
-    .password-strength .bar.active.excellent { background: #20c997; }
-    
+
+    .password-strength .bar.active.weak {
+      background: #dc3545;
+    }
+
+    .password-strength .bar.active.fair {
+      background: #ffc107;
+    }
+
+    .password-strength .bar.active.good {
+      background: #17a2b8;
+    }
+
+    .password-strength .bar.active.strong {
+      background: #28a745;
+    }
+
+    .password-strength .bar.active.excellent {
+      background: #20c997;
+    }
+
     .password-strength .label {
       font-size: 0.8rem;
       font-weight: 600;
       color: var(--ink-muted);
       transition: color 0.3s ease;
     }
-    .password-strength .label.weak { color: #dc3545; }
-    .password-strength .label.fair { color: #ffc107; }
-    .password-strength .label.good { color: #17a2b8; }
-    .password-strength .label.strong { color: #28a745; }
-    .password-strength .label.excellent { color: #20c997; }
+
+    .password-strength .label.weak {
+      color: #dc3545;
+    }
+
+    .password-strength .label.fair {
+      color: #ffc107;
+    }
+
+    .password-strength .label.good {
+      color: #17a2b8;
+    }
+
+    .password-strength .label.strong {
+      color: #28a745;
+    }
+
+    .password-strength .label.excellent {
+      color: #20c997;
+    }
 
     .password-requirements {
       display: grid;
@@ -154,6 +198,7 @@
       margin-top: 6px;
       font-size: 0.8rem;
     }
+
     .password-requirements .req {
       display: flex;
       align-items: center;
@@ -161,9 +206,11 @@
       color: var(--ink-muted);
       transition: color 0.3s ease;
     }
+
     .password-requirements .req.met {
       color: #28a745;
     }
+
     .password-requirements .req svg {
       width: 14px;
       height: 14px;
@@ -176,6 +223,7 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
+
     @media (max-width: 480px) {
       .field-row {
         grid-template-columns: 1fr;
@@ -191,22 +239,26 @@
       align-items: flex-start;
       gap: 8px;
     }
+
     .alert svg {
       width: 18px;
       height: 18px;
       flex-shrink: 0;
       margin-top: 1px;
     }
+
     .alert-error {
       background: rgba(220, 53, 69, 0.1);
       border: 1px solid rgba(220, 53, 69, 0.2);
       color: #dc3545;
     }
+
     .alert-success {
       background: rgba(40, 167, 69, 0.1);
       border: 1px solid rgba(40, 167, 69, 0.2);
       color: #28a745;
     }
+
     .alert-warning {
       background: rgba(255, 193, 7, 0.15);
       border: 1px solid #ffc107;
@@ -232,6 +284,7 @@
       padding: 4px;
       transition: color 0.2s ease;
     }
+
     .password-toggle:hover {
       color: var(--ink);
     }
@@ -239,13 +292,16 @@
     .field-with-toggle {
       position: relative;
     }
+
     .field-with-toggle input {
       padding-right: 44px;
     }
 
     /* Loading spinner */
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
 
@@ -266,12 +322,24 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
   <!-- iOS splash screens -->
-  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
-  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
-  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
-  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
-  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
-  <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+  <link rel="apple-touch-startup-image"
+    media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)"
+    href="/assets/icons/splash-1242x2688.png">
+  <link rel="apple-touch-startup-image"
+    media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)"
+    href="/assets/icons/splash-828x1792.png">
+  <link rel="apple-touch-startup-image"
+    media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+    href="/assets/icons/splash-1125x2436.png">
+  <link rel="apple-touch-startup-image"
+    media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)"
+    href="/assets/icons/splash-1242x2688.png">
+  <link rel="apple-touch-startup-image"
+    media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+    href="/assets/icons/splash-750x1334.png">
+  <link rel="apple-touch-startup-image"
+    media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)"
+    href="/assets/icons/splash-640x1136.png">
   <!-- ── end PWA ───────────────────────────────────────────── -->
 </head>
 
@@ -283,7 +351,7 @@
         <h1 class="display mt-1" style="font-size:2.6rem;">Create your account</h1>
         <p class="text-soft mt-1" style="font-size:0.95rem;">Free forever. Takes 30 seconds.</p>
       </div>
-      
+
       <div class="card" style="padding:32px;">
         <div class="stack" style="--stack:16px;">
           <div id="alert-zone"></div>
@@ -291,11 +359,15 @@
           <!-- Google Sign-Up -->
           <button class="social-btn google-btn" id="google-btn" type="button">
             <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
-              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              <path fill="none" d="M0 0h48v48H0z"/>
+              <path fill="#EA4335"
+                d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+              <path fill="#4285F4"
+                d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+              <path fill="#FBBC05"
+                d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+              <path fill="#34A853"
+                d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+              <path fill="none" d="M0 0h48v48H0z" />
             </svg>
             Sign up with Google
           </button>
@@ -314,29 +386,32 @@
                 <input id="firstName" name="firstName" required minlength="2" placeholder="e.g. Anjali">
               </div>
               <div class="field">
-                <label for="lastName">Last name <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+                <label for="lastName">Last name <span class="text-muted"
+                    style="font-weight:400;">(optional)</span></label>
                 <input id="lastName" name="lastName" placeholder="e.g. Sharma">
               </div>
             </div>
-            
+
             <div class="field">
               <label for="email">Email</label>
               <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
             </div>
-            
+
             <!-- Password with strength meter -->
             <div class="field">
               <label for="password">Password</label>
               <div class="field-with-toggle">
-                <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+                <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password"
+                  placeholder="At least 8 characters">
                 <button type="button" class="password-toggle" id="toggle-password">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
                   </svg>
                 </button>
               </div>
-              
+
               <!-- Password Strength -->
               <div class="password-strength" id="password-strength" style="display: none;">
                 <div class="bars">
@@ -348,39 +423,55 @@
                 </div>
                 <div class="label" id="strength-label">Weak</div>
               </div>
-              
+
               <!-- Password Requirements -->
               <div class="password-requirements" id="requirements">
                 <span class="req" data-req="length">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4l2 2" />
+                  </svg>
                   8+ characters
                 </span>
                 <span class="req" data-req="uppercase">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4l2 2" />
+                  </svg>
                   Uppercase
                 </span>
                 <span class="req" data-req="lowercase">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4l2 2" />
+                  </svg>
                   Lowercase
                 </span>
                 <span class="req" data-req="number">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4l2 2" />
+                  </svg>
                   Number
                 </span>
                 <span class="req" data-req="special">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4l2 2" />
+                  </svg>
                   Special character
                 </span>
               </div>
             </div>
-            
+
             <div class="field">
-              <label for="professionId">Preparing for <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+              <label for="professionId">Preparing for <span class="text-muted"
+                  style="font-weight:400;">(optional)</span></label>
               <select id="professionId" name="professionId">
                 <option value="">— Choose later —</option>
               </select>
             </div>
-            
+
             <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Create account</button>
           </form>
 
@@ -454,9 +545,9 @@
       const strengthContainer = document.getElementById('password-strength');
       const strengthLabel = document.getElementById('strength-label');
       const requirements = document.querySelectorAll('.req');
-      
+
       strengthContainer.style.display = hasPassword ? 'flex' : 'none';
-      
+
       if (!hasPassword) {
         requirements.forEach(req => {
           req.classList.remove('met');
@@ -467,19 +558,19 @@
         });
         return;
       }
-      
+
       const { checks, score, label, class: strengthClass } = checkPasswordStrength(password);
-      
+
       // Update bars
       document.querySelectorAll('.bar').forEach((bar, i) => {
         bar.classList.toggle('active', i < score);
         bar.className = `bar ${i < score ? 'active ' + strengthClass : ''}`;
       });
-      
+
       // Update label
       strengthLabel.textContent = label;
       strengthLabel.className = `label ${strengthClass}`;
-      
+
       // Update requirements
       requirements.forEach(req => {
         const key = req.dataset.req;
@@ -759,7 +850,7 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       alertZone.innerHTML = '';
-      
+
       const password = form.password.value;
       const { score } = checkPasswordStrength(password);
       if (score < 3) {
@@ -771,7 +862,7 @@
         </div>`;
         return;
       }
-      
+
       btn.disabled = true;
       btn.textContent = 'Creating account…';
 
