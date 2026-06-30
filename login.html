@@ -8,25 +8,50 @@
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="pwa/pwa.css">
 <style>
-/* ── Card width fix ── */
+/* ── Global centering fix ── */
+html, body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+.section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  margin: 0;
+}
+
 .container-narrow {
   max-width: 620px !important;
+  width: 100%;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0;
 }
 
 .card {
   padding: 40px 36px !important;
   border-radius: 16px;
   box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 480px) {
+  .section {
+    padding: 16px;
+    align-items: flex-start;
+    padding-top: 30px;
+  }
+  
   .card {
     padding: 28px 20px !important;
   }
+  
   .container-narrow {
-    padding: 0 12px;
+    padding: 0;
   }
 }
 
@@ -218,6 +243,8 @@
   padding: 12px 14px;
   font-size: 0.95rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .field input:focus,
@@ -232,6 +259,7 @@
   font-weight: 600;
   font-size: 1rem;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .btn-primary:hover {
@@ -261,6 +289,24 @@
 .text-soft {
   color: var(--ink-muted);
   font-size: 0.95rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mb-3 {
+  margin-bottom: 24px;
+}
+
+.mt-1 {
+  margin-top: 4px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack, 16px);
 }
 </style>
 
@@ -293,9 +339,8 @@
       <div class="stack" style="--stack:20px;">
         <div id="alert-zone"></div>
 
-        <!-- Social buttons - flex row on desktop, stack on mobile -->
+        <!-- Social buttons -->
         <div class="social-buttons">
-          <!-- Google Sign-In -->
           <div class="social-item">
             <button class="google-btn" id="google-btn" type="button">
               <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
@@ -309,7 +354,6 @@
             <div id="google-btn-real"></div>
           </div>
 
-          <!-- Telegram Login -->
           <div class="social-item">
             <div id="telegram-widget-wrap"></div>
             <div id="telegram-error" style="display:none;" class="telegram-error"></div>
@@ -318,7 +362,7 @@
 
         <div class="divider-or">or</div>
 
-        <!-- Email / password form -->
+        <!-- Email form -->
         <form id="login-form" class="stack" style="--stack:18px;">
           <div class="field">
             <label for="email">Email</label>
@@ -327,14 +371,14 @@
           <div class="field">
             <label for="password">Password</label>
             <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password">
-            <div class="text-right" style="margin-top:6px;">
+            <div class="text-right" style="margin-top:6px; text-align:right;">
               <a href="forgot.html" style="font-size:0.82rem;">Forgot password?</a>
             </div>
           </div>
           <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Sign in</button>
         </form>
 
-        <p class="text-center text-muted" style="font-size:0.9rem; margin-top:4px;">
+        <p class="text-center text-muted" style="font-size:0.9rem; margin-top:4px; text-align:center;">
           New here? <a href="register.html">Create an account</a>
         </p>
       </div>
