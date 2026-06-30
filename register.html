@@ -1,988 +1,561 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="telegram-bot-username" content="QuiznosisBot">
-  <title>Register · Quiznosis</title>
-  <link rel="stylesheet" href="assets/styles.css">
-  <link rel="stylesheet" href="pwa/pwa.css">
-  <style>
-    .social-row {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 100%;
-    }
-
-    @media (min-width: 640px) {
-      .social-row {
-        flex-direction: row;
-        gap: 10px;
-      }
-
-      .social-row>* {
-        flex: 1;
-        min-width: 0;
-      }
-    }
-
-    /* ── Card width fix ── */
-    .container-narrow {
-      max-width: 620px !important;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
-
-    .card {
-      padding: 40px 36px !important;
-      border-radius: 16px;
-      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
-    }
-
-    @media (max-width: 480px) {
-      .card {
-        padding: 28px 20px !important;
-      }
-
-      .container-narrow {
-        padding: 0 12px;
-      }
-    }
-
-    /* ── Social Buttons Container ── */
-    .social-buttons {
-      display: flex;
-      gap: 12px;
-      width: 100%;
-      margin-bottom: 4px;
-    }
-
-    .social-buttons .social-item {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .google-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 12px 16px;
-      background: var(--paper);
-      border: 1.5px solid var(--paper-edge);
-      border-radius: 10px;
-      font-family: var(--font-body);
-      font-size: 0.92rem;
-      font-weight: 500;
-      color: var(--ink);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-decoration: none;
-      min-height: 48px;
-      white-space: nowrap;
-    }
-
-    .google-btn:hover {
-      border-color: var(--ink-muted);
-      background: var(--paper-soft);
-      box-shadow: var(--shadow-sm);
-      text-decoration: none;
-      color: var(--ink);
-      transform: translateY(-1px);
-    }
-
-    .google-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .google-btn svg {
-      flex-shrink: 0;
-      width: 20px;
-      height: 20px;
-    }
-
-    .google-btn .btn-text {
-      display: inline-block;
-    }
-
-    /* Hide real Google button */
-    #google-btn-real {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    /* ── Divider ── */
-    .divider-or {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      color: var(--ink-muted);
-      font-size: 0.78rem;
-      font-family: var(--font-mono);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin: 8px 0 4px;
-    }
-
-    .divider-or::before,
-    .divider-or::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--paper-edge);
-    }
-
-    /* ── Telegram Widget ── */
-    #telegram-widget-wrap {
-      width: 100%;
-      min-height: 48px;
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #telegram-widget-wrap iframe {
-      width: 100% !important;
-      max-width: 100% !important;
-      min-height: 48px;
-      border-radius: 10px !important;
-    }
-
-    .telegram-error {
-      color: #dc3545;
-      font-size: 0.85rem;
-      text-align: center;
-      padding: 8px;
-      background: rgba(220, 53, 69, 0.1);
-      border-radius: 6px;
-      margin-top: 4px;
-    }
-
-    /* ── Mobile responsive ── */
-    @media (max-width: 640px) {
-      .social-buttons {
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      .social-buttons .social-item {
-        flex: none;
-        width: 100%;
-      }
-
-      .google-btn {
-        font-size: 0.88rem;
-        padding: 11px 14px;
-        min-height: 44px;
-      }
-
-      .google-btn .btn-text {
-        font-size: 0.88rem;
-      }
-
-      #telegram-widget-wrap {
-        min-height: 44px;
-      }
-
-      #telegram-widget-wrap iframe {
-        min-height: 44px;
-      }
-    }
-
-    /* ── Password Strength Styles ── */
-    .password-field-wrapper {
-      position: relative;
-    }
-
-    .password-toggle {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--ink-muted);
-      cursor: pointer;
-      padding: 4px;
-      transition: color 0.2s ease;
-      z-index: 2;
-    }
-
-    .password-toggle:hover {
-      color: var(--ink);
-    }
-
-    .password-strength {
-      margin-top: 8px;
-      display: none;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .password-strength.visible {
-      display: flex;
-    }
-
-    .password-strength .bars {
-      display: flex;
-      gap: 4px;
-    }
-
-    .password-strength .bar {
-      flex: 1;
-      height: 4px;
-      border-radius: 2px;
-      background: var(--paper-edge);
-      transition: all 0.3s ease;
-    }
-
-    .password-strength .bar.active.weak {
-      background: #dc3545;
-    }
-
-    .password-strength .bar.active.fair {
-      background: #ffc107;
-    }
-
-    .password-strength .bar.active.good {
-      background: #17a2b8;
-    }
-
-    .password-strength .bar.active.strong {
-      background: #28a745;
-    }
-
-    .password-strength .bar.active.excellent {
-      background: #20c997;
-    }
-
-    .password-strength .label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--ink-muted);
-      transition: color 0.3s ease;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .password-strength .label .score-text {
-      font-weight: 400;
-      color: var(--ink-muted);
-      font-size: 0.7rem;
-    }
-
-    .password-strength .label.weak {
-      color: #dc3545;
-    }
-
-    .password-strength .label.fair {
-      color: #ffc107;
-    }
-
-    .password-strength .label.good {
-      color: #17a2b8;
-    }
-
-    .password-strength .label.strong {
-      color: #28a745;
-    }
-
-    .password-strength .label.excellent {
-      color: #20c997;
-    }
-
-    .password-requirements {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px 16px;
-      margin-top: 6px;
-      font-size: 0.8rem;
-    }
-
-    @media (max-width: 480px) {
-      .password-requirements {
-        grid-template-columns: 1fr;
-        gap: 2px 0;
-      }
-    }
-
-    .password-requirements .req {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--ink-muted);
-      transition: color 0.3s ease;
-      padding: 2px 0;
-    }
-
-    .password-requirements .req.met {
-      color: #28a745;
-    }
-
-    .password-requirements .req svg {
-      width: 14px;
-      height: 14px;
-      flex-shrink: 0;
-    }
-
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    @media (max-width: 480px) {
-      .field-row {
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-    }
-
-    .field-hint {
-      font-size: 0.78rem;
-      color: var(--ink-muted);
-      margin-top: 6px;
-    }
-
-    /* ── Form improvements ── */
-    .field input,
-    .field select {
-      border-radius: 10px;
-      padding: 12px 14px;
-      font-size: 0.95rem;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .field input:focus,
-    .field select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 184, 83, 28), 0.12);
-    }
-
-    .btn-primary {
-      border-radius: 10px;
-      padding: 14px 20px;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: all 0.2s ease;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 20px rgba(var(--accent-rgb, 184, 83, 28), 0.25);
-    }
-
-    .btn-primary:disabled {
-      transform: none;
-    }
-
-    /* ── Typography ── */
-    .display {
-      font-size: 2.4rem !important;
-      letter-spacing: -0.02em;
-    }
-
-    .eyebrow {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--ink-muted);
-      margin-bottom: 4px;
-    }
-
-    .text-soft {
-      color: var(--ink-muted);
-      font-size: 0.95rem;
-    }
-
-    /* ── Animations ── */
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    /* ── Alerts ── */
-    .alert-warning {
-      background: rgba(255, 193, 7, 0.12);
-      border: 1px solid #ffc107;
-      color: #856404;
-      padding: 12px 16px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-    }
-
-    .alert-error {
-      background: rgba(220, 53, 69, 0.08);
-      border: 1px solid rgba(220, 53, 69, 0.25);
-      color: #dc3545;
-      padding: 12px 16px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-    }
-
-    .alert-success {
-      background: rgba(40, 167, 69, 0.08);
-      border: 1px solid rgba(40, 167, 69, 0.25);
-      color: #28a745;
-      padding: 12px 16px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-    }
-  </style>
-
-  <!-- ── PWA ─────────────────────────────────────────────── -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Quiznosis">
-  <meta name="application-name" content="Quiznosis">
-  <meta name="msapplication-TileColor" content="#B8531C">
-  <meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
-  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
-  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sign in · Quiznosis</title>
+<meta name="telegram-bot-username" content="QuiznosisBot"> <!-- Replace QuiznosisBot with your actual bot username -->
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="pwa/pwa.css">
+<style>
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 20px;
+  background: var(--paper);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.96rem;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.google-btn:hover {
+  border-color: var(--ink-muted);
+  background: var(--paper-soft);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: var(--ink);
+}
+.google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.google-btn svg { flex-shrink: 0; }
+
+/* Real Google button rendered by GIS — must stay completely out of the
+   document flow and off-screen (not just opacity:0) because Google
+   injects its own iframe with intrinsic pixel dimensions that can
+   otherwise leak into the layout. Click is forwarded to it from our
+   styled .google-btn so every click opens the full account-chooser
+   popup instead of the throttled One Tap prompt. */
+#google-btn-real {
+  position: fixed !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.divider-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 4px 0;
+}
+.divider-or::before,
+.divider-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--paper-edge);
+}
+
+/* Telegram button */
+.telegram-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 20px;
+  background: #2AABEE;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.telegram-btn:hover {
+  background: #1e96d3;
+  box-shadow: 0 4px 16px rgba(42,171,238,.35);
+  text-decoration: none;
+  color: #fff;
+}
+.telegram-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.telegram-btn svg { flex-shrink: 0; }
+
+/* Telegram widget container — the widget is a cross-origin <iframe>
+   with FIXED intrinsic pixel dimensions (it does not reflow), so
+   stretching it with width:100% distorts the inner SVG and leaves a
+   black bleed past the rounded corners. Instead we:
+     1. Give the wrapper the exact same full-width box as .google-btn
+        (same height, background, border, border-radius).
+     2. Center the iframe inside it without stretching.
+     3. Clip any overflow with overflow:hidden + matching border-radius
+        so no part of the iframe's own background can show outside
+        the rounded corners.
+   The result is a button-shaped frame around Telegram's real widget,
+   matching Google's button exactly in width and height. */
+#telegram-widget-wrap {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: #2AABEE;
+}
+#telegram-widget-wrap iframe {
+  display: block !important;
+  border: none !important;
+  /* Do NOT force width:100% — let Telegram render its native size,
+     centered inside our fixed-height, full-width, clipped wrapper. */
+}
+
+.telegram-error {
+  color: #dc3545;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 8px;
+  background: rgba(220, 53, 69, 0.1);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.alert-warning {
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+</style>
+
+<!-- ── PWA ─────────────────────────────────────────────── -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#E0742F" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Quiznosis">
+<meta name="application-name" content="Quiznosis">
+<meta name="msapplication-TileColor" content="#B8531C">
+<meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
+<!-- iOS splash screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
+<!-- ── end PWA ───────────────────────────────────────────── -->
 </head>
-
 <body>
-  <main class="section">
-    <div class="container-narrow">
-      <div class="text-center mb-3">
-        <div class="eyebrow">Get started</div>
-        <h1 class="display mt-1">Create your account</h1>
-        <p class="text-soft mt-1">Free forever. Takes 30 seconds.</p>
-      </div>
-      <div class="card">
-        <div class="stack" style="--stack:20px;">
-          <div id="alert-zone"></div>
+<main class="section">
+  <div class="container-narrow">
+    <div class="text-center mb-3">
+      <div class="eyebrow">Welcome back</div>
+      <h1 class="display mt-1" style="font-size:2.6rem;">Sign in</h1>
+    </div>
+    <div class="card" style="padding:32px;">
+      <div class="stack" style="--stack:16px;">
+        <div id="alert-zone"></div>
 
-          <!-- Social buttons - flex row on desktop, stack on mobile -->
-          <!-- Social Login Row - Google + Telegram side by side on desktop -->
-          <div class="social-row">
-            <!-- Google Sign-Up -->
-            <button class="social-btn google-btn" id="google-btn" type="button">
-              <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
-                <path fill="#EA4335"
-                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                <path fill="#4285F4"
-                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                <path fill="#FBBC05"
-                  d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                <path fill="#34A853"
-                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                <path fill="none" d="M0 0h48v48H0z" />
-              </svg>
-              <span>Google</span>
-            </button>
-            <div id="google-btn-real"></div>
+        <!-- Google Sign-In — styled button that forwards its click to the
+             real (hidden) GIS button below, so every click opens the full
+             popup account-chooser, never the throttled One Tap prompt. -->
+        <button class="google-btn" id="google-btn" type="button">
+          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+          Continue with Google
+        </button>
+        <!-- GIS renders the real <div> button inside here -->
+        <div id="google-btn-real"></div>
 
-            <!-- Telegram Login Widget -->
-            <div id="telegram-widget-wrap"></div>
-          </div>
-          <div class="divider-or">or sign up with email</div>
-
-          <!-- Email form -->
-          <form id="register-form" class="stack" style="--stack:18px;">
-            <div class="field-row">
-              <div class="field">
-                <label for="firstName">First name</label>
-                <input id="firstName" name="firstName" required minlength="2" placeholder="e.g. Anjali">
-              </div>
-              <div class="field">
-                <label for="lastName">Last name <span class="text-muted"
-                    style="font-weight:400;">(optional)</span></label>
-                <input id="lastName" name="lastName" placeholder="e.g. Sharma">
-              </div>
-            </div>
-            <div class="field">
-              <label for="email">Email</label>
-              <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
-            </div>
-            <div class="field">
-              <label for="password">Password</label>
-              <div class="password-field-wrapper">
-                <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password"
-                  placeholder="At least 8 characters">
-                <button type="button" class="password-toggle" id="toggle-password">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Password Strength -->
-              <div class="password-strength" id="password-strength">
-                <div class="bars">
-                  <div class="bar" data-index="0"></div>
-                  <div class="bar" data-index="1"></div>
-                  <div class="bar" data-index="2"></div>
-                  <div class="bar" data-index="3"></div>
-                  <div class="bar" data-index="4"></div>
-                </div>
-                <div class="label" id="strength-label">
-                  <span id="strength-text">Weak</span>
-                  <span class="score-text" id="strength-score">0/5</span>
-                </div>
-              </div>
-
-              <!-- Password Requirements -->
-              <div class="password-requirements" id="requirements">
-                <span class="req" data-req="length">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
-                  8+ characters
-                </span>
-                <span class="req" data-req="uppercase">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
-                  Uppercase
-                </span>
-                <span class="req" data-req="lowercase">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
-                  Lowercase
-                </span>
-                <span class="req" data-req="number">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
-                  Number
-                </span>
-                <span class="req" data-req="special">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
-                  Special character
-                </span>
-              </div>
-              <div class="field-hint">Must include uppercase, lowercase, a number, and a special character.</div>
-            </div>
-            <div class="field">
-              <label for="professionId">Preparing for <span class="text-muted"
-                  style="font-weight:400;">(optional)</span></label>
-              <select id="professionId" name="professionId">
-                <option value="">— Choose later —</option>
-              </select>
-            </div>
-            <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Create account</button>
-          </form>
-
-          <p class="text-center text-muted" style="font-size:0.9rem; margin-top:4px;">
-            Already have an account? <a href="login.html">Sign in</a>
-          </p>
+        <!-- Telegram Login Widget (official) -->
+        <div id="telegram-widget-wrap" style="margin-bottom:4px;">
+          <!-- Widget injected by JS below after bot username is known -->
         </div>
+        <div id="telegram-error" style="display:none;" class="telegram-error"></div>
+
+        <div class="divider-or">or</div>
+
+        <!-- Email / password form -->
+        <form id="login-form" class="stack" style="--stack:16px;">
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required autocomplete="current-password">
+            <div class="text-right" style="margin-top:4px;">
+              <a href="forgot.html" style="font-size:0.82rem;">Forgot password?</a>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Sign in</button>
+        </form>
+
+        <p class="text-center text-muted" style="font-size:0.9rem;">
+          New here? <a href="register.html">Create an account</a>
+        </p>
       </div>
     </div>
-  </main>
+  </div>
+</main>
 
-  <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <script type="module">
-    import { mountHeader, mountFooter, escapeHtml, clearUserCache, queryParam } from './assets/components.js';
-    import { auth, taxonomy } from './assets/api.js';
+<script type="module">
+  import { mountHeader, mountFooter, queryParam, escapeHtml, clearUserCache } from './assets/components.js';
+  import { auth } from './assets/api.js';
 
-    await mountHeader('');
-    mountFooter();
+  await mountHeader('');
+  mountFooter();
 
-    const alertZone = document.getElementById('alert-zone');
-    const googleBtn = document.getElementById('google-btn');
-    const googleBtnReal = document.getElementById('google-btn-real');
-    const telegramWrap = document.getElementById('telegram-widget-wrap');
-    const telegramError = document.getElementById('telegram-error');
+  const alertZone  = document.getElementById('alert-zone');
+  const submitBtn  = document.getElementById('submit-btn');
+  const googleBtn  = document.getElementById('google-btn');
+  const googleBtnReal = document.getElementById('google-btn-real');
+  const telegramWrap = document.getElementById('telegram-widget-wrap');
+  const telegramError = document.getElementById('telegram-error');
 
-    // ── Password Toggle ──
-    const passwordInput = document.getElementById('password');
-    const togglePassword = document.getElementById('toggle-password');
+  // -----------------------------------------------------
+  // Public configuration (loaded once)
+  // -----------------------------------------------------
+  let APP_CONFIG = null;
 
-    togglePassword.addEventListener('click', () => {
-      const isPassword = passwordInput.type === 'password';
-      passwordInput.type = isPassword ? 'text' : 'password';
-      togglePassword.innerHTML = isPassword ? `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-          <line x1="1" y1="1" x2="23" y2="23"/>
-        </svg>
-      ` : `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-      `;
-    });
+  async function loadPublicConfig() {
+    if (APP_CONFIG) return APP_CONFIG;
 
-    // ── Password Strength Checker ──
-    const checkPasswordStrength = (password) => {
-      const checks = {
-        length: password.length >= 8,
-        uppercase: /[A-Z]/.test(password),
-        lowercase: /[a-z]/.test(password),
-        number: /\d/.test(password),
-        special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-      };
-      const score = Object.values(checks).filter(Boolean).length;
-      const levels = [
-        { label: 'Weak', class: 'weak' },
-        { label: 'Weak', class: 'weak' },
-        { label: 'Fair', class: 'fair' },
-        { label: 'Good', class: 'good' },
-        { label: 'Strong', class: 'strong' },
-        { label: 'Excellent', class: 'excellent' },
-      ];
-      return { checks, score, ...levels[score] };
-    };
-
-    // ── Update Password UI ──
-    const updatePasswordUI = () => {
-      const password = passwordInput.value;
-      const hasPassword = password.length > 0;
-      const strengthContainer = document.getElementById('password-strength');
-      const strengthText = document.getElementById('strength-text');
-      const strengthScore = document.getElementById('strength-score');
-      const requirements = document.querySelectorAll('.req');
-
-      strengthContainer.classList.toggle('visible', hasPassword);
-
-      if (!hasPassword) {
-        requirements.forEach(req => {
-          req.classList.remove('met');
-          req.querySelector('svg').innerHTML = `
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 8v4l2 2"/>
-          `;
-        });
-        return;
-      }
-
-      const { checks, score, label, class: strengthClass } = checkPasswordStrength(password);
-
-      document.querySelectorAll('.bar').forEach((bar, i) => {
-        bar.classList.toggle('active', i < score);
-        bar.className = `bar ${i < score ? 'active ' + strengthClass : ''}`;
-      });
-
-      strengthText.textContent = label;
-      strengthScore.textContent = `${score}/5`;
-      document.querySelector('.password-strength .label').className = `label ${strengthClass}`;
-
-      requirements.forEach(req => {
-        const key = req.dataset.req;
-        const met = checks[key];
-        req.classList.toggle('met', met);
-        req.querySelector('svg').innerHTML = met ? `
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 8v4l2 2"/>
-        ` : `
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 8v4l2 2"/>
-        `;
-      });
-    };
-
-    passwordInput.addEventListener('input', updatePasswordUI);
-    passwordInput.addEventListener('focus', () => {
-      if (passwordInput.value) {
-        document.getElementById('password-strength').classList.add('visible');
-      }
-    });
-
-    // -----------------------------------------------------
-    // Public configuration (loaded once)
-    // -----------------------------------------------------
-    let APP_CONFIG = null;
-
-    async function loadPublicConfig() {
-      if (APP_CONFIG) return APP_CONFIG;
-
-      try {
-        const response = await fetch('/api/config.php', {
-          credentials: 'same-origin',
-          cache: 'no-store',
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-
-        if (result.success) {
-          APP_CONFIG = {
-            google_client_id: result.google_client_id,
-            telegram_bot_username: result.telegram_bot_username,
-          };
-        } else if (result.ok && result.data) {
-          APP_CONFIG = {
-            google_client_id: result.data.google_client_id,
-            telegram_bot_username: result.data.telegram_bot_username,
-          };
-        } else {
-          throw new Error(result.error || 'Invalid configuration response.');
-        }
-
-        return APP_CONFIG;
-      } catch (err) {
-        console.error('Config load error:', err);
-        throw err;
-      }
-    }
-
-    // Load professions dropdown
     try {
-      const { data: profs } = await taxonomy.professions();
-      const sel = document.getElementById('professionId');
-      for (const p of profs) {
-        const o = document.createElement('option');
-        o.value = p.id;
-        o.textContent = p.name;
-        sel.append(o);
+      const response = await fetch('/api/config.php', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    } catch (err) {
-      console.warn('Could not load professions:', err);
-    }
 
-    // --- Google sign-up --------------------------------------------------
-    function handleGoogleCredential(response) {
-      alertZone.innerHTML = '';
-      googleBtn.disabled = true;
-      googleBtn.innerHTML = `<span style="display:inline-block;width:20px;height:20px;border:2.5px solid var(--paper-edge);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;"></span>`;
+      const result = await response.json();
 
-      auth.googleOAuth(response.credential)
-        .then(() => {
-          clearUserCache();
-          window.location.href = queryParam('next') || 'dashboard.html';
-        })
-        .catch(err => {
-          alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
-          googleBtn.disabled = false;
-          googleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span class="btn-text">Google</span>`;
-        });
-    }
-
-    // --- Initialize Google OAuth ---
-    async function initGoogleOAuth() {
-      try {
-        if (!window.google?.accounts?.id) {
-          await new Promise((resolve, reject) => {
-            let attempts = 0;
-            const checkInterval = setInterval(() => {
-              attempts++;
-              if (window.google?.accounts?.id) {
-                clearInterval(checkInterval);
-                resolve();
-              } else if (attempts > 20) {
-                clearInterval(checkInterval);
-                reject(new Error('Google Identity Services did not load in time'));
-              }
-            }, 200);
-          });
-        }
-
-        const config = await loadPublicConfig();
-
-        if (!config.google_client_id) {
-          throw new Error('Google Client ID not configured');
-        }
-
-        google.accounts.id.initialize({
-          client_id: config.google_client_id,
-          callback: handleGoogleCredential,
-          cancel_on_tap_outside: false,
-          context: 'signup',
-          auto_select: false,
-          itp_support: true,
-        });
-
-        google.accounts.id.renderButton(googleBtnReal, {
-          type: 'standard',
-          theme: 'outline',
-          size: 'large',
-          width: 280,
-          text: 'signup_with',
-        });
-
-        googleBtn.addEventListener('click', () => {
-          alertZone.innerHTML = '';
-          const realButton = googleBtnReal.querySelector('div[role="button"]');
-          if (realButton) {
-            realButton.click();
-          } else {
-            google.accounts.id.prompt();
-          }
-        });
-
-        console.log('Google OAuth initialized successfully');
-
-      } catch (err) {
-        console.error('Google OAuth init error:', err);
-        googleBtn.style.display = 'none';
-        alertZone.innerHTML = `<div class="alert alert-warning">Google Sign-In is currently unavailable. Please use email registration.</div>`;
-      }
-    }
-
-    // --- Initialize Telegram Widget ---
-    async function initTelegramWidget() {
-      try {
-        const config = await loadPublicConfig();
-        const botUsername = config.telegram_bot_username;
-
-        const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
-        const isValidDomain = !isLocalhost && location.protocol === 'https:';
-
-        if (!botUsername || botUsername === 'QuiznosisBot') {
-          telegramWrap.style.display = 'none';
-          telegramError.style.display = 'block';
-          telegramError.textContent = 'Telegram login is not configured. Please use email or Google sign-up.';
-          return;
-        }
-
-        if (!isValidDomain) {
-          telegramWrap.style.display = 'none';
-          telegramError.style.display = 'block';
-          telegramError.textContent = '⚠️ Telegram login requires HTTPS. Please use email or Google sign-up.';
-          return;
-        }
-
-        window.onTelegramAuth = async function (user) {
-          alertZone.innerHTML = '';
-
-          try {
-            const response = await fetch('/api/auth/telegram.php', {
-              method: 'POST',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(user)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || (!data.ok && !data.success)) {
-              throw new Error(data.error || 'Telegram login failed.');
-            }
-
-            clearUserCache();
-            window.location.href = queryParam('next') || 'dashboard.html';
-
-          } catch (err) {
-            alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
-          }
+      // Handle both response formats
+      if (result.success) {
+        APP_CONFIG = {
+          google_client_id: result.google_client_id,
+          telegram_bot_username: result.telegram_bot_username,
         };
+      } else if (result.ok && result.data) {
+        APP_CONFIG = {
+          google_client_id: result.data.google_client_id,
+          telegram_bot_username: result.data.telegram_bot_username,
+        };
+      } else {
+        throw new Error(result.error || 'Invalid configuration response.');
+      }
 
-        const script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://telegram.org/js/telegram-widget.js?22';
-        script.setAttribute('data-telegram-login', botUsername);
-        script.setAttribute('data-size', 'large');
-        script.setAttribute('data-radius', '10');
-        script.setAttribute('data-request-access', 'write');
-        script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+      return APP_CONFIG;
+    } catch (err) {
+      console.error('Config load error:', err);
+      throw err;
+    }
+  }
 
-        telegramWrap.innerHTML = '';
-        telegramWrap.appendChild(script);
-        telegramError.style.display = 'none';
+  // --- URL param alerts -----------------------------------------------
+  if (queryParam('registered') === '1')
+    alertZone.innerHTML = `<div class="alert alert-success">Account created! Verify your email, then sign in.</div>`;
+  if (queryParam('verified') === '1')
+    alertZone.innerHTML = `<div class="alert alert-success">Email verified. You can sign in now.</div>`;
+  if (queryParam('reset') === '1')
+    alertZone.innerHTML = `<div class="alert alert-success">Password reset. Sign in with your new password.</div>`;
 
-        console.log('Telegram widget initialized for bot:', botUsername);
+  // --- Google sign-in --------------------------------------------------
+  function handleGoogleCredential(response) {
+    alertZone.innerHTML = '';
+    googleBtn.disabled = true;
+    googleBtn.innerHTML = `<span style="display:inline-block;width:18px;height:18px;border:2px solid var(--paper-edge);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;"></span> Verifying…`;
 
-      } catch (err) {
-        console.error('Telegram init error:', err);
+    auth.googleOAuth(response.credential)
+      .then(() => {
+        clearUserCache();
+        window.location.href = queryParam('next') || 'dashboard.html';
+      })
+      .catch(err => {
+        alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        googleBtn.disabled = false;
+        googleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg> Continue with Google`;
+      });
+  }
+
+  // --- Initialize Google OAuth ---
+  // FIX: We no longer rely on google.accounts.id.prompt() for the click
+  // handler. One Tap's prompt() has a built-in cooldown — after the user
+  // dismisses it, selects an account once, or it gets auto-cancelled,
+  // Google silently suppresses it on subsequent calls in the same
+  // browser/session ("not displayed" / "skipped moment"), which is why
+  // Google sign-in worked once and then appeared to do nothing.
+  //
+  // The fix: render Google's real button (GIS renderButton) into a hidden
+  // container, then forward every click on our styled button to a
+  // synthetic click on the real one. renderButton always opens the full
+  // OAuth popup/account-chooser — it is not subject to the One Tap
+  // cooldown, so it works reliably on every click, every time.
+  async function initGoogleOAuth() {
+    try {
+      // Wait for Google library to load
+      if (!window.google?.accounts?.id) {
+        await new Promise((resolve, reject) => {
+          let attempts = 0;
+          const checkInterval = setInterval(() => {
+            attempts++;
+            if (window.google?.accounts?.id) {
+              clearInterval(checkInterval);
+              resolve();
+            } else if (attempts > 20) {
+              clearInterval(checkInterval);
+              reject(new Error('Google Identity Services did not load in time'));
+            }
+          }, 200);
+        });
+      }
+
+      const config = await loadPublicConfig();
+
+      if (!config.google_client_id) {
+        throw new Error('Google Client ID not configured');
+      }
+
+      google.accounts.id.initialize({
+        client_id: config.google_client_id,
+        callback: handleGoogleCredential,
+        cancel_on_tap_outside: false,
+        context: 'signin',
+        // Disabling FedCM auto-select avoids silent re-use of a previously
+        // chosen account without a visible chooser, which can also look
+        // like "nothing happens" on a second attempt.
+        auto_select: false,
+        itp_support: true,
+      });
+
+      // Render Google's own button into the hidden container.
+      // This is what actually guarantees a popup opens on every click.
+      google.accounts.id.renderButton(googleBtnReal, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        width: 320,
+      });
+
+      // Forward clicks from our styled button to the real GIS button.
+      googleBtn.addEventListener('click', () => {
+        alertZone.innerHTML = '';
+        const realButton = googleBtnReal.querySelector('div[role="button"]');
+        if (realButton) {
+          realButton.click();
+        } else {
+          // Fallback — real button not ready yet, try prompt as last resort
+          google.accounts.id.prompt();
+        }
+      });
+
+      console.log('Google OAuth initialized successfully');
+
+    } catch (err) {
+      console.error('Google OAuth init error:', err);
+      googleBtn.style.display = 'none';
+      const divider = document.querySelector('.divider-or');
+      if (divider) {
+        divider.style.display = 'none';
+      }
+      // Show error in alert zone
+      alertZone.innerHTML = `<div class="alert alert-warning">Google Sign-In is currently unavailable. Please use email or Telegram login.</div>`;
+    }
+  }
+
+  // --- Initialize Telegram Widget ---
+  async function initTelegramWidget() {
+    try {
+      const config = await loadPublicConfig();
+      const botUsername = config.telegram_bot_username;
+
+      const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+
+      // Check if we're on a valid domain for Telegram
+      const isValidDomain = !isLocalhost && location.protocol === 'https:';
+
+      if (!botUsername || botUsername === 'QuiznosisBot') {
+        console.warn('Telegram bot username not configured');
         telegramWrap.style.display = 'none';
         telegramError.style.display = 'block';
-        telegramError.textContent = '⚠️ Could not load Telegram login: ' + err.message;
-      }
-    }
-
-    // --- Initialize everything ---
-    try {
-      await loadPublicConfig();
-      await initGoogleOAuth();
-      await initTelegramWidget();
-    } catch (err) {
-      console.error('Initialization error:', err);
-      alertZone.innerHTML = `<div class="alert alert-warning">Some features may be unavailable. Please try refreshing the page.</div>`;
-    }
-
-    // --- Email registration form ----------------------------------------
-    const form = document.getElementById('register-form');
-    const btn = document.getElementById('submit-btn');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      alertZone.innerHTML = '';
-
-      const password = passwordInput.value;
-      const { score } = checkPasswordStrength(password);
-      if (score < 3) {
-        alertZone.innerHTML = `<div class="alert alert-error">Please choose a stronger password (at least 3/5 requirements).</div>`;
+        telegramError.textContent = 'Telegram login is not configured. Please use email or Google sign-in.';
         return;
       }
 
-      btn.disabled = true;
-      btn.textContent = 'Creating account…';
-
-      try {
-        const r = await auth.register({
-          firstName: form.firstName.value.trim(),
-          lastName: form.lastName.value.trim() || null,
-          email: form.email.value.trim(),
-          password: password,
-          professionId: form.professionId.value || null,
-        });
-
-        alertZone.innerHTML = `<div class="alert alert-success">${escapeHtml(r.message || 'Account created.')} Check your email to verify.</div>`;
-        form.reset();
-
-        setTimeout(() => {
-          window.location.href = 'login.html?registered=1';
-        }, 2400);
-
-      } catch (err) {
-        alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
-        btn.disabled = false;
-        btn.textContent = 'Create account';
+      if (!isValidDomain) {
+        console.warn('Telegram widget requires HTTPS and non-localhost domain');
+        telegramWrap.style.display = 'none';
+        telegramError.style.display = 'block';
+        telegramError.textContent = '⚠️ Telegram login requires HTTPS. Please use email or Google sign-in.';
+        return;
       }
-    });
-  </script>
 
-  <!-- Bottom navigation (mobile PWA) -->
-  <script type="module">
-    import { mountBottomNav } from '/pwa/pwa-nav.js';
-    import { getUser } from '/assets/components.js';
-    (async () => {
-      const u = await getUser();
-      mountBottomNav('register', u);
-    })();
-  </script>
+      // Define the auth callback before loading the widget
+      window.onTelegramAuth = async function (user) {
+        alertZone.innerHTML = '';
 
-  <script type="module" src="/pwa/pwa.js"></script>
+        try {
+          const response = await fetch('/api/auth/telegram.php', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(user)
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || (!data.ok && !data.success)) {
+            throw new Error(data.error || 'Telegram login failed.');
+          }
+
+          clearUserCache();
+          window.location.href = queryParam('next') || 'dashboard.html';
+
+        } catch (err) {
+          alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        }
+      };
+
+      // Load the Telegram widget script
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.setAttribute('data-telegram-login', botUsername);
+      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-radius', '8');
+      script.setAttribute('data-request-access', 'write');
+      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+
+      // Clear any existing content and append the script
+      telegramWrap.innerHTML = '';
+      telegramWrap.appendChild(script);
+
+      // Hide error if visible
+      telegramError.style.display = 'none';
+
+      console.log('Telegram widget initialized for bot:', botUsername);
+
+    } catch (err) {
+      console.error('Telegram init error:', err);
+      telegramWrap.style.display = 'none';
+      telegramError.style.display = 'block';
+      telegramError.textContent = '⚠️ Could not load Telegram login: ' + err.message;
+    }
+  }
+
+  // --- Initialize everything ---
+  try {
+    // Load config first
+    await loadPublicConfig();
+
+    // Initialize Google OAuth
+    await initGoogleOAuth();
+
+    // Initialize Telegram
+    await initTelegramWidget();
+
+  } catch (err) {
+    console.error('Initialization error:', err);
+    alertZone.innerHTML = `<div class="alert alert-warning">Some features may be unavailable. Please try refreshing the page.</div>`;
+  }
+
+  // --- Email/password form --------------------------------------------
+  let lastEmail = '';
+  const form = document.getElementById('login-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    alertZone.innerHTML = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing in…';
+    lastEmail = form.email.value.trim();
+    try {
+      await auth.login({ email: lastEmail, password: form.password.value });
+      clearUserCache();
+      window.location.href = queryParam('next') || 'dashboard.html';
+    } catch (err) {
+      let msg = escapeHtml(err.message);
+      if (err.data?.code === 'EMAIL_NOT_VERIFIED') {
+        msg += ` — <a href="#" id="resend-link">Resend verification email</a>`;
+      }
+      alertZone.innerHTML = `<div class="alert alert-error">${msg}</div>`;
+      document.getElementById('resend-link')?.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        try {
+          await auth.resendVerification(lastEmail);
+          alertZone.innerHTML = `<div class="alert alert-success">Verification email sent — check your inbox.</div>`;
+        } catch (e2) {
+          alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(e2.message)}</div>`;
+        }
+      });
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign in';
+    }
+  });
+</script>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<!-- Bottom navigation (mobile PWA) -->
+<script type="module">
+import { mountBottomNav } from '/pwa/pwa-nav.js';
+import { getUser } from '/assets/components.js';
+(async () => {
+  const u = await getUser();
+  mountBottomNav('login', u);
+})();
+</script>
+<!-- PWA install & service worker -->
+<script type="module" src="/pwa/pwa.js"></script>
 </body>
-
 </html>
