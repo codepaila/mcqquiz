@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sign in · Quiznosis</title>
-<meta name="telegram-bot-username" content="QuiznosisBot"> <!-- Replace QuiznosisBot with your actual bot username -->
+<meta name="telegram-bot-username" content="quiznosisbot"> <!-- Replace QuiznosisBot with your actual bot username -->
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="pwa/pwa.css">
 <style>
-/* ── Social Login Buttons ──────────────────────────── */
-.social-btn {
+.google-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26,78 +25,30 @@
   cursor: pointer;
   transition: all 0.15s ease;
   text-decoration: none;
-  min-height: 48px;
 }
-.social-btn:hover {
+.google-btn:hover {
   border-color: var(--ink-muted);
   background: var(--paper-soft);
   box-shadow: var(--shadow-sm);
   text-decoration: none;
   color: var(--ink);
 }
-.social-btn:disabled {
+.google-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.social-btn svg { flex-shrink: 0; }
+.google-btn svg { flex-shrink: 0; }
 
-/* Google specific */
-.google-btn {
-  background: #fff;
-  border-color: #dadce0;
-}
-.google-btn:hover {
-  background: #f8f9fa;
-  border-color: #c5c7c9;
-}
-
-/* Telegram button - Custom styled fallback */
-.telegram-btn {
-  background: #2AABEE;
-  border: none;
-  color: #fff;
-  font-weight: 600;
-}
-.telegram-btn:hover {
-  background: #1e96d3;
-  box-shadow: 0 4px 16px rgba(42,171,238,.35);
-  color: #fff;
-}
-
-/* ── Telegram Widget - Full Width Fix ── */
-#telegram-widget-wrap {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  min-height: 48px;
-}
-
-#telegram-widget-wrap .telegram-login-widget {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 100% !important;
-}
-
-#telegram-widget-wrap iframe {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 100% !important;
-  height: 48px !important;
-  border-radius: var(--radius) !important;
-  display: block !important;
-}
-
-/* Override Telegram's internal styling */
-.telegram-login-container {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-.telegram-login-button {
-  width: 100% !important;
-  max-width: 100% !important;
+/* Real Google button rendered by GIS — kept invisible, click is forwarded
+   to it from our styled .google-btn so every click opens the full
+   account-chooser popup instead of the throttled One Tap prompt. */
+#google-btn-real {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .divider-or {
@@ -117,6 +68,51 @@
   flex: 1;
   height: 1px;
   background: var(--paper-edge);
+}
+
+/* Telegram button */
+.telegram-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 20px;
+  background: #2AABEE;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.telegram-btn:hover {
+  background: #1e96d3;
+  box-shadow: 0 4px 16px rgba(42,171,238,.35);
+  text-decoration: none;
+  color: #fff;
+}
+.telegram-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.telegram-btn svg { flex-shrink: 0; }
+
+/* Telegram widget container — sized to match .google-btn exactly.
+   The widget itself is a cross-origin <iframe> we can't restyle, so we
+   give its wrapper the identical box (full width, same height as the
+   Google button) and center/scale the iframe to fill it. */
+#telegram-widget-wrap {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+#telegram-widget-wrap iframe {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .telegram-error {
@@ -175,8 +171,10 @@
       <div class="stack" style="--stack:16px;">
         <div id="alert-zone"></div>
 
-        <!-- Google Sign-In -->
-        <button class="social-btn google-btn" id="google-btn" type="button">
+        <!-- Google Sign-In — styled button that forwards its click to the
+             real (hidden) GIS button below, so every click opens the full
+             popup account-chooser, never the throttled One Tap prompt. -->
+        <button class="google-btn" id="google-btn" type="button">
           <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
             <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -186,9 +184,13 @@
           </svg>
           Continue with Google
         </button>
+        <!-- GIS renders the real <div> button inside here -->
+        <div id="google-btn-real"></div>
 
-        <!-- Telegram Login Widget - Full Width -->
-        <div id="telegram-widget-wrap"></div>
+        <!-- Telegram Login Widget (official) -->
+        <div id="telegram-widget-wrap" style="display:flex;justify-content:stretch;align-items:center;width:100%;margin-bottom:4px;">
+          <!-- Widget injected by JS below after bot username is known -->
+        </div>
         <div id="telegram-error" style="display:none;" class="telegram-error"></div>
 
         <div class="divider-or">or</div>
@@ -230,6 +232,7 @@
   const alertZone  = document.getElementById('alert-zone');
   const submitBtn  = document.getElementById('submit-btn');
   const googleBtn  = document.getElementById('google-btn');
+  const googleBtnReal = document.getElementById('google-btn-real');
   const telegramWrap = document.getElementById('telegram-widget-wrap');
   const telegramError = document.getElementById('telegram-error');
 
@@ -253,6 +256,7 @@
 
       const result = await response.json();
 
+      // Handle both response formats
       if (result.success) {
         APP_CONFIG = {
           google_client_id: result.google_client_id,
@@ -301,8 +305,21 @@
   }
 
   // --- Initialize Google OAuth ---
+  // FIX: We no longer rely on google.accounts.id.prompt() for the click
+  // handler. One Tap's prompt() has a built-in cooldown — after the user
+  // dismisses it, selects an account once, or it gets auto-cancelled,
+  // Google silently suppresses it on subsequent calls in the same
+  // browser/session ("not displayed" / "skipped moment"), which is why
+  // Google sign-in worked once and then appeared to do nothing.
+  //
+  // The fix: render Google's real button (GIS renderButton) into a hidden
+  // container, then forward every click on our styled button to a
+  // synthetic click on the real one. renderButton always opens the full
+  // OAuth popup/account-chooser — it is not subject to the One Tap
+  // cooldown, so it works reliably on every click, every time.
   async function initGoogleOAuth() {
     try {
+      // Wait for Google library to load
       if (!window.google?.accounts?.id) {
         await new Promise((resolve, reject) => {
           let attempts = 0;
@@ -330,15 +347,32 @@
         callback: handleGoogleCredential,
         cancel_on_tap_outside: false,
         context: 'signin',
+        // Disabling FedCM auto-select avoids silent re-use of a previously
+        // chosen account without a visible chooser, which can also look
+        // like "nothing happens" on a second attempt.
+        auto_select: false,
+        itp_support: true,
       });
 
+      // Render Google's own button into the hidden container.
+      // This is what actually guarantees a popup opens on every click.
+      google.accounts.id.renderButton(googleBtnReal, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        width: 320,
+      });
+
+      // Forward clicks from our styled button to the real GIS button.
       googleBtn.addEventListener('click', () => {
         alertZone.innerHTML = '';
-        google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            google.accounts.id.prompt();
-          }
-        });
+        const realButton = googleBtnReal.querySelector('div[role="button"]');
+        if (realButton) {
+          realButton.click();
+        } else {
+          // Fallback — real button not ready yet, try prompt as last resort
+          google.accounts.id.prompt();
+        }
       });
 
       console.log('Google OAuth initialized successfully');
@@ -350,30 +384,25 @@
       if (divider) {
         divider.style.display = 'none';
       }
+      // Show error in alert zone
       alertZone.innerHTML = `<div class="alert alert-warning">Google Sign-In is currently unavailable. Please use email or Telegram login.</div>`;
     }
   }
 
-  // --- Initialize Telegram Widget (Full Width Fix) ---
+  // --- Initialize Telegram Widget ---
   async function initTelegramWidget() {
     try {
       const config = await loadPublicConfig();
       const botUsername = config.telegram_bot_username;
 
       const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+
+      // Check if we're on a valid domain for Telegram
       const isValidDomain = !isLocalhost && location.protocol === 'https:';
 
       if (!botUsername || botUsername === 'QuiznosisBot') {
         console.warn('Telegram bot username not configured');
-        // Show custom styled fallback button
-        telegramWrap.innerHTML = `
-          <button class="social-btn telegram-btn" disabled style="opacity:0.5;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-            </svg>
-            Continue with Telegram
-          </button>
-        `;
+        telegramWrap.style.display = 'none';
         telegramError.style.display = 'block';
         telegramError.textContent = 'Telegram login is not configured. Please use email or Google sign-in.';
         return;
@@ -381,20 +410,13 @@
 
       if (!isValidDomain) {
         console.warn('Telegram widget requires HTTPS and non-localhost domain');
-        telegramWrap.innerHTML = `
-          <button class="social-btn telegram-btn" disabled style="opacity:0.5;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-            </svg>
-            Continue with Telegram (HTTPS Required)
-          </button>
-        `;
+        telegramWrap.style.display = 'none';
         telegramError.style.display = 'block';
         telegramError.textContent = '⚠️ Telegram login requires HTTPS. Please use email or Google sign-in.';
         return;
       }
 
-      // Define the auth callback
+      // Define the auth callback before loading the widget
       window.onTelegramAuth = async function (user) {
         alertZone.innerHTML = '';
 
@@ -422,16 +444,6 @@
         }
       };
 
-      // Clear and set up the widget
-      telegramWrap.innerHTML = '';
-      
-      // Create a wrapper div for the widget
-      const widgetContainer = document.createElement('div');
-      widgetContainer.style.width = '100%';
-      widgetContainer.style.display = 'flex';
-      widgetContainer.style.justifyContent = 'center';
-      widgetContainer.style.minHeight = '48px';
-      
       // Load the Telegram widget script
       const script = document.createElement('script');
       script.async = true;
@@ -441,36 +453,10 @@
       script.setAttribute('data-radius', '8');
       script.setAttribute('data-request-access', 'write');
       script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-      
-      // Add a unique ID to target with CSS
-      script.id = 'telegram-widget-script';
 
-      widgetContainer.appendChild(script);
-      telegramWrap.appendChild(widgetContainer);
-
-      // Force full width on the iframe with multiple methods
-      const forceFullWidth = () => {
-        const iframe = telegramWrap.querySelector('iframe');
-        if (iframe) {
-          iframe.style.width = '100% !important';
-          iframe.style.maxWidth = '100% !important';
-          iframe.style.minWidth = '100% !important';
-          iframe.style.height = '48px !important';
-          iframe.style.display = 'block !important';
-          iframe.style.borderRadius = 'var(--radius) !important';
-        }
-      };
-
-      // Try immediately and after delays
-      setTimeout(forceFullWidth, 50);
-      setTimeout(forceFullWidth, 200);
-      setTimeout(forceFullWidth, 500);
-
-      // Also observe for when the iframe is added
-      const observer = new MutationObserver(() => {
-        forceFullWidth();
-      });
-      observer.observe(telegramWrap, { childList: true, subtree: true });
+      // Clear any existing content and append the script
+      telegramWrap.innerHTML = '';
+      telegramWrap.appendChild(script);
 
       // Hide error if visible
       telegramError.style.display = 'none';
@@ -479,14 +465,7 @@
 
     } catch (err) {
       console.error('Telegram init error:', err);
-      telegramWrap.innerHTML = `
-        <button class="social-btn telegram-btn" disabled style="opacity:0.5;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-          </svg>
-          Continue with Telegram
-        </button>
-      `;
+      telegramWrap.style.display = 'none';
       telegramError.style.display = 'block';
       telegramError.textContent = '⚠️ Could not load Telegram login: ' + err.message;
     }
@@ -494,9 +473,15 @@
 
   // --- Initialize everything ---
   try {
+    // Load config first
     await loadPublicConfig();
+
+    // Initialize Google OAuth
     await initGoogleOAuth();
+
+    // Initialize Telegram
     await initTelegramWidget();
+
   } catch (err) {
     console.error('Initialization error:', err);
     alertZone.innerHTML = `<div class="alert alert-warning">Some features may be unavailable. Please try refreshing the page.</div>`;

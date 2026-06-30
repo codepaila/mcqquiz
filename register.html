@@ -8,10 +8,8 @@
   <title>Register · Quiznosis</title>
   <link rel="stylesheet" href="assets/styles.css">
   <link rel="stylesheet" href="pwa/pwa.css">
-
   <style>
-    /* ── Social Login Buttons ──────────────────────────── */
-    .social-btn {
+    .google-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -28,10 +26,9 @@
       cursor: pointer;
       transition: all 0.15s ease;
       text-decoration: none;
-      min-height: 48px;
     }
 
-    .social-btn:hover {
+    .google-btn:hover {
       border-color: var(--ink-muted);
       background: var(--paper-soft);
       box-shadow: var(--shadow-sm);
@@ -39,58 +36,25 @@
       color: var(--ink);
     }
 
-    .social-btn:disabled {
+    .google-btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
 
-    .social-btn svg {
+    .google-btn svg {
       flex-shrink: 0;
     }
 
-    /* Google specific */
-    .google-btn {
-      background: #fff;
-      border-color: #dadce0;
-    }
-
-    .google-btn:hover {
-      background: #f8f9fa;
-      border-color: #c5c7c9;
-    }
-
-    /* Telegram button */
-    .telegram-btn {
-      background: #2AABEE;
-      border: none;
-      color: #fff;
-      font-weight: 600;
-    }
-
-    .telegram-btn:hover {
-      background: #1e96d3;
-      box-shadow: 0 4px 16px rgba(42, 171, 238, .35);
-      color: #fff;
-    }
-
-    /* Telegram Widget Wrapper - Full Width Fix */
-    /* ── Telegram Widget - Full Width Fix ── */
-    #telegram-widget-wrap {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      margin: 0;
-      padding: 0;
-      min-height: 48px;
-    }
-
-    #telegram-widget-wrap iframe {
-      width: 100% !important;
-      max-width: 100% !important;
-      min-width: 100% !important;
-      height: 48px !important;
-      border-radius: var(--radius) !important;
-      display: block !important;
+    /* Real Google button rendered by GIS — kept invisible, click is
+       forwarded to it from our styled .google-btn so every click opens
+       the full account-chooser popup instead of the throttled One Tap. */
+    #google-btn-real {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .divider-or {
@@ -113,7 +77,53 @@
       background: var(--paper-edge);
     }
 
-    .telegram-error {
+    /* Telegram button */
+    .telegram-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 11px 20px;
+      background: #2AABEE;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-body);
+      font-size: 0.96rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .telegram-btn:hover {
+      background: #1e96d3;
+      box-shadow: 0 4px 16px rgba(42, 171, 238, .35);
+      text-decoration: none;
+      color: #fff;
+    }
+
+    .telegram-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Telegram widget container — sized to match .google-btn exactly.
+   The widget itself is a cross-origin <iframe> we can't restyle, so we
+   give its wrapper the identical box (full width, same height as the
+   Google button) and center/scale the iframe to fill it. */
+#telegram-widget-wrap {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+#telegram-widget-wrap iframe {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.telegram-error {
       color: #dc3545;
       font-size: 0.85rem;
       text-align: center;
@@ -123,155 +133,11 @@
       margin-top: 4px;
     }
 
-    /* ── Password Strength ── */
-    .password-strength {
-      margin-top: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+    /* ── Password Strength Styles ── */
+    .password-field-wrapper {
+      position: relative;
     }
 
-    .password-strength .bars {
-      display: flex;
-      gap: 4px;
-    }
-
-    .password-strength .bar {
-      flex: 1;
-      height: 4px;
-      border-radius: 2px;
-      background: var(--paper-edge);
-      transition: all 0.3s ease;
-    }
-
-    .password-strength .bar.active.weak {
-      background: #dc3545;
-    }
-
-    .password-strength .bar.active.fair {
-      background: #ffc107;
-    }
-
-    .password-strength .bar.active.good {
-      background: #17a2b8;
-    }
-
-    .password-strength .bar.active.strong {
-      background: #28a745;
-    }
-
-    .password-strength .bar.active.excellent {
-      background: #20c997;
-    }
-
-    .password-strength .label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--ink-muted);
-      transition: color 0.3s ease;
-    }
-
-    .password-strength .label.weak {
-      color: #dc3545;
-    }
-
-    .password-strength .label.fair {
-      color: #ffc107;
-    }
-
-    .password-strength .label.good {
-      color: #17a2b8;
-    }
-
-    .password-strength .label.strong {
-      color: #28a745;
-    }
-
-    .password-strength .label.excellent {
-      color: #20c997;
-    }
-
-    .password-requirements {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px 16px;
-      margin-top: 6px;
-      font-size: 0.8rem;
-    }
-
-    .password-requirements .req {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--ink-muted);
-      transition: color 0.3s ease;
-    }
-
-    .password-requirements .req.met {
-      color: #28a745;
-    }
-
-    .password-requirements .req svg {
-      width: 14px;
-      height: 14px;
-      flex-shrink: 0;
-    }
-
-    /* ── Field Row ── */
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    @media (max-width: 480px) {
-      .field-row {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* ── Alert styles ── */
-    .alert {
-      padding: 12px 16px;
-      border-radius: var(--radius);
-      font-size: 0.9rem;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .alert svg {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .alert-error {
-      background: rgba(220, 53, 69, 0.1);
-      border: 1px solid rgba(220, 53, 69, 0.2);
-      color: #dc3545;
-    }
-
-    .alert-success {
-      background: rgba(40, 167, 69, 0.1);
-      border: 1px solid rgba(40, 167, 69, 0.2);
-      color: #28a745;
-    }
-
-    .alert-warning {
-      background: rgba(255, 193, 7, 0.15);
-      border: 1px solid #ffc107;
-      color: #856404;
-    }
-
-    .field-hint {
-      font-size: 0.78rem;
-      color: var(--ink-muted);
-      margin-top: 4px;
-    }
-
-    /* Password toggle button */
     .password-toggle {
       position: absolute;
       right: 12px;
@@ -283,25 +149,103 @@
       cursor: pointer;
       padding: 4px;
       transition: color 0.2s ease;
+      z-index: 2;
     }
-
     .password-toggle:hover {
       color: var(--ink);
     }
 
-    .field-with-toggle {
-      position: relative;
+    .password-strength {
+      margin-top: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
     }
-
-    .field-with-toggle input {
-      padding-right: 44px;
+    .password-strength.visible {
+      display: flex;
     }
+    .password-strength .bars {
+      display: flex;
+      gap: 4px;
+    }
+    .password-strength .bar {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--paper-edge);
+      transition: all 0.3s ease;
+    }
+    .password-strength .bar.active.weak { background: #dc3545; }
+    .password-strength .bar.active.fair { background: #ffc107; }
+    .password-strength .bar.active.good { background: #17a2b8; }
+    .password-strength .bar.active.strong { background: #28a745; }
+    .password-strength .bar.active.excellent { background: #20c997; }
+    
+    .password-strength .label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ink-muted);
+      transition: color 0.3s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .password-strength .label .score-text {
+      font-weight: 400;
+      color: var(--ink-muted);
+      font-size: 0.7rem;
+    }
+    .password-strength .label.weak { color: #dc3545; }
+    .password-strength .label.fair { color: #ffc107; }
+    .password-strength .label.good { color: #17a2b8; }
+    .password-strength .label.strong { color: #28a745; }
+    .password-strength .label.excellent { color: #20c997; }
 
-    /* Loading spinner */
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
+    .password-requirements {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 16px;
+      margin-top: 6px;
+      font-size: 0.8rem;
+    }
+    @media (max-width: 480px) {
+      .password-requirements {
+        grid-template-columns: 1fr;
+        gap: 2px 0;
       }
+    }
+    .password-requirements .req {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink-muted);
+      transition: color 0.3s ease;
+      padding: 2px 0;
+    }
+    .password-requirements .req.met {
+      color: #28a745;
+    }
+    .password-requirements .req svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 480px) {
+      .field-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .field-hint {
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+      margin-top: 4px;
     }
   </style>
 
@@ -347,17 +291,18 @@
   <main class="section">
     <div class="container-narrow">
       <div class="text-center mb-3">
-        <div class="eyebrow">Get started</div>
+        <div class="eyebrow">Step one</div>
         <h1 class="display mt-1" style="font-size:2.6rem;">Create your account</h1>
-        <p class="text-soft mt-1" style="font-size:0.95rem;">Free forever. Takes 30 seconds.</p>
+        <p class="text-soft mt-1">Free forever for the basics. Takes 30 seconds.</p>
       </div>
-
       <div class="card" style="padding:32px;">
         <div class="stack" style="--stack:16px;">
           <div id="alert-zone"></div>
 
-          <!-- Google Sign-Up -->
-          <button class="social-btn google-btn" id="google-btn" type="button">
+          <!-- Google Sign-Up — styled button that forwards its click to the
+               real (hidden) GIS button below, so every click opens the
+               full popup account-chooser, never the throttled One Tap. -->
+          <button class="google-btn" id="google-btn" type="button">
             <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
               <path fill="#EA4335"
                 d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
@@ -371,9 +316,11 @@
             </svg>
             Sign up with Google
           </button>
+          <!-- GIS renders the real <div> button inside here -->
+          <div id="google-btn-real"></div>
 
-          <!-- Telegram Login Widget (Full Width) -->
-          <div id="telegram-widget-wrap"></div>
+          <!-- Telegram Login Widget -->
+          <div id="telegram-widget-wrap" style="display:flex;justify-content:stretch;align-items:center;width:100%;margin-bottom:4px;"></div>
           <div id="telegram-error" style="display:none;" class="telegram-error"></div>
 
           <div class="divider-or">or sign up with email</div>
@@ -391,29 +338,25 @@
                 <input id="lastName" name="lastName" placeholder="e.g. Sharma">
               </div>
             </div>
-
             <div class="field">
               <label for="email">Email</label>
               <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
             </div>
-
-            <!-- Password with strength meter -->
             <div class="field">
               <label for="password">Password</label>
-              <div class="field-with-toggle">
+              <div class="password-field-wrapper">
                 <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password"
                   placeholder="At least 8 characters">
                 <button type="button" class="password-toggle" id="toggle-password">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
                   </svg>
                 </button>
               </div>
-
+              
               <!-- Password Strength -->
-              <div class="password-strength" id="password-strength" style="display: none;">
+              <div class="password-strength" id="password-strength">
                 <div class="bars">
                   <div class="bar" data-index="0"></div>
                   <div class="bar" data-index="1"></div>
@@ -421,49 +364,37 @@
                   <div class="bar" data-index="3"></div>
                   <div class="bar" data-index="4"></div>
                 </div>
-                <div class="label" id="strength-label">Weak</div>
+                <div class="label" id="strength-label">
+                  <span id="strength-text">Weak</span>
+                  <span class="score-text" id="strength-score">0/5</span>
+                </div>
               </div>
-
+              
               <!-- Password Requirements -->
               <div class="password-requirements" id="requirements">
                 <span class="req" data-req="length">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
                   8+ characters
                 </span>
                 <span class="req" data-req="uppercase">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
                   Uppercase
                 </span>
                 <span class="req" data-req="lowercase">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
                   Lowercase
                 </span>
                 <span class="req" data-req="number">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
                   Number
                 </span>
                 <span class="req" data-req="special">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2 2" />
-                  </svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
                   Special character
                 </span>
               </div>
+              <div class="field-hint">Must include uppercase, lowercase, a number, and a special character.</div>
             </div>
-
             <div class="field">
               <label for="professionId">Preparing for <span class="text-muted"
                   style="font-weight:400;">(optional)</span></label>
@@ -471,7 +402,6 @@
                 <option value="">— Choose later —</option>
               </select>
             </div>
-
             <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Create account</button>
           </form>
 
@@ -495,12 +425,14 @@
 
     const alertZone = document.getElementById('alert-zone');
     const googleBtn = document.getElementById('google-btn');
+    const googleBtnReal = document.getElementById('google-btn-real');
     const telegramWrap = document.getElementById('telegram-widget-wrap');
     const telegramError = document.getElementById('telegram-error');
+
+    // ── Password Toggle ──
     const passwordInput = document.getElementById('password');
     const togglePassword = document.getElementById('toggle-password');
-
-    // ── Password toggle ──
+    
     togglePassword.addEventListener('click', () => {
       const isPassword = passwordInput.type === 'password';
       passwordInput.type = isPassword ? 'text' : 'password';
@@ -517,7 +449,7 @@
       `;
     });
 
-    // ── Password strength checker ──
+    // ── Password Strength Checker ──
     const checkPasswordStrength = (password) => {
       const checks = {
         length: password.length >= 8,
@@ -538,16 +470,17 @@
       return { checks, score, ...levels[score] };
     };
 
-    // ── Update password UI ──
+    // ── Update Password UI ──
     const updatePasswordUI = () => {
       const password = passwordInput.value;
       const hasPassword = password.length > 0;
       const strengthContainer = document.getElementById('password-strength');
-      const strengthLabel = document.getElementById('strength-label');
+      const strengthText = document.getElementById('strength-text');
+      const strengthScore = document.getElementById('strength-score');
       const requirements = document.querySelectorAll('.req');
-
-      strengthContainer.style.display = hasPassword ? 'flex' : 'none';
-
+      
+      strengthContainer.classList.toggle('visible', hasPassword);
+      
       if (!hasPassword) {
         requirements.forEach(req => {
           req.classList.remove('met');
@@ -558,19 +491,20 @@
         });
         return;
       }
-
+      
       const { checks, score, label, class: strengthClass } = checkPasswordStrength(password);
-
+      
       // Update bars
       document.querySelectorAll('.bar').forEach((bar, i) => {
         bar.classList.toggle('active', i < score);
         bar.className = `bar ${i < score ? 'active ' + strengthClass : ''}`;
       });
-
+      
       // Update label
-      strengthLabel.textContent = label;
-      strengthLabel.className = `label ${strengthClass}`;
-
+      strengthText.textContent = label;
+      strengthScore.textContent = `${score}/5`;
+      document.querySelector('.password-strength .label').className = `label ${strengthClass}`;
+      
       // Update requirements
       requirements.forEach(req => {
         const key = req.dataset.req;
@@ -589,12 +523,12 @@
     passwordInput.addEventListener('input', updatePasswordUI);
     passwordInput.addEventListener('focus', () => {
       if (passwordInput.value) {
-        document.getElementById('password-strength').style.display = 'flex';
+        document.getElementById('password-strength').classList.add('visible');
       }
     });
 
     // -----------------------------------------------------
-    // Public configuration
+    // Public configuration (loaded once)
     // -----------------------------------------------------
     let APP_CONFIG = null;
 
@@ -613,6 +547,7 @@
 
         const result = await response.json();
 
+        // Handle both response formats
         if (result.success) {
           APP_CONFIG = {
             google_client_id: result.google_client_id,
@@ -660,20 +595,16 @@
           window.location.href = queryParam('next') || 'dashboard.html';
         })
         .catch(err => {
-          alertZone.innerHTML = `<div class="alert alert-error">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            ${escapeHtml(err.message)}
-          </div>`;
+          alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
           googleBtn.disabled = false;
-          googleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg> Sign up with Google`;
+          googleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg> Sign up with Google`;
         });
     }
 
     // --- Initialize Google OAuth ---
     async function initGoogleOAuth() {
       try {
+        // Wait for Google library to load
         if (!window.google?.accounts?.id) {
           await new Promise((resolve, reject) => {
             let attempts = 0;
@@ -701,15 +632,29 @@
           callback: handleGoogleCredential,
           cancel_on_tap_outside: false,
           context: 'signup',
+          auto_select: false,
+          itp_support: true,
         });
 
+        // Render Google's own button into the hidden container.
+        google.accounts.id.renderButton(googleBtnReal, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          width: 320,
+          text: 'signup_with',
+        });
+
+        // Forward clicks from our styled button to the real GIS button.
         googleBtn.addEventListener('click', () => {
           alertZone.innerHTML = '';
-          google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              google.accounts.id.prompt();
-            }
-          });
+          const realButton = googleBtnReal.querySelector('div[role="button"]');
+          if (realButton) {
+            realButton.click();
+          } else {
+            // Fallback — real button not ready yet, try prompt as last resort
+            google.accounts.id.prompt();
+          }
         });
 
         console.log('Google OAuth initialized successfully');
@@ -721,22 +666,20 @@
         if (divider) {
           divider.style.display = 'none';
         }
-        alertZone.innerHTML = `<div class="alert alert-warning">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          Google Sign-In is currently unavailable. Please use email registration.
-        </div>`;
+        // Show error in alert zone
+        alertZone.innerHTML = `<div class="alert alert-warning">Google Sign-In is currently unavailable. Please use email registration.</div>`;
       }
     }
 
-    // --- Initialize Telegram Widget (Full Width) ---
+    // --- Initialize Telegram Widget ---
     async function initTelegramWidget() {
       try {
         const config = await loadPublicConfig();
         const botUsername = config.telegram_bot_username;
 
         const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+
+        // Check if we're on a valid domain for Telegram
         const isValidDomain = !isLocalhost && location.protocol === 'https:';
 
         if (!botUsername || botUsername === 'QuiznosisBot') {
@@ -755,6 +698,7 @@
           return;
         }
 
+        // Define the auth callback before loading the widget
         window.onTelegramAuth = async function (user) {
           alertZone.innerHTML = '';
 
@@ -778,21 +722,11 @@
             window.location.href = queryParam('next') || 'dashboard.html';
 
           } catch (err) {
-            alertZone.innerHTML = `<div class="alert alert-error">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              ${escapeHtml(err.message)}
-            </div>`;
+            alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
           }
         };
 
-        // Create wrapper for full width
-        const widgetContainer = document.createElement('div');
-        widgetContainer.style.width = '100%';
-        widgetContainer.style.display = 'flex';
-        widgetContainer.style.justifyContent = 'center';
-
+        // Load the Telegram widget script
         const script = document.createElement('script');
         script.async = true;
         script.src = 'https://telegram.org/js/telegram-widget.js?22';
@@ -802,22 +736,13 @@
         script.setAttribute('data-request-access', 'write');
         script.setAttribute('data-onauth', 'onTelegramAuth(user)');
 
+        // Clear any existing content and append the script
         telegramWrap.innerHTML = '';
-        telegramWrap.appendChild(widgetContainer);
-        widgetContainer.appendChild(script);
+        telegramWrap.appendChild(script);
 
-        // Force full width on iframe
-        setTimeout(() => {
-          const iframe = telegramWrap.querySelector('iframe');
-          if (iframe) {
-            iframe.style.width = '100% !important';
-            iframe.style.maxWidth = '100% !important';
-            iframe.style.minWidth = '100% !important';
-            iframe.style.height = '48px !important';
-          }
-        }, 100);
-
+        // Hide error if visible
         telegramError.style.display = 'none';
+
         console.log('Telegram widget initialized for bot:', botUsername);
 
       } catch (err) {
@@ -830,17 +755,18 @@
 
     // --- Initialize everything ---
     try {
+      // Load config first
       await loadPublicConfig();
+
+      // Initialize Google OAuth
       await initGoogleOAuth();
+
+      // Initialize Telegram
       await initTelegramWidget();
+
     } catch (err) {
       console.error('Initialization error:', err);
-      alertZone.innerHTML = `<div class="alert alert-warning">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        Some features may be unavailable. Please try refreshing the page.
-      </div>`;
+      alertZone.innerHTML = `<div class="alert alert-warning">Some features may be unavailable. Please try refreshing the page.</div>`;
     }
 
     // --- Email registration form ----------------------------------------
@@ -850,19 +776,15 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       alertZone.innerHTML = '';
-
-      const password = form.password.value;
+      
+      // Check password strength before submitting
+      const password = passwordInput.value;
       const { score } = checkPasswordStrength(password);
       if (score < 3) {
-        alertZone.innerHTML = `<div class="alert alert-error">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          Please choose a stronger password.
-        </div>`;
+        alertZone.innerHTML = `<div class="alert alert-error">Please choose a stronger password (at least 3/5 requirements).</div>`;
         return;
       }
-
+      
       btn.disabled = true;
       btn.textContent = 'Creating account…';
 
@@ -875,12 +797,7 @@
           professionId: form.professionId.value || null,
         });
 
-        alertZone.innerHTML = `<div class="alert alert-success">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/>
-          </svg>
-          ${escapeHtml(r.message || 'Account created.')} Check your email to verify.
-        </div>`;
+        alertZone.innerHTML = `<div class="alert alert-success">${escapeHtml(r.message || 'Account created.')} Check your email to verify.</div>`;
         form.reset();
 
         setTimeout(() => {
@@ -888,17 +805,47 @@
         }, 2400);
 
       } catch (err) {
-        alertZone.innerHTML = `<div class="alert alert-error">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          ${escapeHtml(err.message)}
-        </div>`;
+        alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
         btn.disabled = false;
         btn.textContent = 'Create account';
       }
     });
   </script>
+
+  <style>
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .alert-warning {
+      background: rgba(255, 193, 7, 0.15);
+      border: 1px solid #ffc107;
+      color: #856404;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .alert-error {
+      background: rgba(220, 53, 69, 0.1);
+      border: 1px solid rgba(220, 53, 69, 0.2);
+      color: #dc3545;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .alert-success {
+      background: rgba(40, 167, 69, 0.1);
+      border: 1px solid rgba(40, 167, 69, 0.2);
+      color: #28a745;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+  </style>
 
   <!-- Bottom navigation (mobile PWA) -->
   <script type="module">
