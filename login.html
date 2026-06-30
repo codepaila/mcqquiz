@@ -8,39 +8,88 @@
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="pwa/pwa.css">
 <style>
+/* ── Card width fix ── */
+.container-narrow {
+  max-width: 620px !important;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.card {
+  padding: 40px 36px !important;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 28px 20px !important;
+  }
+  .container-narrow {
+    padding: 0 12px;
+  }
+}
+
+/* ── Social Buttons Container ── */
+.social-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.social-buttons .social-item {
+  flex: 1;
+  min-width: 0;
+}
+
 .google-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 11px 20px;
+  padding: 12px 16px;
   background: var(--paper);
   border: 1.5px solid var(--paper-edge);
-  border-radius: var(--radius);
+  border-radius: 10px;
   font-family: var(--font-body);
-  font-size: 0.96rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: var(--ink);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   text-decoration: none;
-  min-height: 44px;
+  min-height: 48px;
+  white-space: nowrap;
 }
+
 .google-btn:hover {
   border-color: var(--ink-muted);
   background: var(--paper-soft);
   box-shadow: var(--shadow-sm);
   text-decoration: none;
   color: var(--ink);
+  transform: translateY(-1px);
 }
+
 .google-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
-.google-btn svg { flex-shrink: 0; }
 
-/* Hide real Google button but keep it clickable via forwarding */
+.google-btn svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.google-btn .btn-text {
+  display: inline-block;
+}
+
+/* Hide real Google button */
 #google-btn-real {
   position: absolute;
   width: 1px;
@@ -50,22 +99,10 @@
   pointer-events: none;
 }
 
-/* Social buttons container - flex row on desktop, stack on mobile */
-.social-buttons {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-
-.social-buttons .social-item {
-  flex: 1;
-  min-width: 0;
-}
-
-/* Telegram wrapper - match Google button styling */
+/* ── Telegram Widget ── */
 #telegram-widget-wrap {
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -75,7 +112,8 @@
 #telegram-widget-wrap iframe {
   width: 100% !important;
   max-width: 100% !important;
-  min-height: 44px;
+  min-height: 48px;
+  border-radius: 10px !important;
 }
 
 .telegram-error {
@@ -88,26 +126,19 @@
   margin-top: 4px;
 }
 
-.alert-warning {
-  background: rgba(255, 193, 7, 0.15);
-  border: 1px solid #ffc107;
-  color: #856404;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-
+/* ── Divider ── */
 .divider-or {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   color: var(--ink-muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-family: var(--font-mono);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin: 4px 0;
+  margin: 8px 0 4px;
 }
+
 .divider-or::before,
 .divider-or::after {
   content: '';
@@ -116,7 +147,7 @@
   background: var(--paper-edge);
 }
 
-/* Mobile responsive */
+/* ── Mobile responsive ── */
 @media (max-width: 640px) {
   .social-buttons {
     flex-direction: column;
@@ -127,9 +158,110 @@
     flex: none;
     width: 100%;
   }
+  
+  .google-btn {
+    font-size: 0.88rem;
+    padding: 11px 14px;
+    min-height: 44px;
+  }
+  
+  .google-btn .btn-text {
+    font-size: 0.88rem;
+  }
+  
+  #telegram-widget-wrap {
+    min-height: 44px;
+  }
+  
+  #telegram-widget-wrap iframe {
+    min-height: 44px;
+  }
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+/* ── Animations ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Alerts ── */
+.alert-warning {
+  background: rgba(255, 193, 7, 0.12);
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.alert-error {
+  background: rgba(220, 53, 69, 0.08);
+  border: 1px solid rgba(220, 53, 69, 0.25);
+  color: #dc3545;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.alert-success {
+  background: rgba(40, 167, 69, 0.08);
+  border: 1px solid rgba(40, 167, 69, 0.25);
+  color: #28a745;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+/* ── Form improvements ── */
+.field input,
+.field select {
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 184, 83, 28), 0.12);
+}
+
+.btn-primary {
+  border-radius: 10px;
+  padding: 14px 20px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(var(--accent-rgb, 184, 83, 28), 0.25);
+}
+
+.btn-primary:disabled {
+  transform: none;
+}
+
+/* ── Typography ── */
+.display {
+  font-size: 2.4rem !important;
+  letter-spacing: -0.02em;
+}
+
+.eyebrow {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
+  margin-bottom: 4px;
+}
+
+.text-soft {
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+}
 </style>
 
 <!-- ── PWA ─────────────────────────────────────────────── -->
@@ -148,24 +280,17 @@
 <link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192x192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512x512.png">
-<!-- iOS splash screens -->
-<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
-<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-828x1792.png">
-<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1125x2436.png">
-<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="/assets/icons/splash-1242x2688.png">
-<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-750x1334.png">
-<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="/assets/icons/splash-640x1136.png">
-<!-- ── end PWA ───────────────────────────────────────────── -->
 </head>
 <body>
 <main class="section">
   <div class="container-narrow">
     <div class="text-center mb-3">
       <div class="eyebrow">Welcome back</div>
-      <h1 class="display mt-1" style="font-size:2.6rem;">Sign in</h1>
+      <h1 class="display mt-1">Sign in</h1>
+      <p class="text-soft mt-1">Continue your learning journey</p>
     </div>
-    <div class="card" style="padding:32px;">
-      <div class="stack" style="--stack:16px;">
+    <div class="card">
+      <div class="stack" style="--stack:20px;">
         <div id="alert-zone"></div>
 
         <!-- Social buttons - flex row on desktop, stack on mobile -->
@@ -178,18 +303,15 @@
                 <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
                 <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
                 <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                <path fill="none" d="M0 0h48v48H0z"/>
               </svg>
-              <span>Continue with Google</span>
+              <span class="btn-text">Google</span>
             </button>
             <div id="google-btn-real"></div>
           </div>
 
           <!-- Telegram Login -->
           <div class="social-item">
-            <div id="telegram-widget-wrap">
-              <!-- Widget injected by JS -->
-            </div>
+            <div id="telegram-widget-wrap"></div>
             <div id="telegram-error" style="display:none;" class="telegram-error"></div>
           </div>
         </div>
@@ -197,22 +319,22 @@
         <div class="divider-or">or</div>
 
         <!-- Email / password form -->
-        <form id="login-form" class="stack" style="--stack:16px;">
+        <form id="login-form" class="stack" style="--stack:18px;">
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" name="email" type="email" required autocomplete="email">
+            <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
           </div>
           <div class="field">
             <label for="password">Password</label>
-            <input id="password" name="password" type="password" required autocomplete="current-password">
-            <div class="text-right" style="margin-top:4px;">
+            <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password">
+            <div class="text-right" style="margin-top:6px;">
               <a href="forgot.html" style="font-size:0.82rem;">Forgot password?</a>
             </div>
           </div>
           <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Sign in</button>
         </form>
 
-        <p class="text-center text-muted" style="font-size:0.9rem;">
+        <p class="text-center text-muted" style="font-size:0.9rem; margin-top:4px;">
           New here? <a href="register.html">Create an account</a>
         </p>
       </div>
@@ -257,7 +379,6 @@
 
       const result = await response.json();
 
-      // Handle both response formats
       if (result.success) {
         APP_CONFIG = {
           google_client_id: result.google_client_id,
@@ -291,7 +412,7 @@
   function handleGoogleCredential(response) {
     alertZone.innerHTML = '';
     googleBtn.disabled = true;
-    googleBtn.innerHTML = `<span style="display:inline-block;width:18px;height:18px;border:2px solid var(--paper-edge);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;"></span> Verifying…`;
+    googleBtn.innerHTML = `<span style="display:inline-block;width:20px;height:20px;border:2.5px solid var(--paper-edge);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;"></span>`;
 
     auth.googleOAuth(response.credential)
       .then(() => {
@@ -301,14 +422,13 @@
       .catch(err => {
         alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
         googleBtn.disabled = false;
-        googleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg> Continue with Google`;
+        googleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span class="btn-text">Google</span>`;
       });
   }
 
   // --- Initialize Google OAuth ---
   async function initGoogleOAuth() {
     try {
-      // Wait for Google library to load
       if (!window.google?.accounts?.id) {
         await new Promise((resolve, reject) => {
           let attempts = 0;
@@ -340,22 +460,19 @@
         itp_support: true,
       });
 
-      // Render Google's own button into the hidden container
       google.accounts.id.renderButton(googleBtnReal, {
         type: 'standard',
         theme: 'outline',
         size: 'large',
-        width: 320,
+        width: 280,
       });
 
-      // Forward clicks from our styled button to the real GIS button
       googleBtn.addEventListener('click', () => {
         alertZone.innerHTML = '';
         const realButton = googleBtnReal.querySelector('div[role="button"]');
         if (realButton) {
           realButton.click();
         } else {
-          // Fallback
           google.accounts.id.prompt();
         }
       });
@@ -365,7 +482,6 @@
     } catch (err) {
       console.error('Google OAuth init error:', err);
       googleBtn.style.display = 'none';
-      // Show error in alert zone
       alertZone.innerHTML = `<div class="alert alert-warning">Google Sign-In is currently unavailable. Please use email or Telegram login.</div>`;
     }
   }
@@ -380,7 +496,6 @@
       const isValidDomain = !isLocalhost && location.protocol === 'https:';
 
       if (!botUsername || botUsername === 'QuiznosisBot') {
-        console.warn('Telegram bot username not configured');
         telegramWrap.style.display = 'none';
         telegramError.style.display = 'block';
         telegramError.textContent = 'Telegram login is not configured. Please use email or Google sign-in.';
@@ -388,14 +503,12 @@
       }
 
       if (!isValidDomain) {
-        console.warn('Telegram widget requires HTTPS and non-localhost domain');
         telegramWrap.style.display = 'none';
         telegramError.style.display = 'block';
         telegramError.textContent = '⚠️ Telegram login requires HTTPS. Please use email or Google sign-in.';
         return;
       }
 
-      // Define the auth callback before loading the widget
       window.onTelegramAuth = async function (user) {
         alertZone.innerHTML = '';
 
@@ -423,21 +536,17 @@
         }
       };
 
-      // Load the Telegram widget script
       const script = document.createElement('script');
       script.async = true;
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
       script.setAttribute('data-telegram-login', botUsername);
       script.setAttribute('data-size', 'large');
-      script.setAttribute('data-radius', '8');
+      script.setAttribute('data-radius', '10');
       script.setAttribute('data-request-access', 'write');
       script.setAttribute('data-onauth', 'onTelegramAuth(user)');
 
-      // Clear any existing content and append the script
       telegramWrap.innerHTML = '';
       telegramWrap.appendChild(script);
-
-      // Hide error if visible
       telegramError.style.display = 'none';
 
       console.log('Telegram widget initialized for bot:', botUsername);
@@ -452,15 +561,9 @@
 
   // --- Initialize everything ---
   try {
-    // Load config first
     await loadPublicConfig();
-
-    // Initialize Google OAuth
     await initGoogleOAuth();
-
-    // Initialize Telegram
     await initTelegramWidget();
-
   } catch (err) {
     console.error('Initialization error:', err);
     alertZone.innerHTML = `<div class="alert alert-warning">Some features may be unavailable. Please try refreshing the page.</div>`;
@@ -509,7 +612,6 @@ import { getUser } from '/assets/components.js';
   mountBottomNav('login', u);
 })();
 </script>
-<!-- PWA install & service worker -->
 <script type="module" src="/pwa/pwa.js"></script>
 </body>
 </html>
