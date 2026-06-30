@@ -977,7 +977,13 @@
           <div class="qe-edit">
             <form id="quiz-form" class="stack" style="--stack:14px;">
               <div class="field"><label>Question</label><textarea name="question" rows="3" required>${escapeHtml(e.question || '')}</textarea></div>
-              <div class="field"><label>Explanation</label><textarea name="explanation" rows="2">${escapeHtml(e.explanation || '')}</textarea></div>
+              <div class="field">
+                <label style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                  <span>Explanation</span>
+                  <button type="button" class="btn btn-ghost btn-sm" id="ai-improve-btn" style="font-weight:600;">✨ Improve with AI</button>
+                </label>
+                <textarea name="explanation" rows="2">${escapeHtml(e.explanation || '')}</textarea>
+              </div>
               <div class="field-row">
                 <div class="field"><label>Difficulty</label>
                   <select name="difficulty">
@@ -987,19 +993,10 @@
                   </select>
                 </div>
                 <div class="field"><label>Subject</label>
-                  <select name="subjectId" id="qe-subject-select"><option value="">\u2014</option>
+                  <select name="subjectId"><option value="">\u2014</option>
                     ${subjects.map(s => `<option value="${s.id}" ${e.subject_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('')}
                   </select>
                 </div>
-              </div>
-              <div class="field">
-                <label>Topic</label>
-                <select name="topicId" id="qe-topic-select">
-                  <option value="">\u2014</option>
-                  ${topics
-                    .filter(t => !e.subject_id || !t.subject_id || t.subject_id === e.subject_id)
-                    .map(t => `<option value="${t.id}" ${e.topic_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}
-                </select>
               </div>
               <div class="field">
                 <label>Options (mark the correct one)</label>
@@ -1027,8 +1024,50 @@
     // Rich-text editor on the Explanation field — same as Notes / Lessons editors.
     // Lets admins paste pre-formatted HTML (e.g. from a quiz key in Word) and see
     // it rendered, plus a toolbar for bold/italic/lists/links/colors.
-    mountRichEditor(el.querySelector('textarea[name="explanation"]'), {
+    const explanationEditor = mountRichEditor(el.querySelector('textarea[name="explanation"]'), {
       placeholder: 'Why is this answer correct? (optional)'
+    });
+
+    // "Improve with AI" — sends the current question + options + explanation
+    // to whichever provider is configured in Admin → AI Settings, and writes
+    // the result back into the rich editor. Default prompt only asks it to
+    // improve the explanation, but that prompt is fully admin-editable.
+    el.querySelector('#ai-improve-btn').addEventListener('click', async () => {
+      const btn = el.querySelector('#ai-improve-btn');
+      const form = el.querySelector('#quiz-form');
+      const qText = (form.querySelector('textarea[name="question"]')?.value || '').trim();
+      if (!qText) { toast('Write the question first', 'error'); return; }
+
+      const correctIdx = parseInt(form.querySelector('input[name="correctIdx"]:checked')?.value);
+      const options = [...form.querySelectorAll('input[name="optText"]')]
+        .map((inp, i) => ({ text: inp.value.trim(), isCorrect: i === correctIdx }))
+        .filter(o => o.text);
+      const explanation = (form.querySelector('textarea[name="explanation"]')?.value || '').trim();
+
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '✨ Thinking…';
+      try {
+        const r = await admin.improveExplanation({ question: qText, options, explanation });
+        const improved = r.data?.text || '';
+        if (!improved) throw new Error('AI returned no text');
+        // The AI's response is Markdown — render it to HTML for the
+        // contenteditable rich-editor body, then sync back to the
+        // hidden textarea so form submission picks up the new value.
+        if (explanationEditor) {
+          explanationEditor.body.innerHTML = renderRichText(improved);
+          explanationEditor.syncToTextarea();
+        } else {
+          form.querySelector('textarea[name="explanation"]').value = improved;
+        }
+        renderPreview();
+        toast('Explanation improved', 'success');
+      } catch (err) {
+        toast(err.message || 'AI request failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
     });
 
     function rewire() {
@@ -1044,25 +1083,6 @@
       const list = el.querySelector('#opts-list');
       list.insertAdjacentHTML('beforeend', optionRow('', false, list.children.length));
       rewire();
-      if (previewOpen()) renderPreview();
-    });
-
-    // Re-filter the Topic dropdown whenever Subject changes, so only
-    // topics belonging to the chosen subject are selectable. If a topic
-    // is already selected and still belongs to the new subject it stays
-    // selected; otherwise the selection resets to "—".
-    function refreshTopicOptions(preserveTopicId) {
-      const subjSel  = el.querySelector('#qe-subject-select');
-      const topicSel = el.querySelector('#qe-topic-select');
-      if (!subjSel || !topicSel) return;
-      const subjId = subjSel.value;
-      const filtered = topics.filter(t => !subjId || !t.subject_id || t.subject_id === subjId);
-      const keep = preserveTopicId && filtered.some(t => t.id === preserveTopicId) ? preserveTopicId : '';
-      topicSel.innerHTML = `<option value="">\u2014</option>` +
-        filtered.map(t => `<option value="${t.id}" ${t.id === keep ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
-    }
-    el.querySelector('#qe-subject-select')?.addEventListener('change', () => {
-      refreshTopicOptions(el.querySelector('#qe-topic-select')?.value || '');
       if (previewOpen()) renderPreview();
     });
 
@@ -1090,8 +1110,6 @@
       const diff     = form.querySelector('select[name="difficulty"]')?.value || 'MEDIUM';
       const subjId   = form.querySelector('select[name="subjectId"]')?.value || '';
       const subjName = subjects.find(s => s.id === subjId)?.name || null;
-      const topicId   = form.querySelector('select[name="topicId"]')?.value || '';
-      const topicName = topics.find(t => t.id === topicId)?.name || null;
       const correctIdx = parseInt(form.querySelector('input[name="correctIdx"]:checked')?.value);
       const optInputs  = [...form.querySelectorAll('input[name="optText"]')];
 
@@ -1118,7 +1136,6 @@
       el.querySelector('#qe-pv-meta').innerHTML = `
         <span>Difficulty: <strong style="color:var(--ink);">${escapeHtml(diff)}</strong></span>
         ${subjName ? `<span>Subject: <strong style="color:var(--ink);">${escapeHtml(subjName)}</strong></span>` : ''}
-        ${topicName ? `<span>Topic: <strong style="color:var(--ink);">${escapeHtml(topicName)}</strong></span>` : ''}
         <span>Options: <strong style="color:var(--ink);">${optInputs.filter(i => i.value.trim()).length}</strong></span>
       `;
     }
@@ -1141,7 +1158,6 @@
         explanation: fd.get('explanation') || null,
         difficulty: fd.get('difficulty'),
         subjectId: fd.get('subjectId') || null,
-        topicId: fd.get('topicId') || null,
         options,
       };
       try {

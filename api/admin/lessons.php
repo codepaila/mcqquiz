@@ -10,8 +10,9 @@
  *   DELETE /api/admin/lessons?id=...                      — delete
  *
  * NOTE ATTACHMENT (a note groups ordered lessons)
- *   POST   /api/admin/lessons?action=attach-to-note   { noteId, lessonId, order? }
+ *   POST   /api/admin/lessons?action=attach-to-note       { noteId, lessonId, order? }
  *   DELETE /api/admin/lessons?action=detach-from-note&linkId=...
+ *   POST   /api/admin/lessons?action=reorder-note-lessons { noteId, order: [linkId, ...] }
  */
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
 
@@ -65,6 +66,36 @@ if ($action === 'detach-from-note' && $method === 'DELETE') {
     Audit::log([
         'user_id'=>$me['id'], 'action'=>'LESSON_DETACHED',
         'entity_type'=>'NOTE', 'entity_id'=>$link['note_id'],
+    ]);
+    Response::ok(['success' => true]);
+}
+
+// Reorder all lessons attached to a note — POST /api/admin/lessons?action=reorder-note-lessons
+// Body: { noteId, order: [linkId, linkId, ...] }  (full ordered list of note_lessons.id)
+if ($action === 'reorder-note-lessons' && $method === 'POST') {
+    $body = Request::body();
+    $noteId = (string)($body['noteId'] ?? '');
+    $order  = $body['order'] ?? [];
+    if (!Note::findById($noteId)) Response::notFound('Note not found');
+    if (!is_array($order) || !$order) Response::error('order must be a non-empty array', 400);
+
+    $pdo = Database::pdo();
+    $pdo->beginTransaction();
+    try {
+        // two-pass to dodge the (note_id, order) unique constraint
+        $tmp = 1000;
+        $stmt = $pdo->prepare("UPDATE note_lessons SET `order`=? WHERE id=? AND note_id=?");
+        foreach ($order as $linkId) { $stmt->execute([$tmp++, $linkId, $noteId]); }
+        $pos = 1;
+        foreach ($order as $linkId) { $stmt->execute([$pos++, $linkId, $noteId]); }
+        $pdo->commit();
+    } catch (\Throwable $e) {
+        $pdo->rollBack();
+        Response::error('Reorder failed: ' . $e->getMessage(), 500);
+    }
+    Audit::log([
+        'user_id'=>$me['id'], 'action'=>'NOTE_LESSONS_REORDERED',
+        'entity_type'=>'NOTE', 'entity_id'=>$noteId,
     ]);
     Response::ok(['success' => true]);
 }

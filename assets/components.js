@@ -1144,6 +1144,7 @@ export function mountAdminSidebar(active = '') {
   const items = [
     ['overview',         'admin.html',                    '\u25a6',       'Overview',         'new_users'],
     ['content',          'admin-content.html',            '\u270e',       'Content'],
+    ['ai-settings',      'admin-ai-settings.html',        '\u{1f916}',   'AI Settings'],
     ['text-content',     'admin-text-content.html',       '\u{1f4dd}',   'Text Content'],
     ['courses',          'admin-courses.html',            '\u{1f4da}',   'Courses'],
     ['taxonomy',         'admin-taxonomy.html',           '\u{1f3f7}',   'Taxonomy'],

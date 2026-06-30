@@ -5,11 +5,11 @@
    ============================================================ */
 
 const API_BASE = (() => {
-  // The frontend lives in a sibling folder of /api/ — e.g. /.
+  // The frontend lives in a sibling folder of /api/ — e.g. /quiznosis/frontend/.
   // Strip the last path segment (the folder holding the HTML files) and the file,
   // then point at ../api. Works no matter what the frontend folder is named.
-  const path = window.location.pathname;            // e.g. /index.html
-  const dir = path.replace(/\/[^/]*$/, '');         // -> 
+  const path = window.location.pathname;            // e.g. /quiznosis/frontend/index.html
+  const dir = path.replace(/\/[^/]*$/, '');         // -> /quiznosis/frontend
   const parent = dir.replace(/\/[^/]*$/, '');       // -> /quiznosis
   return (parent || '') + '/api';
 })();
@@ -254,6 +254,11 @@ export const admin = {
   publishAnnouncement: (id)    => request('POST',   '/admin/announcements', { id, action: 'publish' }),
   deleteAnnouncement:  (id)    => request('DELETE', '/admin/announcements' + qs({ id })),
 
+  // AI explanation assistant (DeepSeek or any OpenAI-compatible API — see Admin → AI Settings)
+  getAiSettings:      ()      => request('GET',  '/admin/ai-settings'),
+  saveAiSettings:     (body)  => request('POST', '/admin/ai-settings', body),
+  improveExplanation: (body)  => request('POST', '/admin/ai-improve', body),
+
   // Subscription plans
   listSubscriptionPlans:  ()       => request('GET',    '/admin/subscription-plans'),
   createSubscriptionPlan: (body)   => request('POST',   '/admin/subscription-plans', body),
@@ -297,6 +302,7 @@ export const admin = {
   deleteLesson: (id)               => request('DELETE', '/admin/lessons' + qs({ id })),
   attachLessonToNote:   (body)     => request('POST',   '/admin/lessons' + qs({ action: 'attach-to-note' }), body),
   detachLessonFromNote: (linkId)   => request('DELETE', '/admin/lessons' + qs({ action: 'detach-from-note', linkId })),
+  reorderNoteLessons:   (body)     => request('POST',   '/admin/lessons' + qs({ action: 'reorder-note-lessons' }), body),
 
   // Contact messages
   listContactMessages: (params = {}) => request('GET',    '/contact' + qs(params)),

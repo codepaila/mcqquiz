@@ -22,6 +22,13 @@
     background:var(--paper-soft); border:1px solid var(--paper-edge);
     border-radius:var(--radius); margin-bottom:8px;
   }
+  .mat-drag-handle {
+    cursor:grab; color:var(--ink-soft); flex-shrink:0; line-height:1;
+    padding:2px; touch-action:none; user-select:none;
+  }
+  .mat-drag-handle:active { cursor:grabbing; }
+  .material-row.is-dragging { opacity:0.4; }
+  .material-row.is-drop-target { border-top:2px solid var(--accent); }
   .material-type {
     font-family:var(--font-mono); font-size:0.7rem; padding:2px 8px; border-radius:4px;
     background:var(--paper-edge); color:var(--ink-soft);
@@ -689,7 +696,7 @@
         </div>
         <div class="edit-panel-body">
           <div class="edit-panel-inner">
-            <p class="text-soft mb-2" style="font-size:0.9rem;">Ordered lessons grouped under this note.</p>
+            <p class="text-soft mb-2" style="font-size:0.9rem;">Drag the handle to reorder lessons under this note. Order is saved automatically.</p>
             <div id="nl-list"></div>
             <div class="divider-ornate" style="margin:24px 0 16px;">Attach a lesson</div>
             <div class="flex" style="gap:10px; align-items:center;">
@@ -709,10 +716,13 @@
       const list = el.querySelector('#nl-list');
       try {
         const full = (await admin.getNote(note.id)).data;
-        const lessons = full.lessons || [];
+        const lessons = (full.lessons || []).slice().sort((a, b) => a.order - b.order);
         list.innerHTML = lessons.length
           ? lessons.map(l => `
-              <div class="material-row" data-link="${l.link_id}">
+              <div class="material-row" data-link="${l.link_id}" draggable="true">
+                <span class="mat-drag-handle" title="Drag to reorder" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+                </span>
                 <span class="material-type note">LESSON</span>
                 <span style="flex:1;">${escapeHtml(l.title)}</span>
                 <span class="text-muted" style="font-size:0.8rem;">#${l.order}</span>
@@ -725,6 +735,7 @@
             toast('Detached', 'success'); render();
           } catch (err) { toast(err.message, 'error'); }
         }));
+        wireLessonDragAndDrop(list);
       } catch (err) {
         list.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
       }
@@ -735,6 +746,46 @@
           ? all.map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.title)}</option>`).join('')
           : `<option value="">No lessons exist yet</option>`;
       } catch {}
+    }
+
+    // Native HTML5 drag-and-drop, same pattern used for course materials —
+    // reordering moves rows in the DOM as you drag; the save only fires
+    // once, on drop, sending the full new order to the backend.
+    function wireLessonDragAndDrop(list) {
+      let dragEl = null;
+      list.querySelectorAll('.material-row').forEach(row => {
+        row.addEventListener('dragstart', () => {
+          dragEl = row;
+          row.classList.add('is-dragging');
+        });
+        row.addEventListener('dragend', async () => {
+          row.classList.remove('is-dragging');
+          list.querySelectorAll('.is-drop-target').forEach(r => r.classList.remove('is-drop-target'));
+          if (!dragEl) return;
+          dragEl = null;
+          const newOrder = Array.from(list.querySelectorAll('[data-link]')).map(r => r.dataset.link);
+          list.querySelectorAll('[data-link]').forEach((r, i) => {
+            const badge = r.querySelector('.text-muted');
+            if (badge) badge.textContent = '#' + (i + 1);
+          });
+          try {
+            await admin.reorderNoteLessons({ noteId: note.id, order: newOrder });
+            toast('Order saved', 'success');
+          } catch (err) {
+            toast(err.message || 'Reorder failed', 'error');
+            render(); // re-fetch true state on failure
+          }
+        });
+        row.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (!dragEl || dragEl === row) return;
+          list.querySelectorAll('.is-drop-target').forEach(r => r.classList.remove('is-drop-target'));
+          const rect = row.getBoundingClientRect();
+          const before = (e.clientY - rect.top) < rect.height / 2;
+          row.classList.add('is-drop-target');
+          list.insertBefore(dragEl, before ? row : row.nextSibling);
+        });
+      });
     }
     await render();
     el.querySelector('#nl-attach').addEventListener('click', async () => {

@@ -22,6 +22,14 @@
     background:var(--paper-soft); border:1px solid var(--paper-edge);
     border-radius:var(--radius); margin-bottom:8px;
   }
+  .mat-drag-handle {
+    cursor:grab; color:var(--ink-soft); flex-shrink:0; line-height:1;
+    padding:2px; touch-action:none; user-select:none;
+  }
+  .mat-drag-handle:active { cursor:grabbing; }
+  .material-row.is-dragging { opacity:0.4; }
+  .material-row.is-drop-target { border-top:2px solid var(--accent); }
+  .materials-dnd-list:empty::after { content:''; }
   .material-type {
     font-family:var(--font-mono); font-size:0.7rem; padding:2px 8px; border-radius:4px;
     background:var(--paper-edge); color:var(--ink-soft);
@@ -390,13 +398,17 @@
         </div>
         <div class="contents-panel-body">
           <div class="contents-panel-section">
-            <div class="contents-panel-section-title">Materials</div>
-            <p class="contents-panel-section-sub">Quiz sets and notes inside this course.</p>
-            <div id="materials-list"><div class="loading"><div class="spinner"></div></div></div>
-            <div class="flex mt-2" style="gap:10px;">
-              <button class="btn btn-ghost btn-sm" id="add-quiz">+ Add quiz set</button>
-              <button class="btn btn-ghost btn-sm" id="add-note">+ Add note</button>
-            </div>
+            <div class="contents-panel-section-title">Quiz Sets</div>
+            <p class="contents-panel-section-sub">Drag the handle to reorder. Order is saved automatically.</p>
+            <div id="materials-list-quiz" class="materials-dnd-list"><div class="loading"><div class="spinner"></div></div></div>
+            <button class="btn btn-ghost btn-sm mt-2" id="add-quiz">+ Add quiz set</button>
+          </div>
+
+          <div class="contents-panel-section">
+            <div class="contents-panel-section-title">Notes</div>
+            <p class="contents-panel-section-sub">Drag the handle to reorder. Order is saved automatically.</p>
+            <div id="materials-list-note" class="materials-dnd-list"><div class="loading"><div class="spinner"></div></div></div>
+            <button class="btn btn-ghost btn-sm mt-2" id="add-note">+ Add note</button>
           </div>
 
           <div class="contents-panel-section">
@@ -412,53 +424,149 @@
     // Flatten .modal wrapper so .contents-panel is the visual surface
     el.querySelector('.modal').classList.add('is-fullscreen');
 
+    // The backend stores one global `order` per course shared across both
+    // QUIZ_SET and NOTE rows (course_materials has a UNIQUE(course_id, order)
+    // constraint) — but the admin UI shows them as two separate lists so
+    // it's easier to scan and reorder. Dragging within one list only changes
+    // the relative order of items of that same type; on drop we recompute
+    // the full combined sequence (quiz sets and notes merged back together
+    // in their original relative interleaving, just with the dragged type's
+    // internal order updated) and submit that whole array.
+    let allMats = []; // last-fetched full material list, kept in fetch order
+
     async function renderMaterials() {
-      const box = el.querySelector('#materials-list');
+      const quizBox = el.querySelector('#materials-list-quiz');
+      const noteBox = el.querySelector('#materials-list-note');
       try {
         const r = await admin.getCourse(course.id);
-        const mats = r.data.materials || [];
-        if (!mats.length) {
-          box.innerHTML = `<p class="text-muted" style="font-size:0.9rem;">Nothing added yet.</p>`;
-          return;
-        }
-        box.innerHTML = mats.map(m => {
-          const isQuiz = m.type === 'QUIZ_SET';
-          const name = m.quiz_set_name || m.note_title || '(missing)';
-          const isFree = (m.is_free_demo === 1 || m.is_free_demo === true);
-          return `
-            <div class="material-row" data-mid="${m.id}">
-              <span class="material-type ${isQuiz ? 'quiz' : 'note'}">${isQuiz ? 'QUIZ SET' : 'NOTE'}</span>
-              <span style="flex:1;">${escapeHtml(name)}</span>
-              <span class="text-muted" style="font-size:0.8rem;">#${m.order}</span>
-              <label class="mat-free-toggle" title="Free demo: visible to any signed-in user without enrollment" style="display:inline-flex; align-items:center; gap:5px; font-size:0.78rem; color:var(--text-muted); cursor:pointer; user-select:none;">
-                <input type="checkbox" data-free ${isFree ? 'checked' : ''} style="accent-color:var(--success); cursor:pointer;">
-                <span>Free demo</span>
-              </label>
-              <button class="btn btn-ghost btn-sm" data-remove style="color:var(--error);">Remove</button>
-            </div>`;
-        }).join('');
-        box.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', async () => {
-          try {
-            await admin.removeCourseMaterial(b.closest('[data-mid]').dataset.mid);
-            toast('Removed', 'success'); renderMaterials();
-          } catch (err) { toast(err.message, 'error'); }
-        }));
-        box.querySelectorAll('[data-free]').forEach(cb => cb.addEventListener('change', async (e) => {
-          const mid = cb.closest('[data-mid]').dataset.mid;
-          const next = cb.checked;
-          cb.disabled = true;
-          try {
-            await admin.setMaterialFree(mid, next);
-            toast(next ? 'Marked as free demo' : 'Removed free demo flag', 'success');
-          } catch (err) {
-            cb.checked = !next;             // revert visual on failure
-            toast(err.message || 'Update failed', 'error');
-          } finally {
-            cb.disabled = false;
-          }
-        }));
+        allMats = (r.data.materials || []).slice().sort((a, b) => a.order - b.order);
+        renderBothLists();
       } catch (err) {
-        box.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        quizBox.innerHTML = `<p class="text-muted" style="font-size:0.85rem; color:var(--error);">${escapeHtml(err.message)}</p>`;
+        noteBox.innerHTML = '';
+      }
+    }
+
+    function renderBothLists() {
+      const quizBox = el.querySelector('#materials-list-quiz');
+      const noteBox = el.querySelector('#materials-list-note');
+      const quizMats = allMats.filter(m => m.type === 'QUIZ_SET');
+      const noteMats = allMats.filter(m => m.type === 'NOTE');
+      quizBox.innerHTML = renderRows(quizMats) || `<p class="text-muted" style="font-size:0.9rem;">No quiz sets added yet.</p>`;
+      noteBox.innerHTML = renderRows(noteMats) || `<p class="text-muted" style="font-size:0.9rem;">No notes added yet.</p>`;
+      wireRowActions(quizBox);
+      wireRowActions(noteBox);
+      wireDragAndDrop(quizBox, 'QUIZ_SET');
+      wireDragAndDrop(noteBox, 'NOTE');
+    }
+
+    function renderRows(mats) {
+      return mats.map(m => {
+        const isQuiz = m.type === 'QUIZ_SET';
+        const name = m.quiz_set_name || m.note_title || '(missing)';
+        const isFree = (m.is_free_demo === 1 || m.is_free_demo === true);
+        return `
+          <div class="material-row" data-mid="${m.id}" draggable="true">
+            <span class="mat-drag-handle" title="Drag to reorder" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+            </span>
+            <span class="material-type ${isQuiz ? 'quiz' : 'note'}">${isQuiz ? 'QUIZ SET' : 'NOTE'}</span>
+            <span style="flex:1;">${escapeHtml(name)}</span>
+            <span class="text-muted" style="font-size:0.8rem;">#${m.order}</span>
+            <label class="mat-free-toggle" title="Free demo: visible to any signed-in user without enrollment" style="display:inline-flex; align-items:center; gap:5px; font-size:0.78rem; color:var(--text-muted); cursor:pointer; user-select:none;">
+              <input type="checkbox" data-free ${isFree ? 'checked' : ''} style="accent-color:var(--success); cursor:pointer;">
+              <span>Free demo</span>
+            </label>
+            <button class="btn btn-ghost btn-sm" data-remove style="color:var(--error);">Remove</button>
+          </div>`;
+      }).join('');
+    }
+
+    function wireRowActions(box) {
+      box.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', async () => {
+        try {
+          await admin.removeCourseMaterial(b.closest('[data-mid]').dataset.mid);
+          toast('Removed', 'success'); renderMaterials();
+        } catch (err) { toast(err.message, 'error'); }
+      }));
+      box.querySelectorAll('[data-free]').forEach(cb => cb.addEventListener('change', async (e) => {
+        const mid = cb.closest('[data-mid]').dataset.mid;
+        const next = cb.checked;
+        cb.disabled = true;
+        try {
+          await admin.setMaterialFree(mid, next);
+          toast(next ? 'Marked as free demo' : 'Removed free demo flag', 'success');
+        } catch (err) {
+          cb.checked = !next;             // revert visual on failure
+          toast(err.message || 'Update failed', 'error');
+        } finally {
+          cb.disabled = false;
+        }
+      }));
+    }
+
+    // Native HTML5 drag-and-drop — no external library needed. Reordering
+    // is purely a DOM move on dragover; the actual save only happens once,
+    // on drop, to avoid spamming the API on every pixel of mouse movement.
+    function wireDragAndDrop(box, type) {
+      let dragEl = null;
+
+      box.querySelectorAll('.material-row').forEach(row => {
+        row.addEventListener('dragstart', () => {
+          dragEl = row;
+          row.classList.add('is-dragging');
+        });
+        row.addEventListener('dragend', async () => {
+          row.classList.remove('is-dragging');
+          box.querySelectorAll('.is-drop-target').forEach(r => r.classList.remove('is-drop-target'));
+          if (!dragEl) return;
+          dragEl = null;
+          await saveOrderFor(box, type);
+        });
+        row.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (!dragEl || dragEl === row) return;
+          box.querySelectorAll('.is-drop-target').forEach(r => r.classList.remove('is-drop-target'));
+          const rect = row.getBoundingClientRect();
+          const before = (e.clientY - rect.top) < rect.height / 2;
+          row.classList.add('is-drop-target');
+          box.insertBefore(dragEl, before ? row : row.nextSibling);
+        });
+      });
+    }
+
+    // After a drop, read the new DOM order for this type, splice it back
+    // into the full combined sequence (the other type's relative order is
+    // untouched), then submit the whole array to the backend in one call.
+    async function saveOrderFor(box, type) {
+      const newIdsForType = Array.from(box.querySelectorAll('[data-mid]')).map(r => r.dataset.mid);
+      const reorderedTypeMats = newIdsForType.map(id => allMats.find(m => m.id === id));
+
+      // Rebuild the combined list by walking the original full order and,
+      // each time we hit a slot of `type`, taking the next id from its new
+      // order instead — this preserves the original interleaving of the
+      // *other* type while applying the new order to this type's slots.
+      let typeCursor = 0;
+      const combined = allMats.map(m => {
+        if (m.type === type) {
+          const next = reorderedTypeMats[typeCursor++];
+          return next;
+        }
+        return m;
+      });
+
+      allMats = combined.map((m, i) => ({ ...m, order: i + 1 }));
+      renderBothLists(); // reflect new #order numbers immediately
+
+      try {
+        await admin.reorderCourseMaterials({
+          courseId: course.id,
+          order: combined.map(m => m.id),
+        });
+        toast('Order saved', 'success');
+      } catch (err) {
+        toast(err.message || 'Reorder failed', 'error');
+        renderMaterials(); // re-fetch true state on failure
       }
     }
     await renderMaterials();

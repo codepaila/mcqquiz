@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AI Settings · Admin · Quiznosis</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+.page-header { margin-bottom: 28px; }
+.page-header h1 { font-size: 2rem; }
+.page-header p  { color: var(--ink-muted); font-size: 0.9rem; margin-top: 4px; }
+
+.settings-card {
+  background: var(--paper-soft);
+  border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.settings-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem; font-weight: 400;
+  margin-bottom: 4px; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: 8px;
+}
+.settings-card .card-sub {
+  font-size: 0.8rem; color: var(--ink-muted);
+  margin-bottom: 20px; line-height: 1.5;
+}
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:540px){ .field-row { grid-template-columns: 1fr; } }
+
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.field label { font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); }
+.field .field-hint { font-size: 0.74rem; color: var(--ink-muted); font-weight: 400; }
+.field input, .field textarea {
+  background: var(--paper); border: 1.5px solid var(--paper-edge);
+  border-radius: var(--radius); padding: 9px 12px;
+  font-family: var(--font-body); font-size: 0.92rem; color: var(--ink);
+  transition: border-color .14s, box-shadow .14s; outline: none; width: 100%;
+}
+.field input:focus, .field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(184,83,28,.1);
+}
+.field textarea { min-height: 80px; resize: vertical; line-height: 1.6; }
+.field textarea.mono { font-family: var(--font-mono); font-size: 0.84rem; min-height: 220px; }
+
+/* Toggle switch (same as Contact Settings) */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0;
+}
+.toggle-label { font-size: 0.88rem; font-weight: 600; color: var(--ink); }
+.toggle-sub { font-size: 0.75rem; color: var(--ink-muted); }
+.toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-slider {
+  position: absolute; inset: 0; background: var(--paper-edge);
+  border-radius: 100px; cursor: pointer; transition: background .2s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute; width: 18px; height: 18px;
+  left: 3px; top: 3px; background: #fff; border-radius: 50%;
+  transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.toggle input:checked + .toggle-slider { background: var(--accent); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+.placeholder-ref {
+  display: inline-block; font-family: var(--font-mono); font-size: 0.72rem;
+  background: var(--paper); border: 1px solid var(--paper-edge);
+  border-radius: 4px; padding: 1px 6px; margin: 0 2px;
+}
+
+.save-bar {
+  position: sticky; bottom: 0;
+  background: var(--paper); border-top: 1.5px solid var(--paper-edge);
+  padding: 14px 0; margin-top: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.save-status { font-size: 0.82rem; color: var(--ink-muted); }
+.save-status.saved { color: var(--success); }
+.save-status.error { color: var(--error); }
+</style>
+</head>
+<body>
+<main class="section">
+<div class="container">
+
+  <div class="page-header">
+    <div class="eyebrow">Admin · Content</div>
+    <h1 class="display mt-1">AI <span class="italic-em">Settings</span></h1>
+    <p>Configure the AI provider used by the "Improve with AI" button on question explanations. Works with DeepSeek or any other OpenAI-compatible chat completions API.</p>
+  </div>
+
+  <form id="settings-form">
+
+    <div class="settings-card">
+      <h3>🔌 Provider</h3>
+      <p class="card-sub">Connection details for the AI API. The endpoint must accept an OpenAI-compatible <code>/chat/completions</code> request.</p>
+
+      <div class="field">
+        <label>Provider label <span class="field-hint">(just a name for your reference)</span></label>
+        <input type="text" name="provider_label" placeholder="DeepSeek">
+      </div>
+      <div class="field">
+        <label>API endpoint URL</label>
+        <input type="url" name="api_base_url" placeholder="https://api.deepseek.com/chat/completions">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>API key</label>
+          <input type="password" name="api_key" id="api-key-input" placeholder="sk-...">
+        </div>
+        <div class="field">
+          <label>Model name</label>
+          <input type="text" name="model" placeholder="deepseek-chat">
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h3>📝 Prompt Template</h3>
+      <p class="card-sub">
+        Sent to the AI exactly as written below, with these placeholders filled in automatically:
+        <span class="placeholder-ref">{{question}}</span>
+        <span class="placeholder-ref">{{options}}</span>
+        <span class="placeholder-ref">{{correct_answer}}</span>
+        <span class="placeholder-ref">{{explanation}}</span>
+        — the default prompt asks it to improve the explanation only, but you can edit it to ask for anything else instead.
+      </p>
+      <div class="field">
+        <textarea name="prompt_template" class="mono"></textarea>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h3>⚙️ Status</h3>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Enable AI assistant</div>
+          <div class="toggle-sub">When off, the "Improve with AI" button shows an error instead of calling the API.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" name="enabled" value="1"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <span class="save-status" id="save-status"></span>
+      <button type="submit" class="btn btn-accent" id="save-btn">Save changes</button>
+    </div>
+
+  </form>
+
+</div>
+</main>
+
+<script type="module">
+import { mountHeader, mountAdminSidebar, mountFooter, toast, requireRole } from './assets/components.js';
+import { admin } from './assets/api.js';
+
+await requireRole('ADMIN', 'dashboard.html');
+await mountHeader('admin');
+mountAdminSidebar('ai-settings');
+mountFooter();
+
+const form       = document.getElementById('settings-form');
+const saveBtn    = document.getElementById('save-btn');
+const saveStatus = document.getElementById('save-status');
+const apiKeyInput = document.getElementById('api-key-input');
+
+async function load() {
+  try {
+    const r = (await admin.getAiSettings()).data || {};
+    form.provider_label.value  = r.provider_label || '';
+    form.api_base_url.value    = r.api_base_url || '';
+    form.model.value           = r.model || '';
+    form.prompt_template.value = r.prompt_template || '';
+    form.enabled.checked       = !!r.enabled;
+    apiKeyInput.value          = r.api_key_masked || '';
+    apiKeyInput.placeholder    = r.api_key_set ? 'Leave unchanged to keep current key' : 'sk-...';
+  } catch (err) {
+    toast('Failed to load AI settings: ' + err.message, 'error');
+  }
+}
+load();
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+  saveStatus.textContent = '';
+  saveStatus.className = 'save-status';
+
+  const body = {
+    provider_label:  form.provider_label.value.trim(),
+    api_base_url:    form.api_base_url.value.trim(),
+    model:            form.model.value.trim(),
+    prompt_template: form.prompt_template.value,
+    enabled:          form.enabled.checked ? 1 : 0,
+    api_key:          apiKeyInput.value.trim(), // backend ignores this if it still contains '***' (unchanged)
+  };
+
+  try {
+    await admin.saveAiSettings(body);
+    saveStatus.textContent = '✓ Saved successfully';
+    saveStatus.className = 'save-status saved';
+    toast('AI settings saved', 'success');
+    load(); // refresh masked key display
+  } catch (err) {
+    saveStatus.textContent = '✗ ' + err.message;
+    saveStatus.className = 'save-status error';
+    toast(err.message, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save changes';
+  }
+});
+</script>
+</body>
+</html>

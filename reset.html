@@ -7,6 +7,187 @@
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="pwa/pwa.css">
 
+<style>
+/* ── Enhanced Reset Page Styles ── */
+.reset-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 28px;
+  box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.3);
+}
+
+.password-strength {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.password-strength .bars {
+  display: flex;
+  gap: 4px;
+}
+
+.password-strength .bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--paper-edge);
+  transition: all 0.3s ease;
+}
+
+.password-strength .bar.active.weak {
+  background: #dc3545;
+}
+
+.password-strength .bar.active.fair {
+  background: #ffc107;
+}
+
+.password-strength .bar.active.good {
+  background: #17a2b8;
+}
+
+.password-strength .bar.active.strong {
+  background: #28a745;
+}
+
+.password-strength .bar.active.excellent {
+  background: #20c997;
+}
+
+.password-strength .label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  transition: color 0.3s ease;
+}
+
+.password-strength .label.weak { color: #dc3545; }
+.password-strength .label.fair { color: #ffc107; }
+.password-strength .label.good { color: #17a2b8; }
+.password-strength .label.strong { color: #28a745; }
+.password-strength .label.excellent { color: #20c997; }
+
+.password-requirements {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  margin-top: 6px;
+  font-size: 0.8rem;
+}
+
+.password-requirements .req {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+  transition: color 0.3s ease;
+}
+
+.password-requirements .req.met {
+  color: #28a745;
+}
+
+.password-requirements .req svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.password-match {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  transition: all 0.3s ease;
+}
+
+.password-match.matching {
+  color: #28a745;
+}
+
+.password-match.not-matching {
+  color: #dc3545;
+}
+
+.password-match svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+
+/* Back link styling */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  margin-top: 16px;
+}
+
+.back-link:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.back-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Alert styles */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.alert svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alert-error {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+}
+
+.alert-success {
+  background: rgba(40, 167, 69, 0.1);
+  border: 1px solid rgba(40, 167, 69, 0.2);
+  color: #28a745;
+}
+
+/* ── PWA ─────────────────────────────────────────────── */
+.link-rel {
+  display: none;
+}
+</style>
+
 <!-- ── PWA ─────────────────────────────────────────────── -->
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#B8531C" media="(prefers-color-scheme: light)">
@@ -36,21 +217,129 @@
 <main class="section">
   <div class="container-narrow">
     <div class="text-center mb-3">
-      <h1 class="display" style="font-size:2.4rem;">Set a new password</h1>
+      <!-- Icon -->
+      <div class="reset-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <h1 class="display" style="font-size:2.4rem;">Set new password</h1>
+      <p class="text-muted" style="font-size:0.95rem; margin-top: 4px;">
+        Create a strong password for your account
+      </p>
     </div>
-    <div class="card" style="padding:32px;">
-      <form id="reset-form" class="stack" style="--stack:18px;">
+    
+    <div class="card" style="padding: 32px;">
+      <form id="reset-form" class="stack" style="--stack: 18px;">
         <div id="alert-zone"></div>
+        
+        <!-- New Password -->
         <div class="field">
           <label for="password">New password</label>
-          <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password">
-          <div class="field-hint">Uppercase, lowercase, number, and special character.</div>
+          <div style="position: relative;">
+            <input 
+              id="password" 
+              name="password" 
+              type="password" 
+              required 
+              minlength="8" 
+              autocomplete="new-password"
+              class="password-input"
+              style="padding-right: 44px;"
+            >
+            <button 
+              type="button" 
+              id="toggle-password"
+              style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--ink-muted); cursor: pointer; padding: 4px;"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Password Strength -->
+          <div class="password-strength" id="password-strength" style="display: none;">
+            <div class="bars">
+              <div class="bar" data-index="0"></div>
+              <div class="bar" data-index="1"></div>
+              <div class="bar" data-index="2"></div>
+              <div class="bar" data-index="3"></div>
+              <div class="bar" data-index="4"></div>
+            </div>
+            <div class="label" id="strength-label">Weak</div>
+          </div>
+          
+          <!-- Password Requirements -->
+          <div class="password-requirements" id="requirements">
+            <span class="req" data-req="length">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+              8+ characters
+            </span>
+            <span class="req" data-req="uppercase">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+              Uppercase
+            </span>
+            <span class="req" data-req="lowercase">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+              Lowercase
+            </span>
+            <span class="req" data-req="number">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+              Number
+            </span>
+            <span class="req" data-req="special">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+              Special character
+            </span>
+          </div>
         </div>
+        
+        <!-- Confirm Password -->
         <div class="field">
           <label for="confirm">Confirm password</label>
-          <input id="confirm" name="confirm" type="password" required autocomplete="new-password">
+          <div style="position: relative;">
+            <input 
+              id="confirm" 
+              name="confirm" 
+              type="password" 
+              required 
+              autocomplete="new-password"
+              style="padding-right: 44px;"
+            >
+            <button 
+              type="button" 
+              id="toggle-confirm"
+              style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--ink-muted); cursor: pointer; padding: 4px;"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <div class="password-match" id="password-match" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4l2 2"/>
+            </svg>
+            <span id="match-text">Passwords match</span>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Update password</button>
+        
+        <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+          Update password
+        </button>
+        
+        <!-- Back to sign in -->
+        <a href="login.html" class="back-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to sign in
+        </a>
       </form>
     </div>
   </div>
@@ -68,28 +357,208 @@
   const form = document.getElementById('reset-form');
   const alertZone = document.getElementById('alert-zone');
   const btn = document.getElementById('submit-btn');
+  const passwordInput = document.getElementById('password');
+  const confirmInput = document.getElementById('confirm');
+  const strengthContainer = document.getElementById('password-strength');
+  const strengthLabel = document.getElementById('strength-label');
+  const requirements = document.querySelectorAll('.req');
+  const matchContainer = document.getElementById('password-match');
+  const matchText = document.getElementById('match-text');
+  const togglePassword = document.getElementById('toggle-password');
+  const toggleConfirm = document.getElementById('toggle-confirm');
 
+  // ── Validate token & email ──
   if (!token || !email) {
-    alertZone.innerHTML = `<div class="alert alert-error">Invalid or incomplete reset link.</div>`;
+    alertZone.innerHTML = `
+      <div class="alert alert-error">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        Invalid or incomplete reset link. Please request a new password reset.
+      </div>
+    `;
     form.querySelectorAll('input,button').forEach(el => el.disabled = true);
+    btn.textContent = 'Invalid link';
   }
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (form.password.value !== form.confirm.value) {
-      alertZone.innerHTML = `<div class="alert alert-error">Passwords don't match.</div>`;
+  // ── Toggle password visibility ──
+  const toggleVisibility = (input, button) => {
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    button.innerHTML = isPassword ? `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+        <line x1="1" y1="1" x2="23" y2="23"/>
+      </svg>
+    ` : `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    `;
+  };
+
+  togglePassword.addEventListener('click', () => toggleVisibility(passwordInput, togglePassword));
+  toggleConfirm.addEventListener('click', () => toggleVisibility(confirmInput, toggleConfirm));
+
+  // ── Password strength checker ──
+  const checkPasswordStrength = (password) => {
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    };
+    
+    const score = Object.values(checks).filter(Boolean).length;
+    
+    const levels = [
+      { label: 'Weak', class: 'weak' },
+      { label: 'Weak', class: 'weak' },
+      { label: 'Fair', class: 'fair' },
+      { label: 'Good', class: 'good' },
+      { label: 'Strong', class: 'strong' },
+      { label: 'Excellent', class: 'excellent' },
+    ];
+    
+    return { checks, score, ...levels[score] };
+  };
+
+  // ── Update password UI ──
+  const updatePasswordUI = () => {
+    const password = passwordInput.value;
+    const hasPassword = password.length > 0;
+    
+    strengthContainer.style.display = hasPassword ? 'flex' : 'none';
+    
+    if (!hasPassword) {
+      requirements.forEach(req => {
+        req.classList.remove('met');
+        req.querySelector('svg').innerHTML = `
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4l2 2"/>
+        `;
+      });
       return;
     }
+    
+    const { checks, score, label, class: strengthClass } = checkPasswordStrength(password);
+    
+    // Update bars
+    document.querySelectorAll('.bar').forEach((bar, i) => {
+      bar.classList.toggle('active', i < score);
+      bar.className = `bar ${i < score ? 'active ' + strengthClass : ''}`;
+    });
+    
+    // Update label
+    strengthLabel.textContent = label;
+    strengthLabel.className = `label ${strengthClass}`;
+    
+    // Update requirements
+    requirements.forEach(req => {
+      const key = req.dataset.req;
+      const met = checks[key];
+      req.classList.toggle('met', met);
+      req.querySelector('svg').innerHTML = met ? `
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 8v4l2 2"/>
+      ` : `
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 8v4l2 2"/>
+      `;
+    });
+  };
+
+  // ── Update confirm password UI ──
+  const updateConfirmUI = () => {
+    const password = passwordInput.value;
+    const confirm = confirmInput.value;
+    const hasConfirm = confirm.length > 0;
+    
+    matchContainer.style.display = hasConfirm ? 'flex' : 'none';
+    
+    if (!hasConfirm) return;
+    
+    const matches = password === confirm;
+    matchContainer.className = `password-match ${matches ? 'matching' : 'not-matching'}`;
+    matchText.textContent = matches ? 'Passwords match ✓' : 'Passwords don\'t match';
+    
+    matchContainer.querySelector('svg').innerHTML = matches ? `
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 8v4l2 2"/>
+    ` : `
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 8v4l2 2"/>
+    `;
+  };
+
+  // ── Event listeners ──
+  passwordInput.addEventListener('input', () => {
+    updatePasswordUI();
+    if (confirmInput.value) updateConfirmUI();
+  });
+
+  confirmInput.addEventListener('input', updateConfirmUI);
+
+  // ── Form submit ──
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const password = form.password.value;
+    const confirm = form.confirm.value;
+    
+    if (password !== confirm) {
+      alertZone.innerHTML = `
+        <div class="alert alert-error">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Passwords don't match.
+        </div>
+      `;
+      return;
+    }
+    
+    const { score } = checkPasswordStrength(password);
+    if (score < 3) {
+      alertZone.innerHTML = `
+        <div class="alert alert-error">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Please choose a stronger password.
+        </div>
+      `;
+      return;
+    }
+    
     alertZone.innerHTML = '';
     btn.disabled = true;
     btn.textContent = 'Updating…';
+    
     try {
-      await auth.reset({ token, email, password: form.password.value });
+      await auth.reset({ token, email, password });
+      // Success - redirect
       window.location.href = 'login.html?reset=1';
     } catch (err) {
-      alertZone.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      alertZone.innerHTML = `
+        <div class="alert alert-error">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          ${escapeHtml(err.message)}
+        </div>
+      `;
       btn.disabled = false;
       btn.textContent = 'Update password';
+    }
+  });
+
+  // ── Show strength on initial focus ──
+  passwordInput.addEventListener('focus', () => {
+    if (passwordInput.value) {
+      strengthContainer.style.display = 'flex';
     }
   });
 </script>
