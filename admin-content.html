@@ -977,13 +977,7 @@
           <div class="qe-edit">
             <form id="quiz-form" class="stack" style="--stack:14px;">
               <div class="field"><label>Question</label><textarea name="question" rows="3" required>${escapeHtml(e.question || '')}</textarea></div>
-              <div class="field">
-                <label style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                  <span>Explanation</span>
-                  <button type="button" class="btn btn-ghost btn-sm" id="ai-improve-btn" style="font-weight:600;">✨ Improve with AI</button>
-                </label>
-                <textarea name="explanation" rows="2">${escapeHtml(e.explanation || '')}</textarea>
-              </div>
+              <div class="field"><label>Explanation</label><textarea name="explanation" rows="2">${escapeHtml(e.explanation || '')}</textarea></div>
               <div class="field-row">
                 <div class="field"><label>Difficulty</label>
                   <select name="difficulty">
@@ -1024,50 +1018,8 @@
     // Rich-text editor on the Explanation field — same as Notes / Lessons editors.
     // Lets admins paste pre-formatted HTML (e.g. from a quiz key in Word) and see
     // it rendered, plus a toolbar for bold/italic/lists/links/colors.
-    const explanationEditor = mountRichEditor(el.querySelector('textarea[name="explanation"]'), {
+    mountRichEditor(el.querySelector('textarea[name="explanation"]'), {
       placeholder: 'Why is this answer correct? (optional)'
-    });
-
-    // "Improve with AI" — sends the current question + options + explanation
-    // to whichever provider is configured in Admin → AI Settings, and writes
-    // the result back into the rich editor. Default prompt only asks it to
-    // improve the explanation, but that prompt is fully admin-editable.
-    el.querySelector('#ai-improve-btn').addEventListener('click', async () => {
-      const btn = el.querySelector('#ai-improve-btn');
-      const form = el.querySelector('#quiz-form');
-      const qText = (form.querySelector('textarea[name="question"]')?.value || '').trim();
-      if (!qText) { toast('Write the question first', 'error'); return; }
-
-      const correctIdx = parseInt(form.querySelector('input[name="correctIdx"]:checked')?.value);
-      const options = [...form.querySelectorAll('input[name="optText"]')]
-        .map((inp, i) => ({ text: inp.value.trim(), isCorrect: i === correctIdx }))
-        .filter(o => o.text);
-      const explanation = (form.querySelector('textarea[name="explanation"]')?.value || '').trim();
-
-      const originalLabel = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = '✨ Thinking…';
-      try {
-        const r = await admin.improveExplanation({ question: qText, options, explanation });
-        const improved = r.data?.text || '';
-        if (!improved) throw new Error('AI returned no text');
-        // The AI's response is Markdown — render it to HTML for the
-        // contenteditable rich-editor body, then sync back to the
-        // hidden textarea so form submission picks up the new value.
-        if (explanationEditor) {
-          explanationEditor.body.innerHTML = renderRichText(improved);
-          explanationEditor.syncToTextarea();
-        } else {
-          form.querySelector('textarea[name="explanation"]').value = improved;
-        }
-        renderPreview();
-        toast('Explanation improved', 'success');
-      } catch (err) {
-        toast(err.message || 'AI request failed', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalLabel;
-      }
     });
 
     function rewire() {
