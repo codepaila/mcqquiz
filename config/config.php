@@ -29,7 +29,7 @@ return [
         'bcrypt_cost' => 12,
         'verify_token_ttl' => 60 * 60 * 24,  // 24 hours
         'reset_token_ttl' => 60 * 60,  // 1 hour
-        'cookie_secure' => false,  // set true in HTTPS prod
+        'cookie_secure' => true,  // set true in HTTPS prod
         'cookie_httponly' => true,
         'cookie_samesite' => 'Lax',
     ],
