@@ -7,40 +7,48 @@
      • Offline fallback page for unresolvable navigations
    ============================================================ */
 
-const CACHE_VERSION   = 'v24.01';
+const CACHE_VERSION = Date.now().toString();
 const SHELL_CACHE     = `qz-shell-${CACHE_VERSION}`;
 const API_CACHE       = `qz-api-${CACHE_VERSION}`;
 const IMAGE_CACHE     = `qz-img-${CACHE_VERSION}`;
 const OFFLINE_URL     = 'pwa/offline.html';
 
-/* Assets to precache on install — the app "shell" */
+// /* Assets to precache on install — the app "shell" */
 const SHELL_ASSETS = [
-  'index.html',
-  'login.html',
-  'register.html',
-  'dashboard.html',
-  'quizzes.html',
-  'courses.html',
-  'bookmarks.html',
-  'attempts.html',
-  'stats.html',
-  'profile.html',
-  'announcements.html',
-  'notifications.html',
-  'my-courses.html',
-  'my-quiz-sets.html',
-  'forgot.html',
-  'contact.html',
-  'admin-contact.html',
-  'assets/styles.css',
-  'assets/components.js',
-  'assets/api.js',
-  'assets/icon.png',
-  'assets/icons/icon-192x192.png',
-  'assets/icons/icon-512x512.png',
-  'manifest.json',
-  OFFLINE_URL,
+    OFFLINE_URL,
+    'manifest.json',
+    'assets/styles.css',
+    'assets/icon.png',
+    'assets/icons/icon-192x192.png',
+    'assets/icons/icon-512x512.png'
 ];
+// const SHELL_ASSETS = [
+//   'index.html',
+//   'login.html',
+//   'register.html',
+//   'dashboard.html',
+//   'quizzes.html',
+//   'courses.html',
+//   'bookmarks.html',
+//   'attempts.html',
+//   'stats.html',
+//   'profile.html',
+//   'announcements.html',
+//   'notifications.html',
+//   'my-courses.html',
+//   'my-quiz-sets.html',
+//   'forgot.html',
+//   'contact.html',
+//   'admin-contact.html',
+//   'assets/styles.css',
+//   'assets/components.js',
+//   'assets/api.js',
+//   'assets/icon.png',
+//   'assets/icons/icon-192x192.png',
+//   'assets/icons/icon-512x512.png',
+//   'manifest.json',
+//   OFFLINE_URL,
+// ];
 
 /* Google Fonts origins to cache */
 const FONT_ORIGINS = [
@@ -125,7 +133,9 @@ self.addEventListener('fetch', event => {
   // 4. Navigation requests (HTML pages) — network-first, offline fallback
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetch(request,{
+        cache:"no-store"
+      })
         .then(response => {
           if (response.ok) {
             const clone = response.clone();
