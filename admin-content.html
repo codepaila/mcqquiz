@@ -1491,94 +1491,28 @@
       // to whichever provider is configured in Admin → AI Settings, and writes
       // the result back into the rich editor. Default prompt only asks it to
       // improve the explanation, but that prompt is fully admin-editable.
-      // el.querySelector('#ai-improve-btn').addEventListener('click', async () => {
-      //   const btn = el.querySelector('#ai-improve-btn');
-      //   const form = el.querySelector('#quiz-form');
-      //   const qText = (form.querySelector('textarea[name="question"]')?.value || '').trim();
-      //   if (!qText) { toast('Write the question first', 'error'); return; }
-
-      //   const correctIdx = parseInt(form.querySelector('input[name="correctIdx"]:checked')?.value);
-      //   const options = [...form.querySelectorAll('input[name="optText"]')]
-      //     .map((inp, i) => ({ text: inp.value.trim(), isCorrect: i === correctIdx }))
-      //     .filter(o => o.text);
-      //   const explanation = (form.querySelector('textarea[name="explanation"]')?.value || '').trim();
-
-      //   const originalLabel = btn.textContent;
-      //   btn.disabled = true;
-      //   btn.textContent = '✨ Thinking…';
-      //   try {
-      //     const r = await admin.improveExplanation({ question: qText, options, explanation });
-      //     const improved = r.data?.text || '';
-      //     if (!improved) throw new Error('AI returned no text');
-      //     // The AI's response is Markdown — render it to HTML for the
-      //     // contenteditable rich-editor body, then sync back to the
-      //     // hidden textarea so form submission picks up the new value.
-      //     if (explanationEditor) {
-      //       explanationEditor.body.innerHTML = renderRichText(improved);
-      //       explanationEditor.syncToTextarea();
-      //     } else {
-      //       form.querySelector('textarea[name="explanation"]').value = improved;
-      //     }
-      //     renderPreview();
-      //     toast('Explanation improved', 'success');
-      //   } catch (err) {
-      //     toast(err.message || 'AI request failed', 'error');
-      //   } finally {
-      //     btn.disabled = false;
-      //     btn.textContent = originalLabel;
-      //   }
-      // });
-      // In admin-content.html, update the AI improve button handler:
-
       el.querySelector('#ai-improve-btn').addEventListener('click', async () => {
         const btn = el.querySelector('#ai-improve-btn');
         const form = el.querySelector('#quiz-form');
         const qText = (form.querySelector('textarea[name="question"]')?.value || '').trim();
-
-        if (!qText) {
-          toast('Write the question first', 'error');
-          return;
-        }
+        if (!qText) { toast('Write the question first', 'error'); return; }
 
         const correctIdx = parseInt(form.querySelector('input[name="correctIdx"]:checked')?.value);
         const options = [...form.querySelectorAll('input[name="optText"]')]
-          .map((inp, i) => ({
-            text: inp.value.trim(),
-            isCorrect: i === correctIdx
-          }))
+          .map((inp, i) => ({ text: inp.value.trim(), isCorrect: i === correctIdx }))
           .filter(o => o.text);
-
-        if (options.length < 2) {
-          toast('Add at least 2 options first', 'error');
-          return;
-        }
-
         const explanation = (form.querySelector('textarea[name="explanation"]')?.value || '').trim();
 
         const originalLabel = btn.textContent;
         btn.disabled = true;
         btn.textContent = '✨ Thinking…';
-
         try {
-          // Add timeout to prevent hanging
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Request timed out. Check AI settings.')), 30000);
-          });
-
-          const improvePromise = admin.improveExplanation({
-            question: qText,
-            options,
-            explanation
-          });
-
-          const r = await Promise.race([improvePromise, timeoutPromise]);
+          const r = await admin.improveExplanation({ question: qText, options, explanation });
           const improved = r.data?.text || '';
-
-          if (!improved) {
-            throw new Error('AI returned no text');
-          }
-
-          // Update the explanation
+          if (!improved) throw new Error('AI returned no text');
+          // The AI's response is Markdown — render it to HTML for the
+          // contenteditable rich-editor body, then sync back to the
+          // hidden textarea so form submission picks up the new value.
           if (explanationEditor) {
             explanationEditor.body.innerHTML = renderRichText(improved);
             explanationEditor.syncToTextarea();
@@ -1586,19 +1520,86 @@
             form.querySelector('textarea[name="explanation"]').value = improved;
           }
           renderPreview();
-          toast('Explanation improved!', 'success');
-
+          toast('Explanation improved', 'success');
         } catch (err) {
-          console.error('[AI] Error:', err);
-          toast(
-            err.message || 'AI request failed. Check AI settings in Admin panel.',
-            'error'
-          );
+          toast(err.message || 'AI request failed', 'error');
         } finally {
           btn.disabled = false;
           btn.textContent = originalLabel;
         }
       });
+      // In admin-content.html, update the AI improve button handler:
+
+      // el.querySelector('#ai-improve-btn').addEventListener('click', async () => {
+      //   const btn = el.querySelector('#ai-improve-btn');
+      //   const form = el.querySelector('#quiz-form');
+      //   const qText = (form.querySelector('textarea[name="question"]')?.value || '').trim();
+
+      //   if (!qText) {
+      //     toast('Write the question first', 'error');
+      //     return;
+      //   }
+
+      //   const correctIdx = parseInt(form.querySelector('input[name="correctIdx"]:checked')?.value);
+      //   const options = [...form.querySelectorAll('input[name="optText"]')]
+      //     .map((inp, i) => ({
+      //       text: inp.value.trim(),
+      //       isCorrect: i === correctIdx
+      //     }))
+      //     .filter(o => o.text);
+
+      //   if (options.length < 2) {
+      //     toast('Add at least 2 options first', 'error');
+      //     return;
+      //   }
+
+      //   const explanation = (form.querySelector('textarea[name="explanation"]')?.value || '').trim();
+
+      //   const originalLabel = btn.textContent;
+      //   btn.disabled = true;
+      //   btn.textContent = '✨ Thinking…';
+
+      //   try {
+      //     // Add timeout to prevent hanging
+      //     const timeoutPromise = new Promise((_, reject) => {
+      //       setTimeout(() => reject(new Error('Request timed out. Check AI settings.')), 30000);
+      //     });
+
+      //     const improvePromise = admin.improveExplanation({
+      //       question: qText,
+      //       options,
+      //       explanation
+      //     });
+
+      //     const r = await Promise.race([improvePromise, timeoutPromise]);
+      //     const improved = r.data?.text || '';
+
+      //     if (!improved) {
+      //       throw new Error('AI returned no text');
+      //     }
+
+      //     // Update the explanation
+      //     if (explanationEditor) {
+      //       explanationEditor.body.innerHTML = renderRichText(improved);
+      //       explanationEditor.syncToTextarea();
+      //     } else {
+      //       form.querySelector('textarea[name="explanation"]').value = improved;
+      //     }
+      //     renderPreview();
+      //     toast('Explanation improved!', 'success');
+
+      //   } catch (err) {
+      //     console.error('[AI] Error:', err);
+      //     toast(
+      //       err.message || 'AI request failed. Check AI settings in Admin panel.',
+      //       'error'
+      //     );
+      //   } finally {
+      //     btn.disabled = false;
+      //     btn.textContent = originalLabel;
+      //   }
+      // });
+
       function rewire() {
         el.querySelectorAll('[data-remove]').forEach(b => {
           b.onclick = () => {
