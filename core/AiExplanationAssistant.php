@@ -3,51 +3,97 @@ namespace Quiznosis\Core;
 
 use Quiznosis\Models\AiSettings;
 
-/**
- * AiExplanationAssistant
- *
- * Sends a question + options + correct answer + current explanation to an
- * AI provider's chat-completions endpoint and returns improved explanation
- * text. Built against the OpenAI-compatible request/response shape, which
- * DeepSeek (and most other hosted LLM APIs) implement, so switching
- * providers is just a matter of changing the endpoint/key/model in the
- * admin AI Settings page — no code changes needed here.
- *
- * Uses cURL rather than file_get_contents(): some hosts (seen previously
- * with this project's Telegram integration on InfinityFree/free.nf) block
- * outbound file_get_contents() over HTTPS, or have allow_url_fopen
- * disabled, while cURL still works. If cURL isn't available at all, falls
- * back to file_get_contents() so this still works in that uncommon case.
- */
 class AiExplanationAssistant
 {
-    /**
-     * @param array $question  ['text' => string, 'options' => [['text'=>..,'is_correct'=>bool], ...], 'explanation' => string]
-     * @return array ['ok' => bool, 'text' => string|null, 'error' => string|null]
-     */
     public static function improveExplanation(array $question): array
     {
-        $settings = AiSettings::get();
-        $enabled  = (bool)($settings['enabled'] ?? false);
-        $baseUrl  = trim((string)($settings['api_base_url'] ?? ''));
-        $apiKey   = trim((string)($settings['api_key'] ?? ''));
-        $model    = trim((string)($settings['model'] ?? ''));
-        $template = (string)($settings['prompt_template'] ?? '');
+        try {
+            // Get settings using your AiSettings model
+            $settings = AiSettings::get();
+            
+            error_log('[AI] Settings loaded successfully');
+            error_log('[AI] API Base URL: ' . ($settings['api_base_url'] ?? 'NOT SET'));
+            error_log('[AI] Model: ' . ($settings['model'] ?? 'NOT SET'));
+            error_log('[AI] Enabled: ' . ($settings['enabled'] ?? '0'));
+            error_log('[AI] API Key set: ' . (isset($settings['api_key']) && !empty($settings['api_key']) ? 'YES' : 'NO'));
+            
+        } catch (\Exception $e) {
+            error_log('[AI] Failed to load settings: ' . $e->getMessage());
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'Failed to load AI settings: ' . $e->getMessage()
+            ];
+        }
 
-        if (!$enabled)      return ['ok' => false, 'text' => null, 'error' => 'AI assistant is disabled. Enable it in Admin → AI Settings.'];
-        if ($baseUrl === '') return ['ok' => false, 'text' => null, 'error' => 'No API endpoint configured. Set one in Admin → AI Settings.'];
-        if ($apiKey === '')  return ['ok' => false, 'text' => null, 'error' => 'No API key configured. Set one in Admin → AI Settings.'];
-        if ($model === '')   return ['ok' => false, 'text' => null, 'error' => 'No model configured. Set one in Admin → AI Settings.'];
-        if ($template === '') return ['ok' => false, 'text' => null, 'error' => 'No prompt template configured. Set one in Admin → AI Settings.'];
+        if (empty($settings)) {
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'AI settings not configured. Please set up in Admin → AI Settings.'
+            ];
+        }
 
+        // Extract settings - using your exact field names from AiSettings model
+        $enabled = (bool)($settings['enabled'] ?? false);
+        $baseUrl = trim((string)($settings['api_base_url'] ?? ''));
+        $apiKey = trim((string)($settings['api_key'] ?? ''));
+        $model = trim((string)($settings['model'] ?? ''));
+        $template = trim((string)($settings['prompt_template'] ?? ''));
+
+        // Validate settings
+        if (!$enabled) {
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'AI assistant is disabled. Enable it in Admin → AI Settings.'
+            ];
+        }
+
+        if (empty($baseUrl)) {
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'No API endpoint configured. Set one in Admin → AI Settings.'
+            ];
+        }
+
+        if (empty($apiKey)) {
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'No API key configured. Set one in Admin → AI Settings.'
+            ];
+        }
+
+        if (empty($model)) {
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'No model configured. Set one in Admin → AI Settings.'
+            ];
+        }
+
+        if (empty($template)) {
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'No prompt template configured. Set one in Admin → AI Settings.'
+            ];
+        }
+
+        // Build the prompt
         $prompt = self::fillTemplate($template, $question);
+        error_log('[AI] Prompt generated, length: ' . strlen($prompt));
 
+        // Prepare API request
         $payload = json_encode([
-            'model'    => $model,
+            'model' => $model,
             'messages' => [
-                ['role' => 'user', 'content' => $prompt],
+                ['role' => 'user', 'content' => $prompt]
             ],
             'temperature' => 0.4,
+            'max_tokens' => 500,
         ]);
 
         $headers = [
@@ -55,40 +101,73 @@ class AiExplanationAssistant
             'Authorization: Bearer ' . $apiKey,
         ];
 
-        $result = function_exists('curl_init')
-            ? self::callViaCurl($baseUrl, $headers, $payload)
-            : self::callViaFileGetContents($baseUrl, $headers, $payload);
+        error_log('[AI] Sending request to: ' . $baseUrl);
 
-        if (!$result['ok']) return $result;
+        // Make the request
+        $result = self::makeRequest($baseUrl, $headers, $payload);
 
+        if (!$result['ok']) {
+            error_log('[AI] Request failed: ' . ($result['error'] ?? 'Unknown error'));
+            return $result;
+        }
+
+        // Parse response
         $data = json_decode($result['body'], true);
+        
         if (!is_array($data)) {
-            return ['ok' => false, 'text' => null, 'error' => 'AI provider returned a non-JSON response.'];
+            error_log('[AI] Invalid JSON response: ' . substr($result['body'], 0, 200));
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'AI provider returned invalid response format.'
+            ];
         }
+
         if (isset($data['error'])) {
-            $msg = is_array($data['error']) ? ($data['error']['message'] ?? json_encode($data['error'])) : $data['error'];
-            return ['ok' => false, 'text' => null, 'error' => 'AI provider error: ' . $msg];
+            $msg = is_array($data['error'])
+                ? ($data['error']['message'] ?? json_encode($data['error']))
+                : $data['error'];
+            error_log('[AI] API error: ' . $msg);
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'AI provider error: ' . $msg
+            ];
         }
 
-        // OpenAI-compatible chat completions response shape.
         $text = $data['choices'][0]['message']['content'] ?? null;
+        
         if ($text === null || trim($text) === '') {
-            return ['ok' => false, 'text' => null, 'error' => 'AI provider returned an empty response.'];
+            error_log('[AI] Empty response: ' . json_encode($data));
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'AI provider returned an empty response.'
+            ];
         }
 
-        return ['ok' => true, 'text' => trim($text), 'error' => null];
+        error_log('[AI] Successfully generated explanation');
+        return [
+            'ok' => true,
+            'text' => trim($text),
+            'error' => null
+        ];
     }
 
-    /** Replace {{question}}, {{options}}, {{correct_answer}}, {{explanation}} in the template. */
     private static function fillTemplate(string $template, array $question): string
     {
         $optionsText = '';
         $correctText = '(not specified)';
-        foreach (($question['options'] ?? []) as $i => $opt) {
-            $letter = chr(65 + $i); // A, B, C, ...
-            $optionsText .= "{$letter}. " . ($opt['text'] ?? '') . "\n";
-            if (!empty($opt['is_correct'])) {
-                $correctText = "{$letter}. " . ($opt['text'] ?? '');
+        
+        $options = $question['options'] ?? [];
+        if (is_array($options)) {
+            foreach ($options as $i => $opt) {
+                $letter = chr(65 + $i);
+                $optText = is_array($opt) ? ($opt['text'] ?? '') : $opt;
+                $optionsText .= "{$letter}. " . $optText . "\n";
+                if (is_array($opt) && !empty($opt['is_correct'])) {
+                    $correctText = "{$letter}. " . $optText;
+                }
             }
         }
 
@@ -104,47 +183,85 @@ class AiExplanationAssistant
         );
     }
 
+    private static function makeRequest(string $url, array $headers, string $payload): array
+    {
+        if (function_exists('curl_init')) {
+            return self::callViaCurl($url, $headers, $payload);
+        }
+        
+        error_log('[AI] cURL not available, using file_get_contents fallback');
+        return self::callViaFileGetContents($url, $headers, $payload);
+    }
+
     private static function callViaCurl(string $url, array $headers, string $payload): array
     {
         $ch = curl_init($url);
+        
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        
         $body = curl_exec($ch);
+        
         if ($body === false) {
-            $err = curl_error($ch);
+            $error = curl_error($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
-            return ['ok' => false, 'text' => null, 'error' => 'Network error reaching the AI provider: ' . $err];
+            error_log("[AI] cURL error: $error (HTTP $httpCode)");
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => "Network error: $error"
+            ];
         }
+        
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($httpCode >= 400) {
-            return ['ok' => false, 'text' => null, 'error' => "AI provider returned HTTP {$httpCode}: " . substr($body, 0, 300)];
+            error_log("[AI] HTTP error $httpCode: " . substr($body, 0, 500));
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => "AI provider returned HTTP $httpCode"
+            ];
         }
+        
         return ['ok' => true, 'body' => $body, 'error' => null];
     }
 
     private static function callViaFileGetContents(string $url, array $headers, string $payload): array
     {
-        $ctx = stream_context_create([
+        $context = stream_context_create([
             'http' => [
-                'method'        => 'POST',
-                'header'        => implode("\r\n", $headers) . "\r\nContent-Length: " . strlen($payload) . "\r\n",
-                'content'       => $payload,
-                'timeout'       => 30,
+                'method' => 'POST',
+                'header' => implode("\r\n", $headers) . "\r\nContent-Length: " . strlen($payload) . "\r\n",
+                'content' => $payload,
+                'timeout' => 30,
                 'ignore_errors' => true,
             ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ]
         ]);
 
-        $body = @file_get_contents($url, false, $ctx);
+        $body = @file_get_contents($url, false, $context);
+        
         if ($body === false) {
-            return ['ok' => false, 'text' => null, 'error' => 'Network error reaching the AI provider (server could not connect).'];
+            $error = error_get_last();
+            error_log('[AI] file_get_contents error: ' . ($error['message'] ?? 'Unknown error'));
+            return [
+                'ok' => false,
+                'text' => null,
+                'error' => 'Network error: Could not connect to AI provider'
+            ];
         }
+        
         return ['ok' => true, 'body' => $body, 'error' => null];
     }
 }

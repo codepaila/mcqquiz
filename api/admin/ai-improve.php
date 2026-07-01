@@ -6,17 +6,10 @@
  * Body: {
  *   question: string,
  *   options: [ { text: string, isCorrect: bool }, ... ],
- *   explanation: string   // current text, may be empty — improving an
- *                         // empty explanation just generates one from
- *                         // scratch using the question + correct answer
+ *   explanation: string   // current text, may be empty
  * }
  *
  * Returns: { data: { text: string } }
- *
- * Takes the question/options/explanation directly from the client rather
- * than looking up a saved question by id, so this works for brand-new
- * questions that haven't been saved yet too, and always reflects whatever
- * the admin currently has typed in the form (not a possibly-stale DB copy).
  */
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
 
@@ -25,31 +18,76 @@ use Quiznosis\Core\Response;
 use Quiznosis\Core\Auth;
 use Quiznosis\Core\AiExplanationAssistant;
 
-Auth::requireAdmin();
-Request::requireMethod('POST');
+// Set error handling for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors to client
+ini_set('log_errors', 1);
+ini_set('error_log', '/tmp/php_errors.log');
 
-$body = Request::body();
+try {
+    Auth::requireAdmin();
+    Request::requireMethod('POST');
 
-$questionText = trim((string)($body['question'] ?? ''));
-if ($questionText === '') {
-    Response::error('Question text is required before using the AI assistant.', 400);
+    $body = Request::body();
+    
+    // Validate required fields
+    $questionText = trim((string)($body['question'] ?? ''));
+    if ($questionText === '') {
+        Response::error('Question text is required before using the AI assistant.', 400);
+    }
+
+    // Parse and validate options
+    $options = [];
+    if (!empty($body['options']) && is_array($body['options'])) {
+        foreach ($body['options'] as $opt) {
+            $text = trim((string)($opt['text'] ?? ''));
+            if ($text === '') continue;
+            $options[] = [
+                'text' => $text,
+                'is_correct' => !empty($opt['isCorrect'])
+            ];
+        }
+    }
+
+    // If no options provided, try to extract from request
+    if (empty($options) && !empty($body['options'])) {
+        // Handle case where options might be a simple array
+        foreach ($body['options'] as $key => $value) {
+            if (is_array($value) && isset($value['text'])) {
+                $options[] = $value;
+            }
+        }
+    }
+
+    // Get current explanation
+    $currentExplanation = (string)($body['explanation'] ?? '');
+    
+    // Log the request for debugging
+    error_log("[AI] Processing improvement request. Question: " . substr($questionText, 0, 50) . "...");
+    error_log("[AI] Options count: " . count($options));
+    error_log("[AI] Has explanation: " . (strlen($currentExplanation) > 0 ? 'Yes' : 'No'));
+
+    // Call the AI assistant
+    $result = AiExplanationAssistant::improveExplanation([
+        'text' => $questionText,
+        'options' => $options,
+        'explanation' => $currentExplanation,
+    ]);
+
+    if (!$result['ok']) {
+        $errorMsg = $result['error'] ?? 'AI request failed.';
+        error_log("[AI] Error: " . $errorMsg);
+        Response::error($errorMsg, 502);
+    }
+
+    // Ensure we have a valid response
+    if (empty($result['text'])) {
+        $result['text'] = 'No explanation generated. Please try again.';
+    }
+
+    Response::ok(['data' => ['text' => $result['text']]]);
+    
+} catch (Exception $e) {
+    error_log("[AI] Exception: " . $e->getMessage());
+    Response::error('AI service error: ' . $e->getMessage(), 502);
 }
-
-$options = [];
-foreach (($body['options'] ?? []) as $opt) {
-    $text = trim((string)($opt['text'] ?? ''));
-    if ($text === '') continue;
-    $options[] = ['text' => $text, 'is_correct' => !empty($opt['isCorrect'])];
-}
-
-$result = AiExplanationAssistant::improveExplanation([
-    'text'        => $questionText,
-    'options'     => $options,
-    'explanation' => (string)($body['explanation'] ?? ''),
-]);
-
-if (!$result['ok']) {
-    Response::error($result['error'] ?? 'AI request failed.', 502);
-}
-
-Response::ok(['data' => ['text' => $result['text']]]);
