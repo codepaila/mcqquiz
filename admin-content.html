@@ -132,7 +132,23 @@
     border-radius:0 6px 6px 0;
     font-family:'Inter', sans-serif; font-size:0.9rem; color:var(--ink);
   }
-  .qe-pv-explanation strong { display:block; margin-bottom:6px; color:#2b7de8; font-size:0.7rem; letter-spacing:0.06em; text-transform:uppercase; }
+  /* Match the rich-editor's heading style exactly (clean sans-serif, not
+     the page's display/serif font) so the two preview surfaces — the
+     editor on the left and this box on the right — render identically.
+     Without this, h1/h2/h3 here fall back to the ambient .modal h2 rule
+     and the browser's own default heading font, neither of which match
+     what the admin actually sees while typing. */
+  .qe-pv-explanation h1, .qe-pv-explanation h2 { font-family:'Inter', sans-serif; font-size:1.25rem; font-weight:700; color:var(--ink); margin:18px 0 10px; padding-bottom:4px; border-bottom:1px solid var(--paper-edge); }
+  .qe-pv-explanation h3 { font-family:'Inter', sans-serif; font-size:1.05rem; font-weight:700; margin:16px 0 8px; color:var(--ink); }
+  .qe-pv-explanation h4 { font-family:'Inter', sans-serif; font-size:0.95rem; font-weight:700; margin:14px 0 6px; color:var(--ink); }
+  .qe-pv-explanation p { margin:0 0 12px; }
+  .qe-pv-explanation ul, .qe-pv-explanation ol { margin:8px 0 14px 22px; padding:0; }
+  .qe-pv-explanation li { margin:4px 0; }
+  .qe-pv-explanation blockquote { margin:14px 0; padding:8px 14px; background:rgba(255,255,255,0.5); border-left:3px solid #2b7de8; font-style:italic; }
+  .qe-pv-explanation code { background:rgba(255,255,255,0.6); padding:1px 5px; border-radius:3px; font-family:'IBM Plex Mono', monospace; font-size:0.86em; }
+  .qe-pv-explanation table { border-collapse:collapse; margin:12px 0; }
+  .qe-pv-explanation td, .qe-pv-explanation th { padding:6px 10px; border:1px solid rgba(43,125,232,0.25); }
+  .qe-pv-explanation-label { display:block; margin-bottom:6px; color:#2b7de8; font-size:0.7rem; letter-spacing:0.06em; text-transform:uppercase; }
   .qe-pv-meta {
     display:flex; gap:14px; flex-wrap:wrap;
     margin-top:18px; font-family:'IBM Plex Mono', monospace;
@@ -977,7 +993,13 @@
           <div class="qe-edit">
             <form id="quiz-form" class="stack" style="--stack:14px;">
               <div class="field"><label>Question</label><textarea name="question" rows="3" required>${escapeHtml(e.question || '')}</textarea></div>
-              <div class="field"><label>Explanation</label><textarea name="explanation" rows="2">${escapeHtml(e.explanation || '')}</textarea></div>
+              <div class="field">
+                <label style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                  <span>Explanation</span>
+                  <button type="button" class="btn btn-ghost btn-sm" id="ai-improve-btn" style="font-weight:600;">✨ Improve with AI</button>
+                </label>
+                <textarea name="explanation" rows="2">${escapeHtml(e.explanation || '')}</textarea>
+              </div>
               <div class="field-row">
                 <div class="field"><label>Difficulty</label>
                   <select name="difficulty">
@@ -991,6 +1013,11 @@
                     ${subjects.map(s => `<option value="${s.id}" ${e.subject_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('')}
                   </select>
                 </div>
+              </div>
+              <div class="field"><label>Topic <span class="text-muted" style="font-weight:400;">(optional, used for filtering)</span></label>
+                <select name="topicId"><option value="">\u2014</option>
+                  ${topics.map(t => `<option value="${t.id}" ${e.topic_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}
+                </select>
               </div>
               <div class="field">
                 <label>Options (mark the correct one)</label>
@@ -1018,8 +1045,50 @@
     // Rich-text editor on the Explanation field — same as Notes / Lessons editors.
     // Lets admins paste pre-formatted HTML (e.g. from a quiz key in Word) and see
     // it rendered, plus a toolbar for bold/italic/lists/links/colors.
-    mountRichEditor(el.querySelector('textarea[name="explanation"]'), {
+    const explanationEditor = mountRichEditor(el.querySelector('textarea[name="explanation"]'), {
       placeholder: 'Why is this answer correct? (optional)'
+    });
+
+    // "Improve with AI" — sends the current question + options + explanation
+    // to whichever provider is configured in Admin → AI Settings, and writes
+    // the result back into the rich editor. Default prompt only asks it to
+    // improve the explanation, but that prompt is fully admin-editable.
+    el.querySelector('#ai-improve-btn').addEventListener('click', async () => {
+      const btn = el.querySelector('#ai-improve-btn');
+      const form = el.querySelector('#quiz-form');
+      const qText = (form.querySelector('textarea[name="question"]')?.value || '').trim();
+      if (!qText) { toast('Write the question first', 'error'); return; }
+
+      const correctIdx = parseInt(form.querySelector('input[name="correctIdx"]:checked')?.value);
+      const options = [...form.querySelectorAll('input[name="optText"]')]
+        .map((inp, i) => ({ text: inp.value.trim(), isCorrect: i === correctIdx }))
+        .filter(o => o.text);
+      const explanation = (form.querySelector('textarea[name="explanation"]')?.value || '').trim();
+
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '✨ Thinking…';
+      try {
+        const r = await admin.improveExplanation({ question: qText, options, explanation });
+        const improved = r.data?.text || '';
+        if (!improved) throw new Error('AI returned no text');
+        // The AI's response is Markdown — render it to HTML for the
+        // contenteditable rich-editor body, then sync back to the
+        // hidden textarea so form submission picks up the new value.
+        if (explanationEditor) {
+          explanationEditor.body.innerHTML = renderRichText(improved);
+          explanationEditor.syncToTextarea();
+        } else {
+          form.querySelector('textarea[name="explanation"]').value = improved;
+        }
+        renderPreview();
+        toast('Explanation improved', 'success');
+      } catch (err) {
+        toast(err.message || 'AI request failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
     });
 
     function rewire() {
@@ -1082,7 +1151,7 @@
       // Explanation comes from the rich editor — usually HTML, but admins can
       // also type Markdown by hand. renderRichText handles both and sanitizes.
       explEl.innerHTML = expl
-        ? `<div class="qe-pv-explanation"><strong>Explanation</strong>${renderRichText(expl)}</div>`
+        ? `<div class="qe-pv-explanation"><strong class="qe-pv-explanation-label">Explanation</strong>${renderRichText(expl)}</div>`
         : '';
 
       el.querySelector('#qe-pv-meta').innerHTML = `
@@ -1110,6 +1179,7 @@
         explanation: fd.get('explanation') || null,
         difficulty: fd.get('difficulty'),
         subjectId: fd.get('subjectId') || null,
+        topicId: fd.get('topicId') || null,
         options,
       };
       try {

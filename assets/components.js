@@ -1303,6 +1303,7 @@ export function renderMarkdown(src) {
     return t.split('|').map(c => c.trim());
   }
 
+  
   function pipeCount(s) {
     // Count pipes that look like column separators (not escaped \|).
     return (s.replace(/\\\|/g, '').match(/\|/g) || []).length;
