@@ -22,14 +22,16 @@ use Quiznosis\Core\AiExplanationAssistant;
 error_reporting(E_ALL);
 ini_set('display_errors', 0); // Don't display errors to client
 ini_set('log_errors', 1);
+ini_set('error_log', '/tmp/php_errors.log');
 
 try {
-    // Use the correct Auth method - requireAdmin() handles everything
+    // Require admin access - uses your Auth class correctly
     Auth::requireAdmin();
     
     // Check request method
     Request::requireMethod('POST');
 
+    // Get request body
     $body = Request::body();
     
     // Validate required fields
