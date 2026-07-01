@@ -8,7 +8,6 @@ class AiExplanationAssistant
     public static function improveExplanation(array $question): array
     {
         try {
-            // Get settings using your AiSettings model
             $settings = AiSettings::get();
             
             error_log('[AI] Settings loaded successfully');
