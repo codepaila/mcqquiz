@@ -7,7 +7,7 @@
      • Offline fallback page for unresolvable navigations
    ============================================================ */
 
-const CACHE_VERSION   = 'v23';
+const CACHE_VERSION   = 'v24';
 const SHELL_CACHE     = `qz-shell-${CACHE_VERSION}`;
 const API_CACHE       = `qz-api-${CACHE_VERSION}`;
 const IMAGE_CACHE     = `qz-img-${CACHE_VERSION}`;
