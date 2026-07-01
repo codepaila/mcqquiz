@@ -11,7 +11,7 @@
 
 const PWA_DISMISSED_KEY  = 'qz-pwa-install-dismissed';
 const PWA_INSTALL_DELAY  = 3000;   // ms before showing install banner
-const SW_PATH            = '/service-worker.js'; // Fixed path
+const SW_PATH            = '/sw.js'; // Fixed path
 const SW_SCOPE           = '/';
 
 /* ── 1. Service worker registration ──────────────────────── */
