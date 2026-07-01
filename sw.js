@@ -8,7 +8,7 @@
    ============================================================ */
 
 // Change this version number when you deploy updates
-const CACHE_VERSION = 'v3'; // Increment this for new deployments
+const CACHE_VERSION = Date.now().toString(); // Increment this for new deployments
 const SHELL_CACHE     = `qz-shell-${CACHE_VERSION}`;
 const API_CACHE       = `qz-api-${CACHE_VERSION}`;
 const IMAGE_CACHE     = `qz-img-${CACHE_VERSION}`;
