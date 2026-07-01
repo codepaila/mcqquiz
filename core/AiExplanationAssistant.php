@@ -200,7 +200,13 @@ class AiExplanationAssistant
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        // Keep this comfortably below the calling script's max_execution_time
+        // (set to 40s in ai-improve.php) so cURL always has a chance to return
+        // its own graceful ['ok' => false, ...] result instead of PHP's hard
+        // timeout killing the process mid-request (which produces no HTTP
+        // response at all and surfaces to the browser as a bare 502).
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 25);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         
@@ -240,7 +246,7 @@ class AiExplanationAssistant
                 'method' => 'POST',
                 'header' => implode("\r\n", $headers) . "\r\nContent-Length: " . strlen($payload) . "\r\n",
                 'content' => $payload,
-                'timeout' => 30,
+                'timeout' => 25, // stay under the script's max_execution_time (see ai-improve.php)
                 'ignore_errors' => true,
             ],
             'ssl' => [

@@ -24,6 +24,15 @@ ini_set('display_errors', 0); // Don't display errors to client
 ini_set('log_errors', 1);
 ini_set('error_log', '/tmp/php_errors.log');
 
+// IMPORTANT: give this script more time than the outbound AI request's own
+// timeout (see AiExplanationAssistant::callViaCurl). php.ini's production
+// default max_execution_time is 30s, which is the SAME as the cURL timeout —
+// so PHP's hard timeout can fire before cURL returns its own graceful error,
+// killing the process with no output at all. That looks like a "502" to the
+// browser (Render/Cloudflare return their own empty Bad Gateway page) even
+// though nothing in this file itself is broken.
+set_time_limit(40);
+
 try {
     // Require admin access - uses your Auth class correctly
     Auth::requireAdmin();
