@@ -1,7 +1,7 @@
 /* ============================================================
    Quiznosis PWA — pwa.js
    Drop this script on every page. It handles:
-     1. Service worker registration
+     1. Service worker registration with auto-updates
      2. Install prompt (Android/Chrome — beforeinstallprompt)
      3. iOS Safari "Add to Home Screen" banner
      4. Standalone mode detection (hide install UI when already installed)
@@ -11,11 +11,12 @@
 
 const PWA_DISMISSED_KEY  = 'qz-pwa-install-dismissed';
 const PWA_INSTALL_DELAY  = 3000;   // ms before showing install banner
-const SW_PATH            = '/sw.js';
+const SW_PATH            = '/service-worker.js'; // Fixed path
 const SW_SCOPE           = '/';
 
 /* ── 1. Service worker registration ──────────────────────── */
 let swRegistration = null;
+let updateAvailable = false;
 
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return null;
@@ -26,19 +27,35 @@ export async function registerServiceWorker() {
       updateViaCache: 'none',
     });
 
+    console.log('[PWA] Service Worker registered:', swRegistration);
+
     // Listen for a new SW waiting → show update toast
     swRegistration.addEventListener('updatefound', () => {
       const newWorker = swRegistration.installing;
       if (!newWorker) return;
+      
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          updateAvailable = true;
           showUpdateToast();
         }
       });
     });
 
-    // Periodic update check (every 30 min while page is open)
-    setInterval(() => swRegistration?.update(), 30 * 60 * 1000);
+    // Check for updates more frequently (every 5 minutes)
+    setInterval(() => {
+      if (swRegistration) {
+        swRegistration.update().catch(err => console.warn('[PWA] Update check failed:', err));
+      }
+    }, 5 * 60 * 1000);
+
+    // Handle controller change (new SW takes over)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (updateAvailable) {
+        console.log('[PWA] New service worker activated, reloading...');
+        window.location.reload();
+      }
+    });
 
     return swRegistration;
   } catch (err) {
@@ -52,10 +69,16 @@ let deferredPrompt = null;
 
 export function initInstallPrompt() {
   // Already installed / running standalone — do nothing
-  if (isRunningStandalone()) return;
+  if (isRunningStandalone()) {
+    console.log('[PWA] Running in standalone mode, hiding install prompts');
+    return;
+  }
 
   // Dismissed too recently
-  if (wasRecentlyDismissed()) return;
+  if (wasRecentlyDismissed()) {
+    console.log('[PWA] Install dismissed recently, skipping');
+    return;
+  }
 
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
   const isInWebAppiOS = window.navigator.standalone === true;
@@ -70,11 +93,13 @@ export function initInstallPrompt() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
+    console.log('[PWA] beforeinstallprompt captured');
     setTimeout(showAndroidBanner, PWA_INSTALL_DELAY);
   });
 
   // Fired when installed via browser dialog
   window.addEventListener('appinstalled', () => {
+    console.log('[PWA] App installed successfully');
     hideBanner();
     deferredPrompt = null;
     try { localStorage.setItem(PWA_DISMISSED_KEY, 'installed'); } catch {}
@@ -103,6 +128,7 @@ function injectBannerCSS() {
       display: flex;
       align-items: center;
       gap: 14px;
+      font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
     }
     /* On mobile, sit above the bottom nav bar */
     @media (max-width: 640px) {
@@ -201,7 +227,7 @@ function injectBannerCSS() {
       margin-bottom: 22px;
       font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
     }
-    .qz-ios-steps { list-style: none; }
+    .qz-ios-steps { list-style: none; padding: 0; margin: 0; }
     .qz-ios-steps li {
       display: flex; align-items: center; gap: 14px;
       padding: 12px 0;
@@ -249,32 +275,51 @@ function injectBannerCSS() {
       background: rgba(0,0,0,0.4);
     }
 
-    /* Update toast */
+    /* Update toast - FIXED positioning */
     #qz-sw-update-toast {
       position: fixed;
-      top: calc(72px + env(safe-area-inset-top));
+      top: 20px;
       left: 50%;
       transform: translateX(-50%) translateY(-120px);
       z-index: 9997;
-      background: var(--ink, #1A1814);
-      color: var(--paper, #F7F3EC);
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 0.88rem;
+      background: #1A1814;
+      color: #F7F3EC;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-size: 0.92rem;
       font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
-      display: flex; align-items: center; gap: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      display: flex; 
+      align-items: center; 
+      gap: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
       white-space: nowrap;
-      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 90%;
+      pointer-events: none;
     }
-    #qz-sw-update-toast.visible { transform: translateX(-50%) translateY(0); }
+    #qz-sw-update-toast.visible { 
+      transform: translateX(-50%) translateY(0); 
+      pointer-events: all;
+    }
+    [data-theme="dark"] #qz-sw-update-toast {
+      background: #2A3A5C;
+      color: #F7F3EC;
+    }
     .qz-update-reload {
-      background: var(--accent, #B8531C);
-      color: #fff; border: none;
-      border-radius: 6px; padding: 6px 14px;
-      font-size: 0.82rem; font-weight: 600;
+      background: #B8531C;
+      color: #fff; 
+      border: none;
+      border-radius: 8px; 
+      padding: 8px 18px;
+      font-size: 0.85rem; 
+      font-weight: 600;
       cursor: pointer;
       font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .qz-update-reload:hover { 
+      background: #A04416; 
     }
 
     /* Network status pill */
@@ -284,23 +329,42 @@ function injectBannerCSS() {
       left: 50%;
       transform: translateX(-50%) translateY(60px);
       z-index: 9996;
-      padding: 8px 18px;
+      padding: 10px 20px;
       border-radius: 100px;
-      font-size: 0.82rem;
+      font-size: 0.85rem;
       font-weight: 600;
       font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
-      display: flex; align-items: center; gap: 7px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      transition: transform 0.35s ease, opacity .3s;
+      display: flex; 
+      align-items: center; 
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s;
       opacity: 0;
       pointer-events: none;
     }
-    #qz-network-pill.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-    #qz-network-pill.offline { background: #9B2C2C; color: #fff; }
-    #qz-network-pill.online  { background: #5C7A47; color: #fff; }
+    #qz-network-pill.show { 
+      transform: translateX(-50%) translateY(0); 
+      opacity: 1; 
+    }
+    #qz-network-pill.offline { 
+      background: #C62828; 
+      color: #fff; 
+    }
+    #qz-network-pill.online  { 
+      background: #2E7D32; 
+      color: #fff; 
+    }
     .qz-net-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: currentColor; opacity: .85;
+      width: 8px; 
+      height: 8px; 
+      border-radius: 50%;
+      background: currentColor; 
+      opacity: .9;
+      animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: .9; transform: scale(1); }
+      50% { opacity: .4; transform: scale(0.8); }
     }
   `;
   document.head.appendChild(s);
@@ -309,6 +373,10 @@ function injectBannerCSS() {
 function showAndroidBanner() {
   if (!deferredPrompt || isRunningStandalone()) return;
   injectBannerCSS();
+
+  // Remove existing banner if any
+  const existingBanner = document.getElementById('qz-pwa-banner');
+  if (existingBanner) existingBanner.remove();
 
   const banner = document.createElement('div');
   banner.id = 'qz-pwa-banner';
@@ -323,7 +391,7 @@ function showAndroidBanner() {
     <div class="qz-pwa-actions">
       <button class="qz-pwa-install-btn" id="qz-pwa-install-btn">Install</button>
       <button class="qz-pwa-close-btn" id="qz-pwa-close-btn" aria-label="Dismiss">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
   `;
@@ -336,10 +404,15 @@ function showAndroidBanner() {
   document.getElementById('qz-pwa-install-btn')?.addEventListener('click', async () => {
     if (!deferredPrompt) return;
     hideBanner();
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    if (outcome === 'dismissed') {
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      if (outcome === 'dismissed') {
+        setDismissed();
+      }
+    } catch (err) {
+      console.warn('[PWA] Install prompt failed:', err);
       setDismissed();
     }
   });
@@ -354,6 +427,12 @@ function showIOSBanner() {
   if (isRunningStandalone()) return;
   injectBannerCSS();
 
+  // Remove existing sheet if any
+  const existingSheet = document.getElementById('qz-pwa-ios-sheet');
+  if (existingSheet) existingSheet.remove();
+  const existingBackdrop = document.getElementById('qz-pwa-backdrop');
+  if (existingBackdrop) existingBackdrop.remove();
+
   const backdrop = document.createElement('div');
   backdrop.id = 'qz-pwa-backdrop';
   document.body.appendChild(backdrop);
@@ -367,7 +446,7 @@ function showIOSBanner() {
     <ol class="qz-ios-steps">
       <li>
         <span class="qz-ios-step-num">1</span>
-        <span>Tap the <strong>Share</strong> button <svg style="display:inline;vertical-align:-3px" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> at the bottom of your browser</span>
+        <span>Tap the <strong>Share</strong> button <svg style="display:inline;vertical-align:-3px" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> at the bottom of your browser</span>
       </li>
       <li>
         <span class="qz-ios-step-num">2</span>
@@ -407,31 +486,52 @@ function hideBanner() {
 }
 
 /* ── 4. Update toast ─────────────────────────────────────── */
+let updateToastTimeout = null;
+
 function showUpdateToast() {
   injectBannerCSS();
-  if (document.getElementById('qz-sw-update-toast')) return;
+  
+  // Remove existing toast if any
+  const existingToast = document.getElementById('qz-sw-update-toast');
+  if (existingToast) {
+    existingToast.remove();
+    clearTimeout(updateToastTimeout);
+  }
 
   const toast = document.createElement('div');
   toast.id = 'qz-sw-update-toast';
   toast.innerHTML = `
-    <span>🎉 New version available</span>
+    <span>🔄 New version available</span>
     <button class="qz-update-reload" id="qz-update-reload">Update now</button>
   `;
   document.body.appendChild(toast);
-  requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('visible')));
+  
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => toast.classList.add('visible'));
+  });
 
   document.getElementById('qz-update-reload')?.addEventListener('click', () => {
     toast.classList.remove('visible');
-    if (swRegistration?.waiting) {
-      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
-    } else {
-      location.reload();
-    }
+    setTimeout(() => {
+      if (swRegistration?.waiting) {
+        swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        // Reload will happen on controllerchange
+        setTimeout(() => {
+          if (!updateAvailable) window.location.reload();
+        }, 1000);
+      } else {
+        window.location.reload();
+      }
+    }, 300);
   });
 
-  // Auto-hide after 15s
-  setTimeout(() => toast?.classList.remove('visible'), 15000);
+  // Auto-hide after 20s
+  updateToastTimeout = setTimeout(() => {
+    if (toast) {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 400);
+    }
+  }, 20000);
 }
 
 /* ── 5. Network status pill ──────────────────────────────── */
@@ -447,22 +547,37 @@ export function initNetworkStatus() {
       pill.id = 'qz-network-pill';
       document.body.appendChild(pill);
     }
+    
+    const messages = {
+      offline: '📡 You\'re offline',
+      online: '✅ Back online'
+    };
+    
     pill.className = `qz-network-pill ${type}`;
-    pill.innerHTML = `<span class="qz-net-dot"></span>${type === 'offline' ? 'You\'re offline' : 'Back online'}`;
+    pill.innerHTML = `<span class="qz-net-dot"></span>${messages[type] || 'Network'}`;
 
     clearTimeout(networkPillTimer);
-    requestAnimationFrame(() => requestAnimationFrame(() => pill.classList.add('show')));
+    
+    // Show immediately
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => pill.classList.add('show'));
+    });
 
-    networkPillTimer = setTimeout(() => {
-      pill?.classList.remove('show');
-    }, type === 'offline' ? 0 : 3000); // offline stays until online
+    // Hide after delay (except offline which stays)
+    if (type === 'online') {
+      networkPillTimer = setTimeout(() => {
+        pill?.classList.remove('show');
+      }, 4000);
+    }
   }
 
   window.addEventListener('offline', () => showPill('offline'));
-  window.addEventListener('online',  () => showPill('online'));
+  window.addEventListener('online', () => showPill('online'));
 
   // Show immediately if offline at page load
-  if (!navigator.onLine) showPill('offline');
+  if (!navigator.onLine) {
+    setTimeout(() => showPill('offline'), 1000);
+  }
 }
 
 /* ── Helpers ─────────────────────────────────────────────── */
@@ -479,6 +594,7 @@ function wasRecentlyDismissed() {
     const val = localStorage.getItem(PWA_DISMISSED_KEY);
     if (!val || val === 'installed') return val === 'installed';
     const ts = parseInt(val, 10);
+    if (isNaN(ts)) return false;
     // Re-prompt after 7 days
     return Date.now() - ts < 7 * 24 * 60 * 60 * 1000;
   } catch { return false; }
@@ -490,6 +606,7 @@ function setDismissed() {
 
 /* ── Auto-init ───────────────────────────────────────────── */
 export async function initPWA() {
+  console.log('[PWA] Initializing...');
   await registerServiceWorker();
   initInstallPrompt();
   initNetworkStatus();
