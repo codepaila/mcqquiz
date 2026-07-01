@@ -7,7 +7,7 @@
      • Offline fallback page for unresolvable navigations
    ============================================================ */
 
-const CACHE_VERSION   = 'v24';
+const CACHE_VERSION   = 'v24.01';
 const SHELL_CACHE     = `qz-shell-${CACHE_VERSION}`;
 const API_CACHE       = `qz-api-${CACHE_VERSION}`;
 const IMAGE_CACHE     = `qz-img-${CACHE_VERSION}`;
@@ -47,6 +47,23 @@ const FONT_ORIGINS = [
   'https://fonts.googleapis.com',
   'https://fonts.gstatic.com',
 ];
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+
+  const cached = await cache.match(request);
+
+  const networkFetch = fetch(request)
+    .then(response => {
+      if (response && response.ok) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => null);
+
+  return cached || networkFetch;
+}
 
 /* ── Install: precache shell ──────────────────────────────── */
 self.addEventListener('install', event => {
@@ -125,7 +142,7 @@ self.addEventListener('fetch', event => {
   }
 
   // 5. Everything else (CSS, JS) — cache-first
-  event.respondWith(cacheFirst(request, SHELL_CACHE));
+ event.respondWith(staleWhileRevalidate(request, SHELL_CACHE));
 });
 
 /* ── Helpers ──────────────────────────────────────────────── */
