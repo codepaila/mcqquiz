@@ -3,9 +3,15 @@
  * Admin · AI Explanation Assistant Settings
  *
  * GET  /api/admin/ai-settings   — fetch current settings (API key masked)
- * POST /api/admin/ai-settings   — save { provider_label?, api_base_url?, api_key?, model?, prompt_template?, enabled? }
+ * POST /api/admin/ai-settings   — save {
+ *   provider_label?, api_base_url?, api_key?, model?, enabled?,
+ *   prompts?: [ { id?, name, prompt }, ... ]
+ * }
  *
- * Settings stored in the `ai_settings` DB table (auto-created on first request).
+ * Settings stored in the `ai_settings` DB table (created manually via the
+ * migration SQL at the bottom of models/AiSettings.php — deliberately NOT
+ * auto-created at runtime, see that file for why).
+ *
  * Generic by design — works with DeepSeek or any other OpenAI-compatible
  * chat completions API by changing api_base_url / model here, no code
  * changes needed. Admin only.
@@ -33,7 +39,7 @@ if (Request::method() === 'GET') {
                 ? substr($key, 0, 4) . str_repeat('*', max(0, strlen($key) - 8)) . substr($key, -4)
                 : '',
             'model'            => (string)($s['model'] ?? ''),
-            'prompt_template'  => (string)($s['prompt_template'] ?? ''),
+            'prompts'          => $s['prompts'] ?? [],
             'enabled'          => (bool)($s['enabled'] ?? false),
         ],
     ]);
@@ -52,7 +58,7 @@ if (Request::method() === 'POST') {
         $patch['api_key'] = $rawKey;
     }
 
-    foreach (['provider_label', 'api_base_url', 'model', 'prompt_template'] as $field) {
+    foreach (['provider_label', 'api_base_url', 'model'] as $field) {
         if (array_key_exists($field, $body)) {
             $patch[$field] = trim((string)$body[$field]);
         }
@@ -62,7 +68,11 @@ if (Request::method() === 'POST') {
         $patch['enabled'] = !empty($body['enabled']) ? 1 : 0;
     }
 
-    // Always ensure the row exists even if nothing changed (idempotent)
+    if (array_key_exists('prompts', $body) && is_array($body['prompts'])) {
+        $patch['prompts'] = $body['prompts'];
+    }
+
+    // Always ensure the row exists even if nothing changed (idempotent, INSERT-only)
     AiSettings::get();
 
     if (!empty($patch)) {
